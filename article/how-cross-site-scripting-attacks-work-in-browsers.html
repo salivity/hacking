@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Cross-Site Scripting Attacks Work in Browsers - hacking</title>
+    <meta name="description" content="Cross-site scripting (XSS) is a prevalent security vulnerability that enables attackers to inject malicious scripts into otherwise trusted websites. This article explains how XSS operates directly within a victim's web browser, the mechanisms behind how">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-cross-site-scripting-attacks-work-in-browsers">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Cross-Site Scripting Attacks Work in Browsers - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-cross-site-scripting-attacks-work-in-browsers" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Cross-site scripting (XSS) is a prevalent security vulnerability that enables attackers to inject malicious scripts into otherwise trusted websites. This article explains how XSS operates directly within a victim's web browser, the mechanisms behind how" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="https://github.com/salivity" title="Github" aria-label="Go To Github Profile Page"><svg class="svg-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 1.27a11 11 0 00-3.48 21.46c.55.09.73-.28.73-.55v-1.84c-3.03.64-3.67-1.46-3.67-1.46-.55-1.29-1.28-1.65-1.28-1.65-.92-.65.1-.65.1-.65 1.1 0 1.73 1.1 1.73 1.1.92 1.65 2.57 1.2 3.21.92a2 2 0 01.64-1.47c-2.47-.27-5.04-1.19-5.04-5.5 0-1.1.46-2.1 1.2-2.84a3.76 3.76 0 010-2.93s.91-.28 3.11 1.1c1.8-.49 3.7-.49 5.5 0 2.1-1.38 3.02-1.1 3.02-1.1a3.76 3.76 0 010 2.93c.83.74 1.2 1.74 1.2 2.94 0 4.21-2.57 5.13-5.04 5.4.45.37.82.92.82 2.02v3.03c0 .27.1.64.73.55A11 11 0 0012 1.27"></path></svg></a></li>
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-cross-site-scripting-attacks-work-in-browsers">How
+Cross-Site Scripting Attacks Work in Browsers</h1>
+<p>Cross-site scripting (XSS) is a prevalent security vulnerability that
+enables attackers to inject malicious scripts into otherwise trusted
+websites. This article explains how XSS operates directly within a
+victim’s web browser, the mechanisms behind how these attacks are
+delivered, and the security consequences of allowing unauthorized code
+to execute on an unsuspecting user’s device.</p>
+<h2 id="the-core-vulnerability-web-browser-trust">The Core
+Vulnerability: Web Browser Trust</h2>
+<p>Web browsers are designed to execute code—primarily HTML, CSS, and
+JavaScript—sent to them by web servers. To maintain security, browsers
+employ the Same-Origin Policy (SOP), which ensures that scripts from one
+website cannot access data from another.</p>
+<p>However, XSS bypasses this protection by exploiting the browser’s
+trust in a specific website. If an attacker successfully injects
+malicious JavaScript into a vulnerable website, the victim’s browser
+cannot distinguish between the legitimate website code and the
+attacker’s injected code. Because the script appears to come from a
+trusted source, the browser executes it with the same permissions as the
+website itself.</p>
+<h2 id="how-the-attack-is-executed">How the Attack is Executed</h2>
+<p>XSS attacks occur in three primary ways, depending on how the
+malicious script is delivered to the browser:</p>
+<h3 id="stored-persistent-xss">1. Stored (Persistent) XSS</h3>
+<p>In a stored XSS attack, the malicious script is permanently saved on
+the target website’s database (for example, in a blog comment, forum
+post, or user profile field). When an unsuspecting user navigates to the
+affected page, the server retrieves the stored script from the database
+and includes it in the webpage sent to the browser. The browser then
+executes the script automatically.</p>
+<h3 id="reflected-non-persistent-xss">2. Reflected (Non-Persistent)
+XSS</h3>
+<p>Reflected XSS occurs when a malicious script is included in a request
+sent to the server and is immediately “reflected” back in the response.
+This usually happens via malicious links. An attacker crafts a URL
+containing a script in the query parameters (e.g.,
+<code>http://example.com/search?q=&lt;script&gt;...</code>). If the user
+clicks this link, the server takes the search parameter and displays it
+on the page without proper sanitization, triggering the browser to run
+the script.</p>
+<h3 id="dom-based-xss">3. DOM-Based XSS</h3>
+<p>Unlike Stored and Reflected XSS, which involve the server-side code,
+DOM-based XSS happens entirely within the victim’s browser. It occurs
+when a website’s client-side JavaScript reads data from a
+user-controlled source in the Document Object Model (DOM), such as the
+URL hash, and writes it to an unsafe “sink” (like
+<code>innerHTML</code>) that executes code.</p>
+<h2 id="what-a-hacker-can-do-inside-the-browser">What a Hacker Can Do
+Inside the Browser</h2>
+<p>Once the malicious JavaScript executes within the victim’s browser,
+the attacker gains control over the user’s session with that specific
+website. This allows them to perform several malicious actions:</p>
+<ul>
+<li><strong>Session Hijacking:</strong> The script can access the
+browser’s cookies or local storage. If the website stores session tokens
+there, the attacker can transmit these tokens to their own server,
+allowing them to log in as the victim.</li>
+<li><strong>Keystroke Logging:</strong> Attackers can inject scripts
+that record everything the user types on that webpage, capturing
+passwords, credit card numbers, and personal details.</li>
+<li><strong>Page Manipulation (Defacement):</strong> The script can
+alter what the user sees on the screen, creating fake login forms that
+trick the user into entering sensitive credentials.</li>
+<li><strong>Forced Redirects:</strong> The browser can be forced to
+redirect the user to malicious, phishing, or malware-distributing
+websites.</li>
+</ul></article>
+        <div id=comments-container></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

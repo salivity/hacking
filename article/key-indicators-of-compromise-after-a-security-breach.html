@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Indicators of Compromise After a Security Breach - hacking</title>
+    <meta name="description" content="Following a cybersecurity incident, security teams must rapidly identify and contain the threat to prevent further damage. This article provides a direct overview of the primary indicators of compromise (IoCs) that incident response and security operatio">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/key-indicators-of-compromise-after-a-security-breach">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Key Indicators of Compromise After a Security Breach - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/key-indicators-of-compromise-after-a-security-breach" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Following a cybersecurity incident, security teams must rapidly identify and contain the threat to prevent further damage. This article provides a direct overview of the primary indicators of compromise (IoCs) that incident response and security operatio" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="https://github.com/salivity" title="Github" aria-label="Go To Github Profile Page"><svg class="svg-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 1.27a11 11 0 00-3.48 21.46c.55.09.73-.28.73-.55v-1.84c-3.03.64-3.67-1.46-3.67-1.46-.55-1.29-1.28-1.65-1.28-1.65-.92-.65.1-.65.1-.65 1.1 0 1.73 1.1 1.73 1.1.92 1.65 2.57 1.2 3.21.92a2 2 0 01.64-1.47c-2.47-.27-5.04-1.19-5.04-5.5 0-1.1.46-2.1 1.2-2.84a3.76 3.76 0 010-2.93s.91-.28 3.11 1.1c1.8-.49 3.7-.49 5.5 0 2.1-1.38 3.02-1.1 3.02-1.1a3.76 3.76 0 010 2.93c.83.74 1.2 1.74 1.2 2.94 0 4.21-2.57 5.13-5.04 5.4.45.37.82.92.82 2.02v3.03c0 .27.1.64.73.55A11 11 0 0012 1.27"></path></svg></a></li>
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="key-indicators-of-compromise-after-a-security-breach">Key
+Indicators of Compromise After a Security Breach</h1>
+<p>Following a cybersecurity incident, security teams must rapidly
+identify and contain the threat to prevent further damage. This article
+provides a direct overview of the primary indicators of compromise
+(IoCs) that incident response and security operations teams look for
+during post-breach investigations, focusing on network anomalies,
+host-level changes, and suspicious user behavior.</p>
+<h2 id="network-based-indicators-of-compromise">Network-Based Indicators
+of Compromise</h2>
+<p>Network traffic often provides the first clues that a system has been
+compromised. Security teams analyze network logs to detect several key
+anomalies:</p>
+<ul>
+<li><strong>Unusual Outbound Traffic:</strong> A sudden spike in
+outbound data transfer, especially to unfamiliar IP addresses or
+unauthorized cloud storage services, often indicates data
+exfiltration.</li>
+<li><strong>Geographical Anomalies:</strong> Network connections
+originating from or traveling to countries where the organization does
+not conduct business are a major red flag.</li>
+<li><strong>Mismatched Port-Application Traffic:</strong> Attackers
+frequently bypass firewalls by sending non-standard traffic over common
+ports, such as running command-and-control (C2) protocols over Port 80
+(HTTP) or Port 443 (HTTPS).</li>
+<li><strong>High Volume of DNS Requests:</strong> Attackers often use
+Domain Generation Algorithms (DGAs) to establish communication with C2
+servers, resulting in a high volume of failed or unusual DNS
+requests.</li>
+</ul>
+<h2 id="host-and-system-based-indicators">Host and System-Based
+Indicators</h2>
+<p>Once inside a network, attackers interact with endpoint devices and
+servers. Security teams scan hosts for specific footprints left behind
+by malicious actors:</p>
+<ul>
+<li><strong>Unexpected Registry or System File Changes:</strong>
+Alterations to critical system files or the Windows Registry are common
+tactics used to establish persistence on a system.</li>
+<li><strong>Suspicious Files and Applications:</strong> The presence of
+unrecognized executable files (.exe), scripts (.ps1, .bat), or archiving
+tools in temporary folders or system directories suggests unauthorized
+activity.</li>
+<li><strong>Disabled Security Tools:</strong> Attackers frequently
+attempt to disable antivirus software, firewalls, and logging services
+to evade detection. The sudden termination of security agents is a
+critical indicator of compromise.</li>
+<li><strong>Anomalous System Processes:</strong> Processes running from
+unusual paths, or legitimate system processes (like
+<code>svchost.exe</code> or <code>powershell.exe</code>) behaving
+abnormally, often indicate process injection or living-off-the-land
+techniques.</li>
+</ul>
+<h2 id="authentication-and-user-account-indicators">Authentication and
+User Account Indicators</h2>
+<p>Compromised credentials are one of the most common entry points for
+hackers. Monitoring user account activity helps identify when
+credentials have been weaponized:</p>
+<ul>
+<li><strong>Spikes in Failed Login Attempts:</strong> A sudden surge in
+failed logins for a specific account, or across multiple accounts,
+typically indicates a brute-force or credential-stuffing attack.</li>
+<li><strong>Privileged Account Creation:</strong> The unauthorized
+creation of new administrator or high-privilege accounts is a classic
+sign of an attacker attempting to secure permanent access to the
+network.</li>
+<li><strong>Impossible Travel Anomalies:</strong> When a single user
+account logs in from two distant geographic locations within a timeframe
+that makes physical travel between them impossible, it indicates
+credential sharing or theft.</li>
+<li><strong>Abnormal Access Times:</strong> Users accessing sensitive
+databases or systems outside of their normal working hours, without
+prior authorization, warrants immediate investigation.</li>
+</ul></article>
+        <div id=comments-container></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

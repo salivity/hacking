@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Air-Gapped Systems Can Be Hacked - hacking</title>
+    <meta name="description" content="While physically isolating a computer from the internet—known as air-gapping—provides a robust layer of defense, it does not guarantee absolute security. This article explores how highly sophisticated hacking methods bypass physical isolation, levera">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-air-gapped-systems-can-be-hacked">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Air-Gapped Systems Can Be Hacked - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-air-gapped-systems-can-be-hacked" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="While physically isolating a computer from the internet—known as air-gapping—provides a robust layer of defense, it does not guarantee absolute security. This article explores how highly sophisticated hacking methods bypass physical isolation, levera" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="https://github.com/salivity" title="Github" aria-label="Go To Github Profile Page"><svg class="svg-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 1.27a11 11 0 00-3.48 21.46c.55.09.73-.28.73-.55v-1.84c-3.03.64-3.67-1.46-3.67-1.46-.55-1.29-1.28-1.65-1.28-1.65-.92-.65.1-.65.1-.65 1.1 0 1.73 1.1 1.73 1.1.92 1.65 2.57 1.2 3.21.92a2 2 0 01.64-1.47c-2.47-.27-5.04-1.19-5.04-5.5 0-1.1.46-2.1 1.2-2.84a3.76 3.76 0 010-2.93s.91-.28 3.11 1.1c1.8-.49 3.7-.49 5.5 0 2.1-1.38 3.02-1.1 3.02-1.1a3.76 3.76 0 010 2.93c.83.74 1.2 1.74 1.2 2.94 0 4.21-2.57 5.13-5.04 5.4.45.37.82.92.82 2.02v3.03c0 .27.1.64.73.55A11 11 0 0012 1.27"></path></svg></a></li>
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-air-gapped-systems-can-be-hacked">How Air-Gapped Systems Can
+Be Hacked</h1>
+<p>While physically isolating a computer from the internet—known as
+air-gapping—provides a robust layer of defense, it does not guarantee
+absolute security. This article explores how highly sophisticated
+hacking methods bypass physical isolation, leveraging vectors such as
+contaminated hardware, electromagnetic emissions, acoustic signals,
+thermal manipulation, and supply chain attacks to compromise seemingly
+impenetrable systems.</p>
+<h2 id="the-initial-vector-supply-chain-and-physical-media">The Initial
+Vector: Supply Chain and Physical Media</h2>
+<p>An air-gapped system cannot be breached via traditional online
+network attacks, meaning malware must be introduced physically.
+Sophisticated attackers achieve this through two main methods:</p>
+<ul>
+<li><strong>Supply Chain Attacks:</strong> Attackers intercept hardware
+or software during manufacturing or distribution. By planting malicious
+firmware or hardware components (like modified USB controllers) before
+the system is delivered, the target machine is compromised from the
+moment it is powered on.</li>
+<li><strong>Physical Media (The “Sneakernet”):</strong> Even isolated
+systems require updates, data transfers, and maintenance. Attackers
+target the human element, using infected USB drives, CDs, or maintenance
+laptops. When an employee connects a compromised device to transfer
+files, the malware jumps the air gap. The most famous example of this is
+the Stuxnet worm, which targeted Iranian nuclear facilities.</li>
+</ul>
+<h2
+id="electromagnetic-and-radio-frequency-exfiltration">Electromagnetic
+and Radio Frequency Exfiltration</h2>
+<p>Once a system is infected, the hacker’s next challenge is getting the
+stolen data out (exfiltration). Sophisticated hackers can exploit the
+electromagnetic radiation naturally emitted by computer components.</p>
+<ul>
+<li><strong>Radio Frequency (RF) Emissions:</strong> Computer monitors,
+graphics cards, and memory buses emit electromagnetic noise. Researchers
+have demonstrated that custom malware can manipulate these emissions to
+broadcast data in the form of radio waves. A nearby receiver, such as a
+modified mobile phone, can capture these signals and decode the stolen
+data.</li>
+<li><strong>Power Line Fluctuations:</strong> Attackers can monitor the
+fluctuations in the electrical current of the building’s power grid. By
+manipulating the computer’s CPU workload, malware can create specific
+patterns in power consumption that can be read from the power
+outlet.</li>
+</ul>
+<h2 id="acoustic-and-optical-side-channels">Acoustic and Optical
+Side-Channels</h2>
+<p>Computers generate physical feedback that can be manipulated to
+transmit data silently to a receiver in the same room.</p>
+<ul>
+<li><strong>Acoustic Exfiltration:</strong> Malware can control the
+speed of internal cooling fans or hard drive motors to generate specific
+acoustic frequencies (humming sounds) that act as binary code. A nearby
+smartphone microphone can record these subtle frequency changes and
+translate them back into data. Alternatively, built-in computer speakers
+can be forced to emit ultrasonic waves—frequencies inaudible to human
+ears but detectable by nearby mobile devices.</li>
+<li><strong>Optical Signals:</strong> The LED status lights on
+keyboards, routers, and hard drives can be programmed by malware to
+flicker at rapid speeds. This flickering acts like Morse code. An
+attacker with a line of sight to the device—even through a window using
+a telescope or a security camera—can record the light pulses and extract
+the data.</li>
+</ul>
+<h2 id="thermal-and-magnetic-manipulation">Thermal and Magnetic
+Manipulation</h2>
+<p>In highly controlled environments where electromagnetic and acoustic
+shielding are present, hackers can resort to thermal or magnetic
+physics.</p>
+<ul>
+<li><strong>Thermal Exfiltration (BitWhisper):</strong> If two computers
+are placed close to each other, with one connected to the internet and
+the other air-gapped, they can communicate via heat. Malware on the
+air-gapped system can generate controlled heat bursts by raising the CPU
+temperature. The adjacent internet-connected computer uses its thermal
+sensors to detect these temperature fluctuations, receiving the
+transmitted data and uploading it to the attacker.</li>
+<li><strong>Magnetic Fields:</strong> CPU cores generate magnetic fields
+when processing data. Highly sophisticated malware can control these
+magnetic emissions to transmit signals to a smartphone placed close to
+the computer chassis, bypassing even Faraday cages that block radio
+frequencies.</li>
+</ul></article>
+        <div id=comments-container></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

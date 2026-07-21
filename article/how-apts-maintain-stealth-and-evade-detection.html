@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How APTs Maintain Stealth and Evade Detection - hacking</title>
+    <meta name="description" content="Advanced Persistent Threats (APTs) are highly sophisticated cyberadversaries that infiltrate networks to steal sensitive data over extended periods. To avoid detection during these long-term espionage campaigns, APTs employ advanced evasion techniques, i">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-apts-maintain-stealth-and-evade-detection">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How APTs Maintain Stealth and Evade Detection - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-apts-maintain-stealth-and-evade-detection" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Advanced Persistent Threats (APTs) are highly sophisticated cyberadversaries that infiltrate networks to steal sensitive data over extended periods. To avoid detection during these long-term espionage campaigns, APTs employ advanced evasion techniques, i" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="https://github.com/salivity" title="Github" aria-label="Go To Github Profile Page"><svg class="svg-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 1.27a11 11 0 00-3.48 21.46c.55.09.73-.28.73-.55v-1.84c-3.03.64-3.67-1.46-3.67-1.46-.55-1.29-1.28-1.65-1.28-1.65-.92-.65.1-.65.1-.65 1.1 0 1.73 1.1 1.73 1.1.92 1.65 2.57 1.2 3.21.92a2 2 0 01.64-1.47c-2.47-.27-5.04-1.19-5.04-5.5 0-1.1.46-2.1 1.2-2.84a3.76 3.76 0 010-2.93s.91-.28 3.11 1.1c1.8-.49 3.7-.49 5.5 0 2.1-1.38 3.02-1.1 3.02-1.1a3.76 3.76 0 010 2.93c.83.74 1.2 1.74 1.2 2.94 0 4.21-2.57 5.13-5.04 5.4.45.37.82.92.82 2.02v3.03c0 .27.1.64.73.55A11 11 0 0012 1.27"></path></svg></a></li>
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-apts-maintain-stealth-and-evade-detection">How APTs Maintain
+Stealth and Evade Detection</h1>
+<p>Advanced Persistent Threats (APTs) are highly sophisticated
+cyberadversaries that infiltrate networks to steal sensitive data over
+extended periods. To avoid detection during these long-term espionage
+campaigns, APTs employ advanced evasion techniques, including
+living-off-the-land tactics, encrypted communication channels,
+credential theft, and rootkit deployment. This article explores the
+specific mechanisms these threat actors use to remain invisible inside a
+compromised network for months or even years.</p>
+<h2 id="living-off-the-land-lotl">Living off the Land (LotL)</h2>
+<p>One of the most effective ways APTs remain undetected is by using
+“Living off the Land” (LotL) techniques. Instead of downloading custom
+malware that security software might flag, attackers use legitimate,
+pre-installed administrative tools already present on the victim’s
+operating system.</p>
+<p>By leveraging tools like PowerShell, Windows Management
+Instrumentation (WMI), Command Prompt, and administrative scripting
+utilities, APTs can execute commands, gather data, and move laterally
+across a network. Because these tools are used daily by network
+administrators, malicious activity blends seamlessly with normal
+administrative traffic, making it incredibly difficult for security
+analysts to distinguish between legitimate and malicious behavior.</p>
+<h2 id="fileless-malware-and-in-memory-execution">Fileless Malware and
+In-Memory Execution</h2>
+<p>Traditional antivirus programs scan a computer’s hard drive for known
+malicious files. APTs bypass this defense by utilizing fileless malware,
+which operates directly within the system’s temporary memory (RAM)
+rather than writing files to the disk.</p>
+<p>APTs inject malicious code into the memory space of legitimate system
+processes (such as <code>explorer.exe</code> or
+<code>svchost.exe</code>). When the computer runs, the malware executes
+silently in the background. Because no files are written to the disk,
+there are no file signatures for traditional security scanners to
+detect, allowing the threat actors to maintain a persistent, invisible
+presence.</p>
+<h2 id="advanced-command-and-control-c2-obfuscation">Advanced Command
+and Control (C2) Obfuscation</h2>
+<p>Once inside a network, APTs must communicate with their external
+servers to receive commands and exfiltrate stolen data. To keep this
+communication hidden, they employ highly sophisticated Command and
+Control (C2) techniques:</p>
+<ul>
+<li><strong>Traffic Mimicry:</strong> Attackers route their
+communications through standard, encrypted web protocols like HTTPS,
+making the malicious traffic look identical to normal web browsing.</li>
+<li><strong>Domain Fronting:</strong> This technique hides the true
+destination of the traffic by routing it through legitimate,
+high-reputation Content Delivery Networks (CDNs) or cloud services. To
+security monitors, the connection appears to be going to a trusted
+service like Microsoft or Google, when it is actually being redirected
+to the attacker’s server.</li>
+<li><strong>DNS Tunneling:</strong> APTs can encode stolen data within
+DNS queries, which are rarely blocked by network firewalls.</li>
+</ul>
+<h2 id="credential-harvesting-and-lateral-movement">Credential
+Harvesting and Lateral Movement</h2>
+<p>An intruder who uses exploit code to navigate a network leaves a
+trail of anomalies. APTs avoid this by prioritizing credential
+harvesting. Once they compromise an initial system, they use tools like
+Mimikatz or exploit protocol weaknesses to harvest usernames and
+passwords.</p>
+<p>Armed with legitimate user credentials, the attackers do not need to
+hack their way into other systems. They simply log in as authorized
+users. This lateral movement mimics standard employee activity,
+rendering behavior-based detection systems ineffective unless those
+systems are configured to spot anomalous login times or access
+patterns.</p>
+<h2 id="timestomping-and-anti-forensics">Timestomping and
+Anti-Forensics</h2>
+<p>To cover their tracks, APTs actively manipulate system logs and file
+metadata. A key technique is “timestomping,” where attackers modify the
+creation, modification, and access timestamps of their malicious tools
+to match the timestamps of legitimate operating system files.</p>
+<p>If a security team conducts a forensic investigation, the modified
+files will appear to have been installed years prior as part of the
+original operating system installation, deflecting suspicion.
+Furthermore, APTs routinely clear security event logs or selectively
+delete entries related to their activities to erase any timeline of the
+intrusion.</p></article>
+        <div id=comments-container></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>
