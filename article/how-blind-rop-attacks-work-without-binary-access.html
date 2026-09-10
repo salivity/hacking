@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Blind ROP Attacks Work Without Binary Access - hacking</title>
+    <meta name="description" content="Blind Return-Oriented Programming (BROP) is an advanced exploitation technique that enables an attacker to achieve remote code execution against a target application without possessing the original binary code. By repeatedly interacting with a crash-resi">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-blind-rop-attacks-work-without-binary-access">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Blind ROP Attacks Work Without Binary Access - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-blind-rop-attacks-work-without-binary-access" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Blind Return-Oriented Programming (BROP) is an advanced exploitation technique that enables an attacker to achieve remote code execution against a target application without possessing the original binary code. By repeatedly interacting with a crash-resi" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-blind-rop-attacks-work-without-binary-access">How Blind ROP
+Attacks Work Without Binary Access</h1>
+<p>Blind Return-Oriented Programming (BROP) is an advanced exploitation
+technique that enables an attacker to achieve remote code execution
+against a target application without possessing the original binary
+code. By repeatedly interacting with a crash-resilient network service,
+BROP systematically probes the target's memory space byte by byte to
+bypass modern defenses such as Address Space Layout Randomization (ASLR)
+and stack canaries. Through observed network behavior—distinguishing
+between connection drops, timeouts, and successful responses—the
+attacker maps out functional code sequences, extracts memory content
+remotely, and constructs a reliable exploit payload purely over the
+network.</p>
+<h3 id="the-prerequisite-fork-based-network-servers">The Prerequisite:
+Fork-Based Network Servers</h3>
+<p>The foundational requirement for a BROP attack is a network service
+that uses the <code>fork()</code> system call to handle incoming
+connections without invoking <code>execve()</code>. When a process
+forks, the child process inherits the exact memory layout of the parent,
+including:</p>
+<ul>
+<li>The Address Space Layout Randomization (ASLR) base address.</li>
+<li>The stack canary value.</li>
+<li>The locations of the Global Offset Table (GOT), Procedure Linkage
+Table (PLT), and standard libraries.</li>
+</ul>
+<p>If an exploit attempt crashes a child process, the parent daemon
+remains unaffected and spawns a new child with the identical memory
+layout on the next connection. This allows an attacker to safely induce
+crashes repeatedly without resetting the randomized memory
+addresses.</p>
+<h3 id="canary-extraction-via-byte-by-byte-brute-forcing">Canary
+Extraction via Byte-by-Byte Brute Forcing</h3>
+<p>Stack canaries are randomized values placed before the return address
+to detect buffer overflows. Normally, guessing a 64-bit canary is
+computationally infeasible due to the <span
+class="math inline">\(2^{64}\)</span> search space.</p>
+<p>Because the canary value remains constant across forks, an attacker
+can brute-force the canary one byte at a time:</p>
+<ol type="1">
+<li>The attacker overflows the buffer up to the canary's position.</li>
+<li>The attacker appends a single guessed byte.</li>
+<li>If the byte is incorrect, the canary check fails,
+<code>__stack_chk_fail</code> is triggered, and the child crashes (the
+socket closes abruptly).</li>
+<li>If the byte is correct, the process continues execution without a
+crash.</li>
+<li>Once a byte is confirmed, the attacker proceeds to the next
+byte.</li>
+</ol>
+<p>On a 64-bit system (where the first byte of the canary is always a
+null byte <code>0x00</code>), the attacker only needs to test at most
+<span class="math inline">\(7 \times 256 = 1,792\)</span> combinations,
+breaking the protection in a matter of seconds.</p>
+<h3 id="discovering-stop-gadgets">Discovering "Stop Gadgets"</h3>
+<p>After bypassing the stack canary, the attacker overwrites the saved
+frame pointer and return address. To locate executable code without
+knowing the binary's address space, the attacker searches for a "Stop
+Gadget."</p>
+<p>A Stop Gadget is an address pointing to instructions that prevent the
+process from crashing, such as a blocking read, an infinite loop, or a
+sleep state. The attacker scans addresses in memory sequentially:</p>
+<ul>
+<li><strong>Crash:</strong> The connection terminates immediately,
+indicating an invalid instruction or invalid memory dereference.</li>
+<li><strong>No Crash (Hangs/Keeps Alive):</strong> The connection
+remains open. This indicates that the targeted address contains
+executable code that executed cleanly without terminating the
+process.</li>
+</ul>
+<p>Stop Gadgets serve as control anchors used to verify the behavior of
+other gadgets.</p>
+<h3 id="identifying-useful-return-oriented-gadgets">Identifying Useful
+Return-Oriented Gadgets</h3>
+<p>To control execution, the attacker must locate gadgets that
+manipulate CPU registers, particularly those responsible for passing
+function arguments in the target architecture (such as <code>rdi</code>,
+<code>rsi</code>, and <code>rdx</code> in x86-64).</p>
+<p>The attacker probes candidate addresses using a structured stack
+frame composed of:</p>
+<ol type="1">
+<li>The candidate gadget address.</li>
+<li>Trapping addresses (known crash addresses).</li>
+<li>A Stop Gadget address.</li>
+</ol>
+<p>By systematically shifting the placement of traps and the Stop Gadget
+around the candidate address, the attacker observes how many values are
+popped off the stack before the Stop Gadget is reached.</p>
+<p>A critical target in x86-64 binaries is the sequence commonly found
+in <code>__libc_csu_init</code>, often referred to as the "BROP Gadget."
+This single sequence allows an attacker to pop values into
+<code>rbx</code>, <code>rbp</code>, <code>r12</code>, <code>r13</code>,
+<code>r14</code>, and <code>r15</code>, and transitively control
+<code>rdi</code> and <code>rsi</code>, fulfilling the calling convention
+requirements for standard system calls.</p>
+<h3 id="finding-plt-entries-and-memory-dumping">Finding PLT Entries and
+Memory Dumping</h3>
+<p>Once argument registers can be manipulated, the attacker searches for
+functions capable of sending data back over the network socket, such as
+<code>write()</code>, <code>send()</code>, or <code>puts()</code>.</p>
+<p>The Procedure Linkage Table (PLT) contains predictable jump stubs for
+external library functions. PLT entries possess a unique signature:
+their code does not crash when executed, and calls are spaced at regular
+intervals (typically 16 bytes apart). The attacker scans for PLT entries
+by setting the argument registers to point to the open socket file
+descriptor and an arbitrary readable memory address.</p>
+<p>When the attacker hits the PLT entry corresponding to
+<code>write()</code> or a similar function, the target transmits bytes
+from its own memory back over the socket.</p>
+<h3 id="full-binary-reconstruction-and-remote-shell">Full Binary
+Reconstruction and Remote Shell</h3>
+<p>With an identified write primitive, the blind phase ends:</p>
+<ol type="1">
+<li>The attacker reads memory starting from the binary's base address
+(<code>0x400000</code> on standard non-PIE x86-64 Linux systems) by
+iteratively calling the write function.</li>
+<li>The application binary is reconstructed locally by saving the dumped
+bytes.</li>
+<li>The attacker parses the downloaded binary's Symbol Table and Dynamic
+Section to find references to the C library (libc), resolve external
+symbols, and identify functions such as <code>dup2()</code> and
+<code>system()</code> or <code>execve()</code>.</li>
+<li>Finally, a standard ROP chain is constructed to redirect the network
+socket to standard input/output/error and launch an interactive
+shell.</li>
+</ol></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

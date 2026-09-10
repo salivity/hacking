@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Decode Serial Buses Using Logic Analyzers - hacking</title>
+    <meta name="description" content="This article explores how hardware security researchers and analysts use digital logic analyzers to intercept, inspect, and decode proprietary serial bus traffic. It covers the end-to-end methodology, from locating physical test points on a printed circu">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-to-decode-serial-buses-using-logic-analyzers">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Decode Serial Buses Using Logic Analyzers - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-to-decode-serial-buses-using-logic-analyzers" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explores how hardware security researchers and analysts use digital logic analyzers to intercept, inspect, and decode proprietary serial bus traffic. It covers the end-to-end methodology, from locating physical test points on a printed circu" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-to-decode-serial-buses-using-logic-analyzers">How to Decode
+Serial Buses Using Logic Analyzers</h1>
+<p>This article explores how hardware security researchers and analysts
+use digital logic analyzers to intercept, inspect, and decode
+proprietary serial bus traffic. It covers the end-to-end methodology,
+from locating physical test points on a printed circuit board (PCB) and
+configuring sampling rates to identifying signal characteristics,
+reverse-engineering undocumented packet structures, and implementing
+defensive design countermeasures.</p>
+<h3 id="understanding-the-role-of-digital-logic-analyzers">Understanding
+the Role of Digital Logic Analyzers</h3>
+<p>A digital logic analyzer captures and displays digital signals from a
+system under test, recording logic states (high or low) across multiple
+channels over time. Unlike an oscilloscope, which measures precise
+analog voltage waveforms, a logic analyzer focuses on timing
+relationships across numerous lines. When dealing with proprietary or
+undocumented serial protocols, the device enables analysts to record raw
+transitions and extract meaningful communication between
+microcontrollers, sensors, memory chips, and peripherals.</p>
+<h3 id="locating-and-tapping-physical-interfaces">Locating and Tapping
+Physical Interfaces</h3>
+<p>The first phase of serial bus analysis involves identifying candidate
+lines on the target hardware:</p>
+<ol type="1">
+<li><strong>Visual Inspection:</strong> Analysts inspect the PCB for
+exposed traces, test points (often labeled TP), unpopulated headers, and
+component pinouts using datasheets.</li>
+<li><strong>Establishing Ground:</strong> Connecting the logic
+analyzer's ground lead to the target device's common ground reference is
+necessary to avoid signal floating or false logic state readings.</li>
+<li><strong>Probing Signal Lines:</strong> Micro-grabbers, flying leads,
+or soldered pigtails attach the analyzer's input probes to transmit
+(TX), receive (RX), clock (CLK), chip-select (CS), or general data
+pins.</li>
+</ol>
+<h3 id="configuring-sampling-and-signal-capture">Configuring Sampling
+and Signal Capture</h3>
+<p>To ensure accurate representation of the signal, the logic analyzer
+must be properly configured based on the target circuit's electrical
+characteristics:</p>
+<ul>
+<li><strong>Voltage Thresholds:</strong> The logic thresholds must align
+with the target logic level (e.g., 1.8V, 3.3V, or 5V CMOS/TTL).</li>
+<li><strong>Nyquist-Shannon Sampling Principle:</strong> The sampling
+rate must be significantly higher than the signal's maximum frequency.
+For digital analysis, a sampling rate of at least 4 to 5 times the
+anticipated baud rate or clock frequency is standard to accurately
+capture edge transitions.</li>
+<li><strong>Triggering Conditions:</strong> Analyzers can capture
+continuous data or use triggers (such as falling edges, rising edges, or
+specific bit patterns) to capture data specifically when transactions
+begin, such as during system boot or user interactions.</li>
+</ul>
+<h3 id="deducing-protocol-characteristics">Deducing Protocol
+Characteristics</h3>
+<p>Once raw waveforms are captured, analysts determine whether the bus
+is synchronous (clock-driven) or asynchronous (timed):</p>
+<ul>
+<li><strong>Synchronous Protocols (e.g., SPI, I2C variants):</strong>
+The presence of a periodic clock line indicates synchronous
+communication. Analysts observe the clock polarity (CPOL) and phase
+(CPHA) to determine when data lines are sampled (rising vs. falling
+edge).</li>
+<li><strong>Asynchronous Protocols (e.g., UART variants):</strong> If no
+dedicated clock line exists, the analyst measures the width of the
+narrowest pulse to estimate the bit duration (<span
+class="math inline">\(T_{\text{bit}}\)</span>). The baud rate is
+calculated as: <span class="math display">\[\text{Baud Rate} =
+\frac{1}{T_{\text{bit}}}\]</span></li>
+<li><strong>Line State Defaults:</strong> High-idle lines typically
+suggest protocols derived from UART or I2C, whereas low-idle lines may
+indicate custom signaling schemes.</li>
+</ul>
+<h3 id="reverse-engineering-the-frame-structure">Reverse-Engineering the
+Frame Structure</h3>
+<p>After basic electrical timing is established, raw binary streams must
+be parsed into logical structures:</p>
+<ol type="1">
+<li><strong>Bit Ordering and Framing:</strong> Analysts test common
+variations, such as Most Significant Bit (MSB) first versus Least
+Significant Bit (LSB) first, and look for start, stop, or parity
+bits.</li>
+<li><strong>Preamble and Sync Patterns:</strong> Many proprietary
+protocols utilize a fixed byte sequence (such as <code>0xAA</code>,
+<code>0x55</code>, or <code>0x7E</code>) to synchronize the receiver
+before payload data begins.</li>
+<li><strong>Payload and Length Fields:</strong> By comparing captures
+under varying device operating conditions, static fields (headers,
+device IDs) are separated from variable fields (measurements, commands,
+lengths).</li>
+<li><strong>Error Checking:</strong> The trailing bytes of packets are
+evaluated for standard checksums, such as simple additive sums, XOR
+checks, or standard Cyclic Redundancy Checks (e.g., CRC-8, CRC-16).</li>
+</ol>
+<h3 id="defensive-hardening-against-bus-interception">Defensive
+Hardening Against Bus Interception</h3>
+<p>Securing embedded buses against unauthorized decoding requires
+defense-in-depth at the hardware and firmware layers:</p>
+<ul>
+<li><strong>Bus Encryption and Authentication:</strong> Encrypting bus
+traffic using hardware cryptographic accelerators prevents passive
+eavesdropping from yielding actionable data.</li>
+<li><strong>Physical Layout Hardening:</strong> Routing sensitive
+high-speed lines through internal PCB layers rather than exposed outer
+traces makes physical tapping considerably more difficult.</li>
+<li><strong>Depopulation of Debug Interfaces:</strong> Removing test
+points, debug headers, and silkscreen labels from production boards
+limits immediate physical access.</li>
+<li><strong>SoC Integration:</strong> Integrating critical peripherals
+and memory directly into system-on-chip (SoC) packages eliminates
+external buses entirely, removing physical points of interception.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

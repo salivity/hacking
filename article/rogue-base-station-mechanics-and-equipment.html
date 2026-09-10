@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rogue Base Station Mechanics and Equipment - hacking</title>
+    <meta name="description" content="Rogue base stations, commonly known as IMSI catchers or false cell towers, exploit cellular protocol characteristics to intercept traffic, track device locations, and conduct denial-of-service attacks against mobile endpoints. This article outlines the t">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/rogue-base-station-mechanics-and-equipment">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Rogue Base Station Mechanics and Equipment - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/rogue-base-station-mechanics-and-equipment" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Rogue base stations, commonly known as IMSI catchers or false cell towers, exploit cellular protocol characteristics to intercept traffic, track device locations, and conduct denial-of-service attacks against mobile endpoints. This article outlines the t" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="rogue-base-station-mechanics-and-equipment">Rogue Base Station
+Mechanics and Equipment</h1>
+<p>Rogue base stations, commonly known as IMSI catchers or false cell
+towers, exploit cellular protocol characteristics to intercept traffic,
+track device locations, and conduct denial-of-service attacks against
+mobile endpoints. This article outlines the theoretical hardware
+architecture, radio frequency (RF) signal manipulation profiles, and
+protocol weaknesses used to execute these attacks, as well as the
+defensive mechanisms developed to counter them.</p>
+<h3 id="hardware-architecture">Hardware Architecture</h3>
+<p>A rogue base station functions by impersonating a legitimate
+telecommunications service provider's cell tower. Modern implementations
+rely primarily on accessible Software-Defined Radio (SDR) platforms
+paired with specialized RF front-ends.</p>
+<ul>
+<li><strong>Software-Defined Radios (SDRs):</strong> Modern digital
+signal processing hardware allows operators to reconfigure transmit and
+receive frequencies across commercial cellular bands (typically 700 MHz
+to 2.6 GHz). SDR platforms interface with host operating systems via
+high-speed connections to process baseband signals in real time.</li>
+<li><strong>RF Front-Ends and Amplifiers:</strong> To overcome
+legitimate cell tower signals, rogue systems utilize low-noise
+amplifiers (LNAs) for reception and power amplifiers (PAs) for
+transmission. Duplexers or RF switches enable bidirectional
+communication across paired uplink and downlink frequencies.</li>
+<li><strong>Antennas:</strong> Depending on the operational objective,
+setups employ high-gain directional antennas to target specific
+individuals or omnidirectional antennas to harvest data indiscriminately
+from devices within a defined physical radius.</li>
+<li><strong>Host Processing System:</strong> Open-source or proprietary
+cellular protocol stacks (such as software implementations of GSM, UMTS,
+or LTE radio access networks) run on a standard computing unit to manage
+signaling protocols and handle fake authentication handshakes.</li>
+</ul>
+<h3 id="signal-profiles-and-rf-manipulation">Signal Profiles and RF
+Manipulation</h3>
+<p>Mobile devices are engineered to autonomously connect to the cell
+tower offering the most stable and strongest signal, an architectural
+behavior defined by 3GPP standards. Rogue base stations manipulate
+specific signal parameters to force target devices to detach from the
+legitimate network and attach to the rogue node.</p>
+<ul>
+<li><strong>Transmission Power Dominance:</strong> Rogue stations
+broadcast at higher relative power levels (Received Signal Strength
+Indicator, or RSSI) compared to neighboring legitimate base stations,
+triggering cell reselection algorithms in target handsets.</li>
+<li><strong>Broadcast Parameters (System Information Blocks):</strong>
+The rogue station continuously broadcasts manipulated System Information
+Blocks (SIBs). In GSM, the Base Station Controller broadcasts parameters
+such as the Cell Reselection Hysteresis (CRH) and Cell Reselection
+Parameters (C1 and C2). By artificially optimizing these values, the
+rogue station tricks the mobile device into calculating the fake cell as
+the most suitable candidate for attachment.</li>
+<li><strong>Network Identity Spoofing:</strong> Rogue cells replicate
+the Public Land Mobile Network (PLMN) identity of the target's
+legitimate carrier, matching the Mobile Country Code (MCC) and Mobile
+Network Code (MNC), while presenting a differing Location Area Code
+(LAC) or Tracking Area Code (TAC). A novel LAC/TAC forces the phone to
+immediately initiate a Location Update Request or Tracking Area Update,
+exposing its identity.</li>
+</ul>
+<h3 id="protocol-exploitation-and-downgrade-techniques">Protocol
+Exploitation and Downgrade Techniques</h3>
+<p>The primary vulnerability exploited by traditional rogue base
+stations resides in legacy generation cellular protocols.</p>
+<ul>
+<li><strong>Forced Downgrade Attacks:</strong> While 4G (LTE) and 5G
+networks mandate mutual authentication—meaning both the network and the
+mobile device must verify each other's cryptographic identities—legacy
+2G (GSM) networks only authenticate the subscriber to the network, not
+the network to the subscriber. Attackers utilize RF jamming on 4G/5G
+frequencies or transmit high-priority 2G broadcast signals to force
+devices into fallback or downgrade modes.</li>
+<li><strong>Identity Harvesting:</strong> During initial network
+connection in insecure environments, the rogue station requests the
+device's International Mobile Subscriber Identity (IMSI) or
+International Mobile Equipment Identity (IMEI) via unencrypted signaling
+frames, such as an <code>Identity Request</code> message.</li>
+<li><strong>Ciphering Negotiation Abuse:</strong> In 2G mode, the false
+base station can specify that no encryption be used (the
+<code>A5/0</code> ciphering algorithm) or downgrade to weak, crackable
+ciphers (<code>A5/1</code> or <code>A5/2</code>), enabling cleartext
+capture of voice calls, SMS messages, and unprotected data traffic.</li>
+</ul>
+<h3 id="defensive-mitigations">Defensive Mitigations</h3>
+<p>Modern standards and endpoint software incorporate multiple
+safeguards to neutralize rogue cell operations:</p>
+<ul>
+<li><strong>Mutual Authentication in 5G:</strong> The 5G Standalone (SA)
+architecture introduces the Subscription Concealed Identifier (SUCI), an
+encrypted version of the user identity computed using the home network's
+public key, preventing unauthenticated identity extraction.</li>
+<li><strong>Base Station Verification and Network Monitoring:</strong>
+Telecom operators employ network-side monitoring and mobile network
+analysis tools to detect anomalous RF footprints, mismatched LAC
+allocations, and localized jamming activities.</li>
+<li><strong>Operating System Controls:</strong> Modern mobile operating
+systems provide security settings that allow users to completely disable
+legacy 2G connections at the modem level, eliminating the primary attack
+vector used for cipher downgrades and unauthenticated interception.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

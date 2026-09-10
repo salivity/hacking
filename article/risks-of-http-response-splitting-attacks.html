@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risks of HTTP Response Splitting Attacks - hacking</title>
+    <meta name="description" content="HTTP response splitting occurs when untrusted user input is passed into HTTP response headers without proper sanitization, allowing attackers to inject Carriage Return and Line Feed (CRLF) characters. This article explores how this vulnerability operates">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/risks-of-http-response-splitting-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Risks of HTTP Response Splitting Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/risks-of-http-response-splitting-attacks" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="HTTP response splitting occurs when untrusted user input is passed into HTTP response headers without proper sanitization, allowing attackers to inject Carriage Return and Line Feed (CRLF) characters. This article explores how this vulnerability operates" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="risks-of-http-response-splitting-attacks">Risks of HTTP Response
+Splitting Attacks</h1>
+<p>HTTP response splitting occurs when untrusted user input is passed
+into HTTP response headers without proper sanitization, allowing
+attackers to inject Carriage Return and Line Feed (CRLF) characters.
+This article explores how this vulnerability operates and examines the
+severe risks it introduces to web applications, including web cache
+poisoning, cross-site scripting (XSS), sensitive data exposure, and
+session hijacking.</p>
+<h3 id="mechanism-of-the-attack">Mechanism of the Attack</h3>
+<p>The vulnerability arises because the HTTP/1.1 protocol relies on CRLF
+sequences (<code>\r\n</code> or URL-encoded <code>%0d%0a</code>) to
+separate header fields and delineate the header section from the
+response body. When an application reflects user input directly into a
+response header (such as a redirect URL or cookie value), an attacker
+can insert their own CRLF characters. This allows them to:</p>
+<ol type="1">
+<li>Inject arbitrary HTTP headers into the original response.</li>
+<li>Force the server to treat subsequent data as a completely new,
+attacker-crafted HTTP response.</li>
+</ol>
+<h3 id="core-risks-introduced-by-http-response-splitting">Core Risks
+Introduced by HTTP Response Splitting</h3>
+<h4 id="1-web-cache-poisoning">1. Web Cache Poisoning</h4>
+<p>One of the most dangerous outcomes of response splitting is cache
+poisoning. Intermediary proxies, content delivery networks (CDNs), and
+local browser caches rely on HTTP headers to determine how to store and
+serve content. By splitting the response, an attacker can manipulate
+caching directives (such as <code>Cache-Control</code> or
+<code>Expires</code>) or force the proxy to associate a malicious second
+response with a legitimate resource URL. Consequently, subsequent
+requests by unrelated users for that legitimate resource will receive
+the malicious payload stored in the cache, scaling the attack to a wider
+audience.</p>
+<h4 id="2-cross-site-scripting-xss">2. Cross-Site Scripting (XSS)</h4>
+<p>While standard XSS often relies on reflecting data in the response
+body, HTTP response splitting bypasses typical body-focused input
+filters. By injecting two CRLF sequences, an attacker prematurely ends
+the HTTP headers and starts the response body, filling it with arbitrary
+HTML and malicious JavaScript. When the browser renders this response,
+the injected script executes within the context of the vulnerable
+domain, allowing the theft of authentication tokens, access to local
+storage, and unauthorized actions on behalf of the victim.</p>
+<h4 id="3-session-hijacking-and-cookie-manipulation">3. Session
+Hijacking and Cookie Manipulation</h4>
+<p>By injecting custom headers into the first response, attackers can
+insert malicious <code>Set-Cookie</code> headers. This enables:</p>
+<ul>
+<li><strong>Session Fixation:</strong> Forcing a known session
+identifier onto a user's browser before authentication occurs.</li>
+<li><strong>Cookie Overwriting:</strong> Overwriting critical security
+cookies (like CSRF tokens) to disable defensive mechanisms.</li>
+<li><strong>Domain Manipulation:</strong> Setting cookies across
+subdomains if the application architecture permits it.</li>
+</ul>
+<h4 id="4-complete-page-defacement-and-credential-harvesting">4.
+Complete Page Defacement and Credential Harvesting</h4>
+<p>Because the attacker can fully construct the second response's body,
+they can present a visually identical login form or warning page hosted
+on the legitimate domain. Victims will see the correct URL and valid
+SSL/TLS certificate in their address bar, making credential harvesting
+through phishing virtually undetectable to standard end users.</p>
+<h4 id="5-bypassing-security-headers">5. Bypassing Security Headers</h4>
+<p>Attackers can inject or override crucial HTTP security headers. For
+instance, an attacker might override a strict
+<code>Content-Security-Policy</code> (CSP) header, disable
+<code>X-Frame-Options</code> to facilitate clickjacking, or manipulate
+CORS (<code>Cross-Origin Resource Sharing</code>) headers to exfiltrate
+private data to an unauthorized origin.</p>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Preventing HTTP response splitting requires strict control over HTTP
+header construction:</p>
+<ul>
+<li><strong>Input Validation and Encoding:</strong> Strip or encode all
+carriage returns (<code>%0d</code>, <code>\r</code>) and line feeds
+(<code>%0a</code>, <code>\n</code>) from user input before writing it to
+HTTP headers.</li>
+<li><strong>Modern Frameworks:</strong> Use modern web frameworks and
+application servers that automatically reject or sanitize CRLF
+characters inside header-setting functions.</li>
+<li><strong>Adoption of HTTP/2 and HTTP/3:</strong> Where possible,
+utilize newer protocol versions that employ binary framing rather than
+text-based delimiters, inherently mitigating classic CRLF-based header
+injection.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

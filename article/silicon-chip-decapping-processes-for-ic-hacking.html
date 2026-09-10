@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silicon Chip Decapping Processes for IC Hacking - hacking</title>
+    <meta name="description" content="Silicon chip decapping, or delidding, is the process of removing the protective polymer or ceramic encapsulation of an integrated circuit (IC) to expose the underlying silicon die for hardware security analysis, reverse engineering, and fault injection a">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/silicon-chip-decapping-processes-for-ic-hacking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Silicon Chip Decapping Processes for IC Hacking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/silicon-chip-decapping-processes-for-ic-hacking" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Silicon chip decapping, or delidding, is the process of removing the protective polymer or ceramic encapsulation of an integrated circuit (IC) to expose the underlying silicon die for hardware security analysis, reverse engineering, and fault injection a" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="silicon-chip-decapping-processes-for-ic-hacking">Silicon Chip
+Decapping Processes for IC Hacking</h1>
+<p>Silicon chip decapping, or delidding, is the process of removing the
+protective polymer or ceramic encapsulation of an integrated circuit
+(IC) to expose the underlying silicon die for hardware security
+analysis, reverse engineering, and fault injection attacks.
+Accomplishing this requires a precise balance of chemical etching and
+physical ablation to dissolve or strip the robust packaging without
+destroying the microscopic bond wires, metallization layers, or the
+silicon substrate. The following technical breakdown outlines the
+primary chemical and physical processes utilized to expose a bare die
+for direct hardware tampering.</p>
+<h3 id="chemical-decapping-processes">Chemical Decapping Processes</h3>
+<p>The chemical approach relies on selective dissolution, where strong
+reagents digest the packaging material while leaving the silicon die and
+its interconnects intact. Most commercial microchips are encased in an
+epoxy novolac resin filled with fused silica particles.</p>
+<ul>
+<li><strong>Wet Chemical Acid Etching:</strong> The standard method for
+epoxy-packaged ICs involves hot, concentrated mineral acids. Fuming
+nitric acid (<span class="math inline">\(HNO_3\)</span>, typically
+&gt;90% concentration) or an optimized ratio of fuming nitric acid and
+concentrated sulfuric acid (<span
+class="math inline">\(H_2SO_4\)</span>) is heated between 60°C and
+100°C. The nitric acid oxidizes the polymer chains, while sulfuric acid
+sulfonates and dehydrates the resin, causing the structural matrix of
+the epoxy to break down into a soluble sludge.</li>
+<li><strong>Selective Preservation:</strong> Gold wire bonds resist the
+corrosive effects of nitric acid, making this process relatively safe
+for gold-wire-bonded chips. However, modern chips using copper or silver
+bond wires require specialized acid formulations (such as sulfuric acid
+with corrosion inhibitors or mixed acid at lower temperatures) to
+prevent the reagents from dissolving the interconnects alongside the
+package.</li>
+<li><strong>Automated Jet Etching:</strong> In professional
+environments, automated jet etchers pump micro-droplets of heated acid
+directly onto a defined perimeter of the chip under an inert gas blanket
+(such as nitrogen). This limits heat exposure, delivers fresh reactant
+to the interface, and continuously flushes away dissolved resin and
+silica filler, minimizing the risk of over-etching delicate
+structures.</li>
+<li><strong>Solvent Softening for Polyimides:</strong> In cases where
+soft silicone or specific polyimide encapsulants are used rather than
+hard epoxy, organic solvents such as tetramethylammonium hydroxide
+(TMAH), n-methyl-2-pyrrolidone (NMP), or specialized commercial
+strippers are applied to swell and dissolve the polymers without
+acid-induced oxidation.</li>
+</ul>
+<h3 id="physical-decapping-processes">Physical Decapping Processes</h3>
+<p>Physical processes are employed either as a precursor to chemical
+etching—reducing the volume of acid needed—or as entirely dry
+alternatives to avoid chemical hazards and prevent acid contamination of
+the die.</p>
+<ul>
+<li><strong>CNC Milling and Mechanical Grinding:</strong> High-precision
+computer numerical control (CNC) micro-mills mechanically grind away the
+bulk of the package. Operators machine a cavity into the plastic
+directly above the die until only a fraction of a millimeter of
+packaging remains. This minimizes the time and volume of acid required
+for subsequent chemical exposure, significantly lowering the chance of
+damaging bond wires.</li>
+<li><strong>Laser Ablation:</strong> Pulsed laser systems (typically
+infrared fiber lasers or ultraviolet lasers) selectively vaporize the
+mold compound via photothermal and photochemical mechanisms. The rapid,
+localized energy transfer turns the epoxy and its filler materials into
+plasma and particulate debris without heating the entire package. Laser
+ablation can selectively remove encapsulation material directly down to
+the silicon surface or bond wires with micrometer precision.</li>
+<li><strong>Thermal Decomposition (Pyrolysis):</strong> By heating the
+IC in a furnace between 400°C and 500°C in the presence of air, the
+organic epoxy resin combusts and turns to ash, leaving the inorganic
+silica filler and the silicon die behind. The residual ash can then be
+rinsed away or removed with an ultrasonic bath, although this technique
+carries a high risk of oxidizing metal leads and inducing thermal stress
+fractures in the die.</li>
+<li><strong>Plasma Etching (Dry Etching):</strong> Once the primary
+package is removed, physical and chemical dry etching is often used to
+strip the die's passivation layer (silicon dioxide or silicon nitride).
+Using Reactive Ion Etching (RIE), oxygen and fluorine-based plasmas
+(such as <span class="math inline">\(CF_4\)</span> or <span
+class="math inline">\(SF_6\)</span>) ionize and bombard the surface,
+reacting at the atomic level to remove top-level insulation layers and
+expose raw metal traces for microprobing and focused ion beam (FIB)
+modification.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

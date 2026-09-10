@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSRF WAF Bypass Techniques Explained - hacking</title>
+    <meta name="description" content="Server-Side Request Forgery (SSRF) occurs when an attacker abuses functionality on a vulnerable server to read or update internal resources. While Web Application Firewalls (WAFs) are deployed to inspect incoming requests and filter out malicious destina">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/ssrf-waf-bypass-techniques-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SSRF WAF Bypass Techniques Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/ssrf-waf-bypass-techniques-explained" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Server-Side Request Forgery (SSRF) occurs when an attacker abuses functionality on a vulnerable server to read or update internal resources. While Web Application Firewalls (WAFs) are deployed to inspect incoming requests and filter out malicious destina" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="ssrf-waf-bypass-techniques-explained">SSRF WAF Bypass Techniques
+Explained</h1>
+<p>Server-Side Request Forgery (SSRF) occurs when an attacker abuses
+functionality on a vulnerable server to read or update internal
+resources. While Web Application Firewalls (WAFs) are deployed to
+inspect incoming requests and filter out malicious destinations—such as
+internal IP addresses or cloud metadata endpoints—attackers use
+sophisticated evasion techniques to circumvent these defenses. This
+article outlines the primary methods attackers employ to bypass WAF
+rules during SSRF attacks to reach restricted internal environments.</p>
+<h2 id="alternative-ip-address-formats">Alternative IP Address
+Formats</h2>
+<p>WAFs frequently rely on blocklists containing standard IPv4 string
+formats, such as <code>127.0.0.1</code> or <code>169.254.169.254</code>.
+Attackers bypass regular expression checks by transforming these IP
+addresses into alternative mathematical or structural representations
+that backend resolvers still process correctly:</p>
+<ul>
+<li><strong>Decimal/Dword Encoding:</strong> Converting the IP into a
+single continuous integer (for example, <code>http://2130706433/</code>
+resolves to <code>127.0.0.1</code>).</li>
+<li><strong>Hexadecimal Encoding:</strong> Representing IP octets with
+hex values, such as <code>http://0x7f.0.0.1/</code> or
+<code>http://0x7f000001/</code>.</li>
+<li><strong>Octal Encoding:</strong> Prefixing octets with zeros so the
+parser interprets them as octal, such as
+<code>http://0177.0.0.1/</code>.</li>
+<li><strong>IPv6 Equivalents:</strong> Using IPv6 loopbacks or
+IPv4-mapped IPv6 addresses, such as <code>http://[::1]/</code> or
+<code>http://[::ffff:127.0.0.1]/</code>.</li>
+<li><strong>Omitted Zero Notation:</strong> Shortening loopback
+representations to forms like <code>http://127.1/</code> or
+<code>http://0/</code>.</li>
+</ul>
+<h2 id="dns-rebinding-attacks">DNS Rebinding Attacks</h2>
+<p>WAFs that validate target domains by performing a real-time DNS
+lookup are susceptible to DNS rebinding. An attacker configures a custom
+nameserver for a domain with a very low Time-to-Live (TTL) value:</p>
+<ol type="1">
+<li>When the WAF resolves the domain to inspect the request, the
+nameserver returns a safe, public IP address (e.g.,
+<code>1.1.1.1</code>), allowing the request to pass.</li>
+<li>Seconds later, when the application's HTTP client executes the
+actual request, the nameserver responds with a private IP (e.g.,
+<code>169.254.169.254</code> or <code>127.0.0.1</code>).</li>
+<li>The backend connects directly to the internal resource, completely
+bypassing the initial perimeter inspection.</li>
+</ol>
+<h2 id="url-parsing-inconsistencies">URL Parsing Inconsistencies</h2>
+<p>Discrepancies between how a WAF parses a URL and how the backend HTTP
+library processes it create significant security gaps. Attackers exploit
+these differential parsing behaviors using complex URL structures:</p>
+<ul>
+<li><strong>User Information Abuse:</strong> Using the <code>@</code>
+character to confuse the host component (e.g.,
+<code>http://expected-domain.com@127.0.0.1/</code>). The WAF may
+validate <code>expected-domain.com</code>, while the backend fetches
+from <code>127.0.0.1</code>.</li>
+<li><strong>Fragment Identifiers:</strong> Using <code>#</code> to
+truncate URL verification paths while backend clients interpret the
+trailing host differently.</li>
+<li><strong>Malformed Characters and Path Traversal:</strong> Inserting
+dot-segments, null bytes, backslashes, or URL-encoded carriage returns
+(<code>%0d%0a</code>) that cause WAF regex engines to misinterpret the
+final destination host.</li>
+</ul>
+<h2 id="open-redirect-chaining">Open Redirect Chaining</h2>
+<p>If a WAF strictly enforces an allowlist of permitted external
+domains, attackers often combine SSRF with an open redirect
+vulnerability hosted on an allowed domain:</p>
+<ol type="1">
+<li>The attacker targets an allowed domain with a redirect parameter
+pointing to an internal IP (e.g.,
+<code>https://trusted.com/redirect?url=http://169.254.169.254</code>).</li>
+<li>The WAF inspects the initial payload, recognizes
+<code>trusted.com</code> as a whitelisted host, and allows the request
+through.</li>
+<li>If the backend client is configured to follow HTTP redirects
+automatically, it follows the <code>301</code> or <code>302</code>
+response internally, successfully reaching the blocked destination.</li>
+</ol>
+<h2 id="utilizing-alternative-protocols-and-wrappers">Utilizing
+Alternative Protocols and Wrappers</h2>
+<p>When HTTP and HTTPS are closely inspected, attackers test alternative
+URI schemes that may be supported by the underlying application
+runtime:</p>
+<ul>
+<li><strong>gopher://</strong>: Used to craft arbitrary TCP payloads,
+enabling interaction with internal services like Redis, Memcached, or
+SMTP servers.</li>
+<li><strong>file://</strong>: Used to read local filesystem files (e.g.,
+<code>/etc/passwd</code>) if the backend parses file URIs.</li>
+<li><strong>dict://</strong> or <strong>ldap://</strong>: Used to send
+custom commands to internal network daemons that lack
+authentication.</li>
+</ul>
+<h2 id="enclosed-alphanumerics-and-idn-homoglyphs">Enclosed
+Alphanumerics and IDN Homoglyphs</h2>
+<p>To bypass string-matching rules designed for ASCII, attackers employ
+Unicode characters that look or behave like standard characters:</p>
+<ul>
+<li><strong>Enclosed Alphanumerics:</strong> Replacing numbers and
+letters with enclosed Unicode equivalents (e.g.,
+<code>①⑥⑨.②⑤④.⑯⑨.②⑤④</code>), which some backend application layers
+normalize back to standard ASCII digits after the WAF has passed the
+input.</li>
+<li><strong>Internationalized Domain Names (IDN):</strong> Registering
+domains with Unicode characters that normalize to internal target
+strings or mimic approved hosts via homoglyph manipulation.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

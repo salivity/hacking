@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding DCSync Attacks in Active Directory - hacking</title>
+    <meta name="description" content="DCSync is a credential extraction technique that allows an attacker with sufficient privileges to simulate the behavior of a Domain Controller (DC) and request sensitive account data, including password hashes, directly from Active Directory. Rather than">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-dcsync-attacks-in-active-directory">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding DCSync Attacks in Active Directory - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-dcsync-attacks-in-active-directory" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="DCSync is a credential extraction technique that allows an attacker with sufficient privileges to simulate the behavior of a Domain Controller (DC) and request sensitive account data, including password hashes, directly from Active Directory. Rather than" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="understanding-dcsync-attacks-in-active-directory">Understanding
+DCSync Attacks in Active Directory</h1>
+<p>DCSync is a credential extraction technique that allows an attacker
+with sufficient privileges to simulate the behavior of a Domain
+Controller (DC) and request sensitive account data, including password
+hashes, directly from Active Directory. Rather than running unapproved
+code on a DC or dumping the <code>NTDS.dit</code> database directly, the
+attack leverages legitimate Active Directory replication protocols to
+pull password data over the network. This article examines the
+underlying mechanisms of DCSync attacks, the specific protocols
+involved, the permissions required to execute them, and methods for
+detection and prevention.</p>
+<h3 id="the-mechanism-directory-replication-service-remote-protocol">The
+Mechanism: Directory Replication Service Remote Protocol</h3>
+<p>Active Directory relies on regular replication to synchronize
+directory data across multiple Domain Controllers within an enterprise.
+This synchronization is governed primarily by the Directory Replication
+Service Remote Protocol (MS-DRSR), exposed via the Directory Replication
+Service API (DRSUAPI) over RPC.</p>
+<p>In a legitimate replication scenario, a DC initiates an RPC
+connection to another DC to request updates to specific directory
+partitions (such as the Domain partition or Configuration partition). A
+DCSync attack abuses this mechanism by having a compromised, non-DC
+client connect via DRSUAPI to request the replication of targeted
+objects—most notably user objects containing NTLM hashes, Kerberos keys
+(AES-128/256), and previous password history.</p>
+<h3 id="protocol-interactions-and-execution-flow">Protocol Interactions
+and Execution Flow</h3>
+<p>The simulation of replication involves a sequence of specific RPC
+calls:</p>
+<ol type="1">
+<li><strong>Discovery and Binding:</strong> The client locates an
+accessible Domain Controller and establishes an RPC binding over TCP
+port 135 (RPC Endpoint Mapper), followed by communication over a
+dynamically assigned high-order TCP port (or port 49152–65535 by default
+in modern Windows Server versions).</li>
+<li><strong>Context Initialization (<code>IDL_DRSBind</code>):</strong>
+The client initiates a DRS session by calling <code>IDL_DRSBind</code>
+(or <code>IDL_DRSBindWithCred</code>), which authenticates the session
+and negotiates replication capabilities.</li>
+<li><strong>Replication Request
+(<code>IDL_DRSGetNCChanges</code>):</strong> The client issues an
+<code>IDL_DRSGetNCChanges</code> request. This function asks the target
+DC to return updates for a specific Naming Context (NC). The request
+specifies the targeted object (such as <code>krbtgt</code> or a specific
+administrator account) and the requested attributes, including secret
+attributes like <code>unicodePwd</code> and <code>dBCSPwd</code>.</li>
+<li><strong>Data Deserialization:</strong> The responding DC packages
+the requested directory objects, encrypts the sensitive attributes using
+session-derived session keys, and transmits the data back to the
+requester. The client decrypts and parses the response to extract
+credential material.</li>
+</ol>
+<h3 id="required-active-directory-permissions">Required Active Directory
+Permissions</h3>
+<p>DCSync does not exploit a software flaw; it relies on the abuse of
+legitimate administrative delegation. To successfully initiate
+replication requests for secret data, the calling security principal
+must possess specific Extended Rights at the domain root level:</p>
+<ul>
+<li><strong>Replicating Directory Changes
+(<code>DS-Replication-Get-Changes</code> / GUID:
+<code>1131f6aa-9c07-11d1-f79f-00c04fc2dcd2</code>):</strong> Allows
+replication of non-secret attributes.</li>
+<li><strong>Replicating Directory Changes All
+(<code>DS-Replication-Get-Changes-All</code> / GUID:
+<code>1131f6ad-9c07-11d1-f79f-00c04fc2dcd2</code>):</strong> Allows
+replication of all attributes, including secret credential
+attributes.</li>
+<li><strong>Replicating Directory Changes In Filtered Set (Optional /
+GUID: <code>89e95b76-444d-4c62-991a-0acb387b42c1</code>):</strong>
+Allows replication within filtered attribute sets.</li>
+</ul>
+<p>By default, members of the <strong>Domain Admins</strong>,
+<strong>Enterprise Admins</strong>, and <strong>Domain
+Controllers</strong> groups hold these rights. However,
+misconfigurations, legacy migration permissions, or overly permissive
+delegation models can result in standard user accounts or non-DC machine
+accounts possessing these permissions.</p>
+<h3 id="detection-strategies">Detection Strategies</h3>
+<p>Because DCSync uses standard Windows protocols, detection focuses on
+anomaly detection and access control monitoring rather than payload
+signatures:</p>
+<ul>
+<li><strong>Network Monitoring:</strong> Inspect network traffic for RPC
+calls to the DRSUAPI interface (UUID:
+<code>e3514235-4b06-11d1-ab04-00c04fc2dcd2</code>). Replication requests
+initiated from IP addresses that do not belong to known Domain
+Controllers indicate unauthorized replication attempts.</li>
+<li><strong>Event Log Auditing:</strong> Enable audit policies for
+Directory Service Access. Windows Event ID 4662 is generated when an
+operation is performed on an object. Monitoring Event ID 4662 for the
+domain object with the specific Access Mask corresponding to the
+replication GUIDs (<code>1131f6ad-9c07-11d1-f79f-00c04fc2dcd2</code>)
+reveals which account requested sensitive replication data.</li>
+<li><strong>Kerberos Ticket Requests:</strong> Attackers often request
+Kerberos tickets for RPC services (<code>RPCSS</code> or
+<code>HOST/dc-name</code>) immediately prior to executing DRS calls,
+which can serve as a correlation point.</li>
+</ul>
+<h3 id="mitigation-and-hardening">Mitigation and Hardening</h3>
+<ol type="1">
+<li><strong>Enforce Least Privilege on Replication Rights:</strong>
+Regularly audit Access Control Lists (ACLs) on the domain object to
+ensure that only legitimate Domain Controllers and core administrator
+groups possess the <code>Replicating Directory Changes All</code>
+permission.</li>
+<li><strong>Network Segmentation:</strong> Use host-based firewalls and
+network access controls to restrict traffic to RPC and high-order
+dynamic ports on Domain Controllers, permitting access only from other
+authorized Domain Controllers and designated administrative
+systems.</li>
+<li><strong>Privileged Access Workstations (PAWs):</strong> Ensure
+administrative tasks are performed exclusively from hardened, monitored
+systems to prevent administrative credential compromise.</li>
+</ol></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

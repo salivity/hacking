@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kerberos Golden Ticket Attacks Explained - hacking</title>
+    <meta name="description" content="A Kerberos Golden Ticket attack is a post-exploitation technique in Active Directory environments where an adversary counterfeits a valid Ticket Granting Ticket (TGT) to obtain unrestricted, persistent administrative access. By compromising the Key Distr">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/kerberos-golden-ticket-attacks-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Kerberos Golden Ticket Attacks Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/kerberos-golden-ticket-attacks-explained" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A Kerberos Golden Ticket attack is a post-exploitation technique in Active Directory environments where an adversary counterfeits a valid Ticket Granting Ticket (TGT) to obtain unrestricted, persistent administrative access. By compromising the Key Distr" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="kerberos-golden-ticket-attacks-explained">Kerberos Golden Ticket
+Attacks Explained</h1>
+<p>A Kerberos Golden Ticket attack is a post-exploitation technique in
+Active Directory environments where an adversary counterfeits a valid
+Ticket Granting Ticket (TGT) to obtain unrestricted, persistent
+administrative access. By compromising the Key Distribution Center’s
+secret key, an attacker can generate tickets that grant arbitrary group
+memberships and privileges without interacting with the Domain
+Controller for authentication. This article examines the underlying
+mechanisms of Golden Ticket creation, how attackers exploit the Kerberos
+protocol to maintain persistence, and the essential strategies required
+to detect and remediate these attacks.</p>
+<h3 id="the-role-of-kerberos-and-the-krbtgt-account">The Role of
+Kerberos and the KRBTGT Account</h3>
+<p>In a Windows Active Directory domain, the Kerberos protocol relies on
+a Key Distribution Center (KDC), which runs on Domain Controllers (DCs).
+The KDC uses a dedicated domain account named <code>krbtgt</code> to
+encrypt and sign all Ticket Granting Tickets.</p>
+<p>When a user authenticates legitimately:</p>
+<ol type="1">
+<li>The user authenticates with their credentials via the Authentication
+Service (AS).</li>
+<li>The KDC issues a TGT encrypted with the password hash (NTLM or AES
+key) of the <code>krbtgt</code> account.</li>
+<li>When requesting access to specific network resources, the user
+presents this TGT to the Ticket Granting Service (TGS) to receive a
+service ticket (TGS-REQ / TGS-REP).</li>
+</ol>
+<p>Because the KDC relies on symmetric encryption using its own secret
+key to validate TGTs, it assumes any TGT encrypted with the
+<code>krbtgt</code> key is authentic and has not been tampered with.</p>
+<h3 id="prerequisites-for-forging-a-golden-ticket">Prerequisites for
+Forging a Golden Ticket</h3>
+<p>To forge a Golden Ticket, an attacker must have already achieved
+high-privilege access to the domain, typically at the Domain Admin or
+Domain Controller level. The attacker must extract specific domain
+artifacts:</p>
+<ul>
+<li><strong>The KRBTGT Account Hash:</strong> The NTLM hash or AES-256
+key of the <code>krbtgt</code> account, typically harvested through
+directory synchronization attacks (DCSync) or by dumping the Active
+Directory database (<code>ntds.dit</code>).</li>
+<li><strong>Domain Name and SID:</strong> The fully qualified domain
+name (FQDN) and the domain Security Identifier (SID).</li>
+<li><strong>Target User Details:</strong> An identity to impersonate,
+which can be an existing account or an entirely fictitious
+username.</li>
+</ul>
+<h3 id="the-ticket-forgery-process">The Ticket Forgery Process</h3>
+<p>Once the <code>krbtgt</code> key and domain parameters are obtained,
+the attacker does not need to communicate with the KDC to create the
+ticket. Instead, specialized software reconstructs the internal
+structure of a valid TGT locally:</p>
+<ol type="1">
+<li><strong>Privilege Attribute Certificate (PAC) Crafting:</strong> The
+attacker specifies arbitrary security identifiers (SIDs), commonly
+adding administrative group identifiers such as Domain Admins (RID 512)
+or Enterprise Admins (RID 519) into the PAC.</li>
+<li><strong>Lifetime Configuration:</strong> Standard TGTs typically
+expire within 10 hours. An attacker can set arbitrary validity windows,
+often extending the lifetime to 10 years or more.</li>
+<li><strong>Cryptographic Signing and Encryption:</strong> The forged
+ticket and its PAC are signed and encrypted using the stolen
+<code>krbtgt</code> key, replicating the output the KDC would normally
+generate.</li>
+</ol>
+<h3 id="achieving-persistence-and-movement">Achieving Persistence and
+Movement</h3>
+<p>With the forged TGT loaded into the current logon session, the
+attacker can present it directly to the KDC to request service tickets
+for any resource in the domain:</p>
+<ul>
+<li><strong>Evasion of Account Controls:</strong> Because the TGT is
+verified solely by decrypting it with the <code>krbtgt</code> key,
+standard changes to the impersonated user's account—such as password
+resets or account disablement—do not invalidate the forged ticket during
+its lifetime.</li>
+<li><strong>Forest-Wide Scope:</strong> If configured with Enterprise
+Admin rights in a multi-domain forest, the forged ticket can provide
+access across trust boundaries.</li>
+</ul>
+<h3 id="detection-and-remediation">Detection and Remediation</h3>
+<p>Golden Tickets present detection challenges because the tickets
+appear structurally valid to resource servers and Domain Controllers.
+Defenses focus on anomaly detection and key hygiene:</p>
+<ul>
+<li><strong>Log Monitoring:</strong> Audit Security Event IDs 4624
+(Successful Logon), 4768 (TGT Request), and 4769 (TGS Request). Look for
+anomalies such as TGS requests occurring without a corresponding TGT
+request, unusual ticket lifetimes, or mismatches between the ticket
+encryption type and the domain’s baseline policy.</li>
+<li><strong>KRBTGT Password Rotation:</strong> Remediating a suspected
+or confirmed compromise requires resetting the <code>krbtgt</code>
+account password twice. Because Active Directory maintains the current
+and previous <code>krbtgt</code> password to prevent service disruption,
+two successive resets (separated by sufficient time to allow domain-wide
+replication) are necessary to invalidate all existing forged
+tickets.</li>
+<li><strong>Tiered Administration:</strong> Restrict administrative
+access to Domain Controllers to prevent credential dumping, as securing
+the <code>krbtgt</code> key is the primary safeguard against ticket
+forgery.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

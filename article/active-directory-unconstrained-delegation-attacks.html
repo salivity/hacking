@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Directory Unconstrained Delegation Attacks - hacking</title>
+    <meta name="description" content="Active Directory unconstrained delegation is a legacy Kerberos feature designed to allow services to impersonate users across multiple back-end resources without re-prompting for credentials. However, this architectural design creates severe vulnerabilit">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/active-directory-unconstrained-delegation-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Active Directory Unconstrained Delegation Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/active-directory-unconstrained-delegation-attacks" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Active Directory unconstrained delegation is a legacy Kerberos feature designed to allow services to impersonate users across multiple back-end resources without re-prompting for credentials. However, this architectural design creates severe vulnerabilit" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="active-directory-unconstrained-delegation-attacks">Active
+Directory Unconstrained Delegation Attacks</h1>
+<p>Active Directory unconstrained delegation is a legacy Kerberos
+feature designed to allow services to impersonate users across multiple
+back-end resources without re-prompting for credentials. However, this
+architectural design creates severe vulnerabilities that enable
+adversaries to harvest Ticket Granting Tickets (TGTs) from compromised
+hosts. This article examines the security gaps inherent in unconstrained
+delegation, how attackers manipulate these trust relationships to
+extract Kerberos tickets, and the mechanisms used to turn delegated
+systems into enterprise-wide compromise vectors.</p>
+<h3 id="the-inherent-flaw-in-unconstrained-kerberos-delegation">The
+Inherent Flaw in Unconstrained Kerberos Delegation</h3>
+<p>When an Active Directory computer or service account is configured
+with unconstrained delegation (the <code>TRUSTED_FOR_DELEGATION</code>
+userAccountControl flag), any user authenticating to that service sends
+a copy of their forwardable TGT along with the service ticket.</p>
+<p>The application server must hold the TGT to impersonate the user
+against downstream services. Because Kerberos cannot anticipate which
+specific back-end servers will be accessed, the Kerberos Key
+Distribution Center (KDC) provides a fully reusable TGT that is valid
+for any service across the entire domain.</p>
+<h3 id="memory-storage-and-ticket-harvesting">Memory Storage and Ticket
+Harvesting</h3>
+<p>The primary security gap lies in how the operating system handles
+received TGTs:</p>
+<ol type="1">
+<li><strong>Storage in LSASS:</strong> When a user connects to a service
+on an unconstrained delegation host, the forwardable TGT is placed
+directly into the Local Security Authority Subsystem Service (LSASS)
+process memory.</li>
+<li><strong>Persistence Beyond the Session:</strong> The extracted TGT
+remains cached in memory until it expires (typically 10 hours by
+default), long after the originating user session terminates.</li>
+<li><strong>Local Administrator Extraction:</strong> If an attacker
+gains administrative access to the machine configured with unconstrained
+delegation, they can dump the memory of the LSASS process using
+post-exploitation tooling to extract every cached TGT.</li>
+</ol>
+<h3 id="forced-authentication-and-lateral-movement">Forced
+Authentication and Lateral Movement</h3>
+<p>Adversaries do not simply wait for high-privilege users to connect to
+a compromised host; they actively force privileged accounts to
+authenticate to it.</p>
+<p>Through protocols that allow authentication coercion—such as the
+MS-RPRN (Print System Remote Protocol / PrinterBug) or MS-EFSR
+(Encrypting File System Remote Protocol / PetitPotam)—an attacker can
+trigger a target machine, such as a Domain Controller, to connect back
+to the unconstrained delegation server.</p>
+<p>When the Domain Controller authenticates to the host:</p>
+<ul>
+<li>The Domain Controller passes its machine account TGT (e.g.,
+<code>DC01$</code>) to the unconstrained delegation host.</li>
+<li>The machine TGT is written to LSASS memory.</li>
+<li>The attacker dumps the TGT and uses it to initiate a DCSync attack
+via the Directory Replication Service Remote Protocol (MS-DRSR), pulling
+all Active Directory password hashes directly from the domain.</li>
+</ul>
+<h3 id="remediation-and-defense-strategies">Remediation and Defense
+Strategies</h3>
+<p>Eliminating the risks associated with unconstrained delegation
+requires shifting to modern delegation architectures and applying
+credential protection controls:</p>
+<ul>
+<li><strong>Transition to Constrained Delegation:</strong> Replace
+unconstrained delegation with Kerberos Constrained Delegation (KCD) or
+Resource-Based Constrained Delegation (RBCD), which restrict target
+services and prevent arbitrary ticket caching.</li>
+<li><strong>Mark Accounts as Sensitive:</strong> Apply the "Account is
+sensitive and cannot be delegated" attribute to all administrative and
+high-value user accounts to prevent the KDC from generating forwardable
+TGTs for them.</li>
+<li><strong>Use the Protected Users Security Group:</strong> Members of
+this Active Directory security group are automatically blocked from
+using Kerberos delegation altogether.</li>
+<li><strong>Audit and Monitor Active Directory:</strong> Continuously
+query Active Directory for objects with the
+<code>ADS_UF_TRUSTED_FOR_DELEGATION</code> flag to identify and
+decommission unneeded legacy delegation trust configurations.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

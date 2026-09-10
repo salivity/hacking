@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Difference Between DOM-Based and Reflected XSS - hacking</title>
+    <meta name="description" content="Cross-Site Scripting (XSS) remains one of the most prevalent web security vulnerabilities, allowing attackers to execute malicious scripts in a victim's browser. While both Reflected XSS and DOM-based XSS typically require user interaction—such as clic">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/difference-between-dom-based-and-reflected-xss">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Difference Between DOM-Based and Reflected XSS - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/difference-between-dom-based-and-reflected-xss" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Cross-Site Scripting (XSS) remains one of the most prevalent web security vulnerabilities, allowing attackers to execute malicious scripts in a victim's browser. While both Reflected XSS and DOM-based XSS typically require user interaction—such as clic" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="difference-between-dom-based-and-reflected-xss">Difference
+Between DOM-Based and Reflected XSS</h1>
+<p>Cross-Site Scripting (XSS) remains one of the most prevalent web
+security vulnerabilities, allowing attackers to execute malicious
+scripts in a victim's browser. While both Reflected XSS and DOM-based
+XSS typically require user interaction—such as clicking a malicious
+link—their fundamental difference lies in the data flow and where the
+payload is processed. Reflected XSS relies on a server-side
+vulnerability where malicious input is sent to the server and echoed
+back into the response page. In contrast, DOM-based XSS is an entirely
+client-side vulnerability where the payload is read and executed
+directly by browser-side JavaScript manipulating the Document Object
+Model (DOM), often without the server ever processing or seeing the
+payload.</p>
+<h3 id="the-mechanism-of-reflected-xss">The Mechanism of Reflected
+XSS</h3>
+<p>In a Reflected XSS attack, the malicious script travels to the web
+server before reaching the execution phase.</p>
+<ol type="1">
+<li><strong>Transmission to Server:</strong> An attacker crafts a URL
+containing a malicious script within a parameter (e.g.,
+<code>https://example.com/search?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>)
+and tricks the user into submitting it.</li>
+<li><strong>Server-Side Reflection:</strong> The server processes the
+request and embeds the untrusted input directly into the HTTP response
+body without proper validation, sanitization, or context-aware output
+encoding.</li>
+<li><strong>Execution:</strong> The browser receives the server's HTML
+response, parses it, and executes the injected script as part of the
+initial page load.</li>
+</ol>
+<p>Because the attack relies on server-side behavior, the malicious
+payload is present in the network traffic to the server, can be recorded
+in server access logs, and can often be intercepted or blocked by Web
+Application Firewalls (WAFs).</p>
+<h3 id="the-mechanism-of-dom-based-xss">The Mechanism of DOM-Based
+XSS</h3>
+<p>In DOM-based XSS, the execution path resides entirely within the
+client-side code running in the browser.</p>
+<ol type="1">
+<li><strong>Client-Side Source:</strong> The payload is introduced into
+a client-side "source"—an API or DOM property controlled by the user or
+the environment, such as <code>window.location.search</code>,
+<code>window.location.hash</code>, or
+<code>document.referrer</code>.</li>
+<li><strong>Client-Side Execution:</strong> Legitimate client-side
+JavaScript reads this input from the source and passes it to an unsafe
+"sink"—a function or DOM element that allows code execution or HTML
+rendering, such as <code>element.innerHTML</code>,
+<code>document.write()</code>, <code>eval()</code>, or
+<code>setTimeout()</code>.</li>
+<li><strong>Execution:</strong> The browser executes the payload
+dynamically as the script manipulates the DOM.</li>
+</ol>
+<p>Crucially, the server does not need to alter its response to enable
+this attack. In scenarios where the payload is placed after a URL
+fragment identifier (<code>#</code>), the payload is not even
+transmitted to the server in the HTTP request, bypassing server-side
+logging and network-level WAF rules entirely.</p>
+<h3 id="core-differences-summary">Core Differences Summary</h3>
+<ul>
+<li><strong>Execution Context:</strong> Reflected XSS is caused by
+unsafe server-side processing that reflects input into the HTML
+response. DOM-based XSS is caused by unsafe client-side JavaScript
+processing data within the browser environment.</li>
+<li><strong>Server Visibility:</strong> Reflected XSS payloads always
+reach the server and appear in HTTP requests. DOM-based XSS payloads
+(particularly those in the URL hash) can remain completely invisible to
+the server.</li>
+<li><strong>Remediation Focus:</strong> Defending against Reflected XSS
+requires robust server-side input validation and contextual output
+encoding before data is written into the HTML response. Defending
+against DOM-based XSS requires secure client-side coding practices,
+specifically avoiding dangerous sinks and using safe alternatives like
+<code>textContent</code> instead of <code>innerHTML</code>.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

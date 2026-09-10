@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How ADS-B Vulnerabilities Enable Ghost Aircraft Spoofing - hacking</title>
+    <meta name="description" content="Automatic Dependent Surveillance-Broadcast (ADS-B) serves as the primary surveillance technology for modern air traffic management, yet it was designed without native cryptographic authentication or encryption. This fundamental architectural flaw allows">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-ads-b-vulnerabilities-enable-ghost-aircraft-spoofing">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How ADS-B Vulnerabilities Enable Ghost Aircraft Spoofing - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-ads-b-vulnerabilities-enable-ghost-aircraft-spoofing" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Automatic Dependent Surveillance-Broadcast (ADS-B) serves as the primary surveillance technology for modern air traffic management, yet it was designed without native cryptographic authentication or encryption. This fundamental architectural flaw allows" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-ads-b-vulnerabilities-enable-ghost-aircraft-spoofing">How
+ADS-B Vulnerabilities Enable Ghost Aircraft Spoofing</h1>
+<p>Automatic Dependent Surveillance-Broadcast (ADS-B) serves as the
+primary surveillance technology for modern air traffic management, yet
+it was designed without native cryptographic authentication or
+encryption. This fundamental architectural flaw allows adversaries
+equipped with commercial software-defined radios (SDRs) to broadcast
+falsified radio frequency signals directly to ground stations and nearby
+aircraft. By transmitting synthetic telemetry data that systems accept
+as legitimate, attackers can generate non-existent "ghost aircraft,"
+deceiving air traffic controllers and airborne collision avoidance
+systems.</p>
+<h3 id="the-architectural-flaw-open-and-unauthenticated-signals">The
+Architectural Flaw: Open and Unauthenticated Signals</h3>
+<p>ADS-B relies on Mode S Extended Squitter pulses transmitted primarily
+on the 1090 MHz radio frequency (and 978 MHz Universal Access
+Transceiver in low-altitude US airspace). When designed, the protocol
+prioritized interoperability, simplicity, and low latency over
+cybersecurity.</p>
+<p>Consequently, ADS-B messages possess three major security
+vulnerabilities:</p>
+<ul>
+<li><strong>No Authentication:</strong> Transmissions do not include
+digital signatures, Message Authentication Codes (MACs), or public-key
+cryptographic proofs to verify the sender's identity.</li>
+<li><strong>No Encryption:</strong> Messages broadcast in cleartext,
+revealing aircraft ID (ICAO 24-bit address), call sign, position,
+velocity, and altitude to anyone within radio line-of-sight.</li>
+<li><strong>No Integrity Checking Beyond CRC:</strong> The standard
+Cyclic Redundancy Check (CRC) detects accidental transmission errors and
+bit-flips, but it provides zero protection against malicious
+modification or intentional packet creation, as an attacker can simply
+compute a valid CRC for any forged payload.</li>
+</ul>
+<h3 id="the-mechanics-of-injecting-ghost-aircraft">The Mechanics of
+Injecting Ghost Aircraft</h3>
+<p>Creating ghost aircraft requires minimal specialized equipment. Using
+readily available, low-cost Software-Defined Radios (such as a HackRF,
+BladeRF, or USRP) combined with open-source modulation software, an
+attacker can execute message injection attacks in real time:</p>
+<ol type="1">
+<li><strong>Packet Crafting:</strong> The adversary constructs valid
+ADS-B message frames containing arbitrary data, assigning a spoofed
+24-bit ICAO address, realistic latitude and longitude coordinates,
+realistic flight vectors, and valid barometric altitudes.</li>
+<li><strong>Pulse Position Modulation (PPM):</strong> The crafted binary
+data is encoded into pulses using standard PPM at a 1-megabit-per-second
+data rate.</li>
+<li><strong>RF Transmission:</strong> The SDR upconverts the baseband
+signal to 1090 MHz and transmits it. If the transmission power matches
+or exceeds legitimate signals reaching local receivers, the receiving
+hardware accepts the transmission.</li>
+</ol>
+<p>Because ADS-B receivers process any mathematically valid packet as
+authentic, the receiving equipment treats the crafted signal as a
+physical plane, populating it on tracking systems as a legitimate
+target.</p>
+<h3 id="operational-impacts-on-aviation-safety">Operational Impacts on
+Aviation Safety</h3>
+<p>The presence of unverified ghost aircraft degrades airspace
+operations in several ways:</p>
+<ul>
+<li><strong>TCAS Deception:</strong> The Traffic Collision Avoidance
+System (TCAS) installed on commercial airliners calculates collision
+threats using transponder data. A spoofed aircraft projected onto a
+head-on collision path can trigger Traffic Advisories (TA) or Resolution
+Advisories (RA), commanding the pilot to dive, climb, or adjust
+trajectory to avoid a non-existent threat.</li>
+<li><strong>Air Traffic Control Disruption:</strong> Controllers relying
+on NextGen radar displays may experience false radar tracks, leading to
+unnecessary delays, aborted landings, diversion of holding patterns, or
+increased workload during critical flight phases.</li>
+<li><strong>Denial of Service via Saturation:</strong> An attacker can
+flood an airspace sector with hundreds of simultaneous ghost
+trajectories, cluttering displays, exhausting tracking table memory in
+ground processors, and effectively blinding monitoring systems.</li>
+</ul>
+<h3 id="challenges-in-implementing-defenses">Challenges in Implementing
+Defenses</h3>
+<p>Solving the ADS-B spoofing vector is non-trivial due to legacy
+constraints. Introducing digital signatures is constrained by the narrow
+112-bit message limit of standard ADS-B frames, where extra
+authentication payloads would consume vital bandwidth and cause high
+packet collision rates on 1090 MHz. Furthermore, establishing a global
+Public Key Infrastructure (PKI) for hundreds of thousands of civil and
+military aircraft across multiple international jurisdictions presents
+major operational hurdles.</p>
+<p>To counter ghost aircraft without altering the core standard,
+aviation authorities increasingly deploy secondary verification
+techniques. These include Multilateration (MLAT)—which validates an
+aircraft's physical location by calculating the Time Difference of
+Arrival (TDOA) of its radio signals across multiple ground sensors—and
+cross-verification against primary surveillance radar (PSR), which
+relies on physical reflections rather than unauthenticated broadcast
+data.</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Integer Overflows Cause Memory Corruption - hacking</title>
+    <meta name="description" content="Integer overflows occur when an arithmetic operation attempts to create a numeric value that falls outside the range representable by a given number of bits. In low-level languages like C and C++, which lack automatic bounds checking, these arithmetic an">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-integer-overflows-cause-memory-corruption">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Integer Overflows Cause Memory Corruption - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-integer-overflows-cause-memory-corruption" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Integer overflows occur when an arithmetic operation attempts to create a numeric value that falls outside the range representable by a given number of bits. In low-level languages like C and C++, which lack automatic bounds checking, these arithmetic an" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-integer-overflows-cause-memory-corruption">How Integer
+Overflows Cause Memory Corruption</h1>
+<p>Integer overflows occur when an arithmetic operation attempts to
+create a numeric value that falls outside the range representable by a
+given number of bits. In low-level languages like C and C++, which lack
+automatic bounds checking, these arithmetic anomalies do not typically
+trigger exceptions or runtime errors; instead, values silently wrap
+around or truncate. When an application calculates memory allocation
+sizes, buffer bounds, or loop counters using tainted user input, an
+integer overflow can cause the program to allocate insufficient memory
+or bypass boundary validations. This flaw bridges the gap between simple
+arithmetic and critical memory corruption, enabling attackers to trigger
+heap or stack buffer overflows, overwrite critical memory structures,
+and hijack control flow.</p>
+<h2 id="the-mechanics-of-integer-wrapping">The Mechanics of Integer
+Wrapping</h2>
+<p>Computers represent integers using fixed-width data types, such as
+8-bit, 16-bit, 32-bit, or 64-bit registers. An unsigned 32-bit integer,
+for example, can hold values ranging from <code>0</code> to
+<code>4,294,967,295</code> (<code>0x00000000</code> to
+<code>0xFFFFFFFF</code>). When a program adds <code>1</code> to
+<code>0xFFFFFFFF</code>, the register cannot accommodate the value
+<code>4,294,967,296</code>. The hardware discards the carry bit,
+resetting the value to <code>0</code>.</p>
+<p>Similarly, signed integers use two's complement representation, where
+the most significant bit denotes the sign. In a 32-bit signed integer,
+adding <code>1</code> to the maximum positive value
+(<code>2,147,483,647</code> or <code>0x7FFFFFFF</code>) wraps the value
+to the minimum negative value (<code>-2,147,483,648</code> or
+<code>0x80000000</code>). While unsigned arithmetic wrapping is defined
+by language standards, signed integer overflow is undefined behavior in
+C/C++, often causing optimizing compilers to eliminate safety checks
+entirely.</p>
+<h2 id="memory-allocation-size-mismatch">Memory Allocation Size
+Mismatch</h2>
+<p>The most common path from an integer overflow to exploitable memory
+corruption involves dynamic memory allocation routines like
+<code>malloc()</code>, <code>calloc()</code>, or <code>new[]</code>.</p>
+<p>Programs frequently calculate buffer sizes dynamically based on
+user-supplied metrics, such as an array length:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> allocate_array<span class="op">(</span><span class="dt">size_t</span> count<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">size_t</span> buffer_size <span class="op">=</span> count <span class="op">*</span> <span class="kw">sizeof</span><span class="op">(</span><span class="dt">int</span><span class="op">);</span> <span class="co">// Integer overflow risk</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> <span class="op">*</span>array <span class="op">=</span> <span class="op">(</span><span class="dt">int</span> <span class="op">*)</span>malloc<span class="op">(</span>buffer_size<span class="op">);</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">size_t</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> count<span class="op">;</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        array<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> get_user_data<span class="op">();</span> <span class="co">// Heap out-of-bounds write</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If an attacker supplies a <code>count</code> value of
+<code>1,073,741,825</code> on a 32-bit system where
+<code>sizeof(int)</code> is <code>4</code>:</p>
+<ol type="1">
+<li>The multiplication <code>1,073,741,825 * 4</code> mathematically
+equals <code>4,294,967,300</code>.</li>
+<li>As a 32-bit unsigned integer, this value wraps around to
+<code>4</code> (<code>0x00000004</code>).</li>
+<li>The program calls <code>malloc(4)</code>, requesting a heap buffer
+large enough for only a single integer.</li>
+<li>The subsequent copy loop uses the original, un-overflowed
+<code>count</code> (<code>1,073,741,825</code>) as its termination
+condition.</li>
+<li>The loop writes data past the 4-byte allocation into adjacent heap
+memory, resulting in a heap-based buffer overflow.</li>
+</ol>
+<h2 id="signed-and-unsigned-comparison-flaws">Signed and Unsigned
+Comparison Flaws</h2>
+<p>Signedness bugs occur when signed values are implicitly converted to
+unsigned values, or vice versa, during conditional checks or memory
+operations.</p>
+<p>Functions like
+<code>memcpy(void *dest, const void *src, size_t n)</code> expect the
+size parameter <code>n</code> to be of type <code>size_t</code>, which
+is unsigned. If an application validates a user-provided length using a
+signed integer, an attacker can bypass boundary defenses:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> process_packet<span class="op">(</span><span class="dt">int</span> user_len<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>user_data<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> local_buffer<span class="op">[</span><span class="dv">256</span><span class="op">];</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Signed comparison</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>user_len <span class="op">&gt;</span> <span class="dv">256</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span> <span class="co">// Reject oversized input</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Implicit conversion to unsigned size_t</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    memcpy<span class="op">(</span>local_buffer<span class="op">,</span> user_data<span class="op">,</span> user_len<span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>If an attacker passes a negative value (such as <code>-1</code>) for
+<code>user_len</code>:</p>
+<ol type="1">
+<li>The condition <code>user_len &gt; 256</code> evaluates to false
+because <code>-1</code> is less than <code>256</code>.</li>
+<li>When passed to <code>memcpy</code>, <code>-1</code> is interpreted
+as an unsigned <code>size_t</code>, converting into
+<code>4,294,967,295</code> (on 32-bit systems) or
+<code>18,446,744,073,709,551,615</code> (on 64-bit systems).</li>
+<li><code>memcpy</code> attempts to copy gigabytes of data into the
+256-byte stack buffer, overflowing the stack frame immediately.</li>
+</ol>
+<h2 id="converting-memory-corruption-into-code-execution">Converting
+Memory Corruption into Code Execution</h2>
+<p>Once an integer overflow creates an out-of-bounds memory write, an
+attacker leverages the corrupted memory space to gain control over
+program execution.</p>
+<h3 id="heap-exploitation">Heap Exploitation</h3>
+<p>On the heap, overflowing a dynamically allocated chunk allows an
+attacker to corrupt metadata used by the memory allocator, such as chunk
+size headers, forward pointers, and backward pointers in free-list
+implementations. Corrupting these structures during memory reallocation
+or deallocation (<code>free()</code>) can trigger primitive read/write
+operations anywhere in the process's address space (an arbitrary write
+primitive). Alternatively, attackers can overwrite adjacent
+heap-allocated objects containing C++ virtual method tables (vtable
+pointers) or function pointers, redirecting execution to shellcode or
+Return-Oriented Programming (ROP) chains when those functions are
+invoked.</p>
+<h3 id="stack-exploitation">Stack Exploitation</h3>
+<p>When signed conversion errors cause stack overflows, the
+out-of-bounds write overwrites local stack variables, saved frame
+pointers (RBP/EBP), and the function return address (RIP/EIP). By
+overwriting the return address, the attacker redirects execution flow to
+injected code or existing program routines when the vulnerable function
+returns.</p>
+<h2 id="prevention-and-safe-coding-practices">Prevention and Safe Coding
+Practices</h2>
+<p>Preventing integer-induced memory corruption requires validating
+arithmetic before execution occurs:</p>
+<ul>
+<li><strong>Pre-Condition Checks:</strong> Ensure that operations do not
+exceed type limits prior to evaluation. For example, before computing
+<code>count * sizeof(type)</code>, check that
+<code>count &lt;= SIZE_MAX / sizeof(type)</code>.</li>
+<li><strong>Compiler Built-ins:</strong> Modern compilers provide
+built-in arithmetic functions with overflow detection, such as GCC and
+Clang's <code>__builtin_mul_overflow()</code> and
+<code>__builtin_add_overflow()</code>.</li>
+<li><strong>Safe Math Libraries:</strong> Utilize libraries designed to
+handle arithmetic operations with strict bounds checking and exception
+handling.</li>
+<li><strong>Strict Type Consistency:</strong> Match variable types with
+standard library signatures, strictly avoiding casting between signed
+and unsigned integers when manipulating sizes, lengths, or indices.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

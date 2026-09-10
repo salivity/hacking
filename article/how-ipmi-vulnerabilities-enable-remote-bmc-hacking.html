@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How IPMI Vulnerabilities Enable Remote BMC Hacking - hacking</title>
+    <meta name="description" content="Intelligent Platform Management Interface (IPMI) provides out-of-band server management, allowing administrators to control hardware independently of the operating system. However, structural flaws in the IPMI specification, legacy protocols, and insecur">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-ipmi-vulnerabilities-enable-remote-bmc-hacking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How IPMI Vulnerabilities Enable Remote BMC Hacking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-ipmi-vulnerabilities-enable-remote-bmc-hacking" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Intelligent Platform Management Interface (IPMI) provides out-of-band server management, allowing administrators to control hardware independently of the operating system. However, structural flaws in the IPMI specification, legacy protocols, and insecur" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-ipmi-vulnerabilities-enable-remote-bmc-hacking">How IPMI
+Vulnerabilities Enable Remote BMC Hacking</h1>
+<p>Intelligent Platform Management Interface (IPMI) provides out-of-band
+server management, allowing administrators to control hardware
+independently of the operating system. However, structural flaws in the
+IPMI specification, legacy protocols, and insecure firmware
+implementations allow malicious actors to remotely compromise the
+Baseboard Management Controller (BMC). This article explains the
+technical vulnerabilities within IPMI—including cryptographic
+weaknesses, authentication bypasses, and firmware injection vectors—that
+expose BMCs to remote takeovers, giving attackers persistent bare-metal
+access to targeted infrastructure.</p>
+<h3 id="the-role-of-ipmi-and-the-baseboard-management-controller">The
+Role of IPMI and the Baseboard Management Controller</h3>
+<p>A Baseboard Management Controller (BMC) is an independent, low-power
+microcontroller embedded directly onto a server’s motherboard. It has
+direct access to system memory, storage, power controls, and system
+buses. IPMI serves as the standardized message-based hardware management
+interface used to communicate with the BMC, often exposed through a
+dedicated network interface over UDP port 623.</p>
+<p>Because the BMC operates separately from the host operating system,
+compromising the BMC via IPMI grants an attacker complete control over
+the physical host, invisible to standard host-based endpoint detection
+and response (EDR) solutions.</p>
+<h3 id="remote-exploitation-vectors-in-ipmi">Remote Exploitation Vectors
+in IPMI</h3>
+<h4 id="1-rakp-protocol-weaknesses-offline-hash-extraction">1. RAKP
+Protocol Weaknesses (Offline Hash Extraction)</h4>
+<p>IPMI version 2.0 utilizes the Remote Authenticated Key-Exchange
+Protocol (RAKP) for authentication. During the initial RAKP handshake,
+the BMC sends the client a salted HMAC hash of the requested user's
+password before verifying if the client actually knows the password.</p>
+<p>Remote attackers can query the IPMI service for valid or default
+usernames (such as "ADMIN" or "root"), capture the server's
+authentication response, and extract the HMAC-SHA1 or HMAC-MD5 password
+hash. The attacker then cracks these hashes offline using
+high-performance dictionary and brute-force tools without triggering
+account lockouts or detection mechanisms on the target server.</p>
+<h4 id="2-the-cipher-suite-0-bypass">2. The Cipher Suite 0 Bypass</h4>
+<p>The IPMI 2.0 specification includes multiple cipher suites defining
+algorithms for authentication, integrity, and encryption. "Cipher Suite
+0" specifies no authentication, no integrity, and no encryption.</p>
+<p>When a BMC supports Cipher Suite 0 and does not explicitly disable
+it, an attacker can craft a connection request that mandates the use of
+this suite. This effectively bypasses authentication, allowing an
+unauthenticated remote user to establish an administrative session and
+issue privileged IPMI commands over the network.</p>
+<h4 id="3-default-and-hardcoded-credentials">3. Default and Hardcoded
+Credentials</h4>
+<p>Many BMC implementations are shipped with standardized,
+vendor-specific default credentials (e.g.,
+<code>ADMIN</code>/<code>ADMIN</code> or
+<code>root</code>/<code>calvin</code>). In environments where
+out-of-band networks are directly connected to corporate intranets or
+inadvertently exposed to the public internet, attackers use automated
+scanning tools to log in using these known defaults. Furthermore,
+several vendors have left undocumented hardcoded administrative accounts
+in the BMC firmware for debugging, which cannot be disabled via standard
+management consoles.</p>
+<h4 id="4-buffer-overflows-and-command-injections-in-bmc-daemons">4.
+Buffer Overflows and Command Injections in BMC Daemons</h4>
+<p>The software running on a BMC typically consists of an embedded Linux
+distribution running proprietary daemons to process IPMI, HTTP/HTTPS,
+and SSH traffic. Many of these management daemons are written in C/C++
+without modern memory-safety protections like Address Space Layout
+Randomization (ASLR) or stack canaries.</p>
+<p>Attackers routinely discover vulnerabilities such as:</p>
+<ul>
+<li><strong>Stack-based Buffer Overflows:</strong> Sending malformed
+IPMI packets with oversized fields that crash the parsing service or
+allow remote code execution (RCE) directly on the BMC operating
+system.</li>
+<li><strong>Web Interface Command Injection:</strong> Vulnerabilities in
+the web-based management interfaces (which wrap IPMI commands) where
+unsanitized user inputs are executed directly in the BMC's shell.</li>
+</ul>
+<h3 id="consequences-of-a-remote-bmc-compromise">Consequences of a
+Remote BMC Compromise</h3>
+<p>Once an attacker exploits an IPMI vulnerability to gain control of
+the BMC, the security of the host system is nullified. Remote attackers
+can execute the following actions:</p>
+<ul>
+<li><strong>Remote Console Spying (Virtual KVM):</strong> Hijack
+keyboard, video, and mouse streams via Serial-over-LAN (SoL) or virtual
+KVM, allowing the capture of disk encryption passphrases and OS login
+credentials.</li>
+<li><strong>Malicious Media Mounting:</strong> Mount remote ISO images
+via Virtual Media to reboot the server into a malicious operating
+system, bypassing all host OS security controls.</li>
+<li><strong>Firmware Persistence (Bootkits):</strong> Flash modified or
+backdoored firmware directly to the BMC SPI flash chip, ensuring
+persistent hardware-level access that survives operating system
+reinstallation or physical hard drive replacement.</li>
+<li><strong>Physical Hardware Sabotage:</strong> Alter voltage
+parameters, disable cooling fans, or corrupt the physical BIOS/UEFI
+firmware to permanently disable (brick) the physical server.</li>
+</ul>
+<h3 id="core-mitigations">Core Mitigations</h3>
+<p>To neutralize IPMI-based BMC vulnerabilities, organizations must
+implement strict defensive controls:</p>
+<ul>
+<li><strong>Network Isolation:</strong> Never expose IPMI or BMC
+interfaces to the internet. Restrict all BMC traffic to a strictly
+isolated, non-routable management VLAN accessible only via jump hosts or
+dedicated VPNs with multi-factor authentication.</li>
+<li><strong>Disable Insecure Standards:</strong> Explicitly disable
+Cipher Suite 0 in the BMC configuration, and transition away from IPMI
+1.5 in favor of IPMI 2.0 with strong ciphers (such as Cipher Suite 3 or
+higher).</li>
+<li><strong>Credential Hardening:</strong> Enforce unique, high-entropy
+passwords across all management interfaces and disable default or unused
+user accounts.</li>
+<li><strong>Modern Protocol Adoption:</strong> Where supported,
+transition away from legacy IPMI in favor of modern, secure RESTful
+management interfaces such as Redfish, which use HTTPS and standard JSON
+payloads.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

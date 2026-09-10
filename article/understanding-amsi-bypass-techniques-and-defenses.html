@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding AMSI Bypass Techniques and Defenses - hacking</title>
+    <meta name="description" content="The Antimalware Scan Interface (AMSI) is a Windows defense mechanism integrated into applications to detect script-based threats at runtime. This article examines the architectural model of AMSI, the primary theoretical methods utilized to subvert it, an">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-amsi-bypass-techniques-and-defenses">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding AMSI Bypass Techniques and Defenses - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-amsi-bypass-techniques-and-defenses" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Antimalware Scan Interface (AMSI) is a Windows defense mechanism integrated into applications to detect script-based threats at runtime. This article examines the architectural model of AMSI, the primary theoretical methods utilized to subvert it, an" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="understanding-amsi-bypass-techniques-and-defenses">Understanding
+AMSI Bypass Techniques and Defenses</h1>
+<p>The Antimalware Scan Interface (AMSI) is a Windows defense mechanism
+integrated into applications to detect script-based threats at runtime.
+This article examines the architectural model of AMSI, the primary
+theoretical methods utilized to subvert it, and how security teams can
+monitor and defend against these evasion strategies.</p>
+<h3 id="architecture-of-amsi">Architecture of AMSI</h3>
+<p>AMSI is designed as an interface standard allowing applications (such
+as PowerShell, Windows Script Host, and the .NET runtime) to integrate
+with the installed antivirus or Endpoint Detection and Response (EDR)
+solution. When an application processes content—such as executing an
+encoded script—it unpacks or de-obfuscates the input in memory and sends
+the raw content to AMSI via standard API calls, typically
+<code>AmsiScanBuffer</code> or <code>AmsiScanString</code>.</p>
+<p>Because AMSI is implemented largely as an in-process dynamic-link
+library (<code>amsi.dll</code>) loaded into the context of the running
+process, it operates under the same privileges as the application
+itself. This architectural characteristic forms the basis for most
+subversion techniques: an attacker executing code within the process
+context often possesses the necessary permissions to inspect and modify
+the process memory space.</p>
+<h3 id="common-conceptual-bypass-techniques">Common Conceptual Bypass
+Techniques</h3>
+<h4 id="1-in-memory-function-patching">1. In-Memory Function
+Patching</h4>
+<p>The most prevalent category of bypass involves altering the binary
+code of AMSI functions directly in the virtual memory of the host
+process.</p>
+<ul>
+<li><strong>Mechanism:</strong> The host application loads
+<code>amsi.dll</code>. An entity with execution privileges in that
+process uses native Windows API calls (such as
+<code>VirtualProtect</code>) to change the memory protection of the
+target function—frequently <code>AmsiScanBuffer</code>—from
+read-only/execute to read-write.</li>
+<li><strong>Effect:</strong> The code modifies the beginning of the
+function to immediately return a specific success code (such as
+<code>AMSI_RESULT_CLEAN</code>) or an error code before the buffer is
+passed to the underlying security provider. As a result, subsequent scan
+requests return benign verdicts without executing an actual scan.</li>
+</ul>
+<h4 id="2-context-and-initialization-tampering">2. Context and
+Initialization Tampering</h4>
+<p>AMSI relies on initialization structures to maintain context and
+communicate with the registered antimalware provider.</p>
+<ul>
+<li><strong>Mechanism:</strong> Applications initialize the scanning
+session by invoking <code>AmsiInitialize</code>, which creates an
+internal context structure (<code>HAMSICONTEXT</code>).</li>
+<li><strong>Effect:</strong> If the memory reference pointing to this
+context is zeroed out, modified, or forced to an invalid state,
+subsequent calls to scanning functions fail gracefully or exit early,
+effectively disabling scanning for that session.</li>
+</ul>
+<h4 id="3-com-server-hijacking">3. COM Server Hijacking</h4>
+<p>AMSI uses the Component Object Model (COM) to route data from the
+calling application to the antimalware service provider.</p>
+<ul>
+<li><strong>Mechanism:</strong> The system determines which provider to
+invoke based on registry keys located under
+<code>HKEY_LOCAL_MACHINE</code> or user-specific registry hives
+(<code>HKEY_CURRENT_USER</code>).</li>
+<li><strong>Effect:</strong> If permissions allow, an adversary might
+manipulate registry paths or environment variables to redirect the COM
+lookup to a non-existent or null provider, causing the initialization of
+the scanning provider to fail.</li>
+</ul>
+<h4 id="4-obfuscation-and-dynamic-encoding">4. Obfuscation and Dynamic
+Encoding</h4>
+<p>Rather than neutralizing the scanning engine, some approaches attempt
+to prevent the scan engine from recognizing malicious signatures.</p>
+<ul>
+<li><strong>Mechanism:</strong> Utilizing variable substitution, string
+concatenation, dynamic tokenization, and multi-layered
+encryption/encoding.</li>
+<li><strong>Effect:</strong> Because AMSI inspects content at runtime
+just before execution, modern engines frequently capture the final,
+de-obfuscated layer. However, complex or non-standard syntax
+permutations are sometimes designed to exploit edge cases in static
+signature definitions without needing to patch memory.</li>
+</ul>
+<h3 id="defensive-countermeasures-and-detection">Defensive
+Countermeasures and Detection</h3>
+<p>Modern defenses recognize the in-process limitations of AMSI and
+implement layers to detect or prevent tampering:</p>
+<ul>
+<li><strong>Memory Integrity and Hook Detection:</strong> Advanced EDR
+solutions monitor critical API functions like
+<code>VirtualProtect</code> and <code>WriteProcessMemory</code>. Alerts
+are triggered when unauthorized modules attempt to modify execution
+permissions on loaded system DLLs such as <code>amsi.dll</code> or
+<code>ntdll.dll</code>.</li>
+<li><strong>Event Tracing for Windows (ETW):</strong> System
+administrators can utilize the
+<code>Microsoft-Windows-Threat-Intelligence</code> and
+<code>Microsoft-Windows-PowerShell</code> ETW providers to log script
+execution blocks and detect anomalies, such as sudden drops in scan
+telemetry or execution of reflective code.</li>
+<li><strong>Constrained Language Mode (CLM):</strong> Enforcing CLM via
+AppLocker or Windows Defender Application Control (WDAC) restricts
+PowerShell's capability to access arbitrary Win32 APIs, native memory
+management functions, and reflection, thereby stopping in-memory
+patching attempts before they can execute.</li>
+<li><strong>Audit Logging:</strong> Comprehensive logging of PowerShell
+script blocks (Event ID 4104) ensures that even if runtime scanning
+fails, script content is preserved for historical forensic
+analysis.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

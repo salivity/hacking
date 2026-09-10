@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Boot Persistence via Initramfs Tampering - hacking</title>
+    <meta name="description" content="Manipulating the initial RAM filesystem (initramfs or initrd) allows adversaries with elevated privileges to establish persistence that executes before the real root filesystem is mounted and before user-space security controls initialize. This article e">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/linux-boot-persistence-via-initramfs-tampering">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Linux Boot Persistence via Initramfs Tampering - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/linux-boot-persistence-via-initramfs-tampering" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Manipulating the initial RAM filesystem (initramfs or initrd) allows adversaries with elevated privileges to establish persistence that executes before the real root filesystem is mounted and before user-space security controls initialize. This article e" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="linux-boot-persistence-via-initramfs-tampering">Linux Boot
+Persistence via Initramfs Tampering</h1>
+<p>Manipulating the initial RAM filesystem (initramfs or initrd) allows
+adversaries with elevated privileges to establish persistence that
+executes before the real root filesystem is mounted and before
+user-space security controls initialize. This article examines the
+architectural role of the initramfs in the Linux boot process, the
+theoretical mechanisms attackers use to embed hooks within it, the
+tactical advantages this position provides, and the defensive measures
+required to detect and prevent such modifications.</p>
+<h3 id="understanding-the-role-of-initramfs">Understanding the Role of
+Initramfs</h3>
+<p>The boot sequence of a modern Linux system involves several stages:
+the firmware (UEFI/BIOS) initiates the bootloader (such as GRUB), which
+loads the Linux kernel along with the initramfs into memory. The
+initramfs is a temporary, compressed root filesystem (typically a
+<code>cpio</code> archive) containing the minimal set of drivers, kernel
+modules, and user-space tools required to locate, mount, and transfer
+control to the actual root filesystem.</p>
+<p>Key responsibilities of the initramfs include:</p>
+<ul>
+<li>Loading storage controller and disk drivers.</li>
+<li>Prompting for and handling Full Disk Encryption (FDE) credentials
+(e.g., LUKS).</li>
+<li>Assembling logical volumes (LVM) or software RAID arrays.</li>
+<li>Running initialization scripts (such as <code>systemd</code> or
+custom shell scripts like <code>/init</code>).</li>
+<li>Transitioning execution via <code>switch_root</code> to the primary
+operating system.</li>
+</ul>
+<h3 id="mechanisms-of-boot-time-tampering">Mechanisms of Boot-Time
+Tampering</h3>
+<p>Because the initramfs executes code with root authority before
+security daemons and monitoring agents are active, modifying its
+contents provides a potent mechanism for persistence. Attackers
+typically approach this through several vectors:</p>
+<ol type="1">
+<li><strong>Modifying Initialization Scripts:</strong> The core
+orchestration of an initramfs relies on an entry point, commonly
+<code>/init</code>. By altering this script or appending commands to
+pre-mount hooks, an attacker can execute arbitrary commands during every
+boot cycle.</li>
+<li><strong>Backdooring Binaries and Shared Libraries:</strong> Standard
+utilities bundled inside the initramfs (such as <code>busybox</code>,
+<code>cryptsetup</code>, or standard shell binaries) can be replaced
+with modified versions that capture sensitive input, such as disk
+encryption passphrases, before writing them to disk or storing them for
+later retrieval.</li>
+<li><strong>Injecting Kernel Modules:</strong> An adversary can place
+malicious Loadable Kernel Modules (LKMs) within the initramfs image.
+These modules are automatically loaded into kernel space early in the
+process, enabling stealthy rootkit behavior before kernel-integrity
+auditing tools run.</li>
+<li><strong>Altering Initramfs Generation Hooks:</strong> Operating
+systems frequently regenerate the initramfs during kernel updates via
+tools like <code>dracut</code>, <code>initramfs-tools</code>, or
+<code>mkinitcpio</code>. By modifying configuration files (e.g., adding
+scripts to <code>/etc/initramfs-tools/scripts/</code> or modifying
+<code>/etc/dracut.conf.d/</code>), persistence can survive kernel
+updates and routine system maintenance.</li>
+</ol>
+<h3 id="strategic-impact-of-early-stage-execution">Strategic Impact of
+Early-Stage Execution</h3>
+<p>Establishing a foothold at the initramfs stage confers distinct
+tactical advantages over standard user-space persistence mechanisms:</p>
+<ul>
+<li><strong>Pre-Encryption Access:</strong> The initramfs interacts
+directly with the storage decryption workflow. An attacker can intercept
+LUKS passphrases in plaintext as the user inputs them.</li>
+<li><strong>Bypassing User-Space EDR:</strong> Endpoint Detection and
+Response (EDR) agents, audit frameworks (<code>auditd</code>), and
+filesystem integrity monitoring (FIM) tools typically start late in the
+boot sequence. Actions taken inside the initramfs occur in a transient
+filesystem that disappears from memory once <code>switch_root</code>
+completes, leaving minimal traces on the primary filesystem.</li>
+<li><strong>Network Manipulation:</strong> If networking utilities are
+included in the initramfs (common in diskless or network-booted
+environments), the system can establish unauthorized network sessions or
+exfiltrate state information before host-based firewalls apply standard
+rule sets.</li>
+</ul>
+<h3 id="detection-and-defensive-controls">Detection and Defensive
+Controls</h3>
+<p>Mitigating the risk of initramfs tampering requires enforcing
+verification from the hardware level up to the operating system:</p>
+<ul>
+<li><strong>UEFI Secure Boot and Unified Kernel Images (UKIs):</strong>
+Standard Secure Boot verifies the bootloader and kernel, but traditional
+configurations leave the initramfs as an unsigned, independent file on
+<code>/boot</code>. Combining the kernel, initramfs, and kernel command
+line into a single Unified Kernel Image (UKI) signed with an
+authenticated key ensures that tampering invalidates the signature and
+halts boot execution.</li>
+<li><strong>Measured Boot with TPM:</strong> Utilizing a Trusted
+Platform Module (TPM) allows the system to measure the components loaded
+during boot into Platform Configuration Registers (PCRs). Sealing disk
+encryption keys to these PCR values ensures that any unauthorized
+modification to the boot chain—including the initramfs—prevents the
+system from automatically unsealing the disk encryption keys.</li>
+<li><strong>Integrity Monitoring and Permissions:</strong> Access to
+<code>/boot</code> and initramfs configuration directories must be
+strictly restricted to administrative accounts. Integrity monitoring
+solutions should verify hashes of files in <code>/boot</code> against
+known-good baselines to detect anomalous changes immediately after
+regeneration.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

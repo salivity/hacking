@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Flaws in JWT Signature Verification - hacking</title>
+    <meta name="description" content="JSON Web Tokens (JWTs) are widely used for modern web application authentication, relying on asymmetric and symmetric cryptography to ensure payload integrity. However, when libraries improperly implement cryptographic standards or mismanage underlying m">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/mathematical-flaws-in-jwt-signature-verification">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Mathematical Flaws in JWT Signature Verification - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/mathematical-flaws-in-jwt-signature-verification" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="JSON Web Tokens (JWTs) are widely used for modern web application authentication, relying on asymmetric and symmetric cryptography to ensure payload integrity. However, when libraries improperly implement cryptographic standards or mismanage underlying m" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="mathematical-flaws-in-jwt-signature-verification">Mathematical
+Flaws in JWT Signature Verification</h1>
+<p>JSON Web Tokens (JWTs) are widely used for modern web application
+authentication, relying on asymmetric and symmetric cryptography to
+ensure payload integrity. However, when libraries improperly implement
+cryptographic standards or mismanage underlying mathematical operations,
+attackers can bypass signature verification and forge arbitrary claims.
+This article examines the core mathematical flaws and implementation
+oversights—including asymmetric-to-symmetric key confusion, ECDSA nonce
+reuse, signature malleability, and low-exponent RSA verification
+defects—that permit authentication bypass.</p>
+<h2
+id="algorithm-confusion-via-asymmetric-to-symmetric-mismatch">Algorithm
+Confusion via Asymmetric-to-Symmetric Mismatch</h2>
+<p>The algorithm confusion vulnerability arises from mathematical type
+confusion during signature validation. Asymmetric algorithms (such as
+RS256) rely on a private key <span class="math inline">\(d\)</span> to
+sign and a public key <span class="math inline">\((n, e)\)</span> to
+verify:</p>
+<p><span class="math display">\[\text{Signature} = m^d \pmod
+n\]</span></p>
+<p>In contrast, symmetric algorithms (such as HS256) use a single shared
+secret <span class="math inline">\(K\)</span> inside a Hash-based
+Message Authentication Code:</p>
+<p><span class="math display">\[\text{HMAC}(K, m) = H((K \oplus
+\text{opad}) \parallel H((K \oplus \text{ipad}) \parallel
+m))\]</span></p>
+<p>When a library does not enforce a strict algorithm match, an attacker
+can modify the token's header to specify <code>HS256</code> instead of
+<code>RS256</code>. The vulnerable backend verifies the token using its
+standard public key material as the parameter for <span
+class="math inline">\(K\)</span>. Because the public key is publicly
+accessible, the attacker can sign their forged token locally using the
+ASCII or binary representation of the public key as the HMAC secret,
+producing a mathematically valid signature that matches the server's
+calculation.</p>
+<h2 id="ecdsa-nonce-reuse-and-private-key-derivation">ECDSA Nonce Reuse
+and Private Key Derivation</h2>
+<p>Elliptic Curve Digital Signature Algorithm (ECDSA) implementations in
+JWTs (e.g., ES256 using curve P-256) are vulnerable to private key
+extraction if the random per-message secret (nonce <span
+class="math inline">\(k\)</span>) is reused or generated by a flawed
+pseudorandom number generator.</p>
+<p>The standard ECDSA signature consists of a pair <span
+class="math inline">\((r, s)\)</span> calculated as:</p>
+<p><span class="math display">\[r = (k \cdot G)_x \pmod n\]</span></p>
+<p><span class="math display">\[s = k^{-1}(z + r \cdot d) \pmod
+n\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(G\)</span> is the base curve generator
+point</li>
+<li><span class="math inline">\(n\)</span> is the prime order of the
+subgroup</li>
+<li><span class="math inline">\(z\)</span> is the truncated
+cryptographic hash of the JWT header and payload</li>
+<li><span class="math inline">\(d\)</span> is the signer's private
+key</li>
+</ul>
+<p>If an implementation signs two distinct tokens (<span
+class="math inline">\(m_1\)</span> and <span
+class="math inline">\(m_2\)</span> producing hashes <span
+class="math inline">\(z_1\)</span> and <span
+class="math inline">\(z_2\)</span>) with the same nonce <span
+class="math inline">\(k\)</span>, both signatures share identical <span
+class="math inline">\(r\)</span> values (<span class="math inline">\(r_1
+= r_2\)</span>). Subtracting the two signature equations cancels out the
+private key:</p>
+<p><span class="math display">\[s_1 - s_2 \equiv k^{-1}(z_1 - z_2) \pmod
+n\]</span></p>
+<p>An attacker extracts <span class="math inline">\(k\)</span>
+algebraically:</p>
+<p><span class="math display">\[k \equiv (z_1 - z_2)(s_1 - s_2)^{-1}
+\pmod n\]</span></p>
+<p>Once <span class="math inline">\(k\)</span> is known, the private key
+<span class="math inline">\(d\)</span> is recovered directly:</p>
+<p><span class="math display">\[d \equiv r^{-1}(s_1 \cdot k - z_1) \pmod
+n\]</span></p>
+<p>With the recovered private key, the attacker can forge any subsequent
+token signatures.</p>
+<h2 id="elliptic-curve-signature-malleability">Elliptic Curve Signature
+Malleability</h2>
+<p>The standard ECDSA equation allows two valid values of <span
+class="math inline">\(s\)</span> for any given <span
+class="math inline">\(r\)</span>. Because elliptic curves are symmetric
+across the x-axis, both <span class="math inline">\((k \cdot G)\)</span>
+and <span class="math inline">\(-(k \cdot G)\)</span> produce the same
+coordinate <span class="math inline">\(r\)</span>. Mathematically, if
+<span class="math inline">\((r, s)\)</span> is a valid signature for a
+given message hash <span class="math inline">\(z\)</span>, then:</p>
+<p><span class="math display">\[s&#39; \equiv -s \equiv n - s \pmod
+n\]</span></p>
+<p>The pair <span class="math inline">\((r, s&#39;)\)</span> is also a
+valid signature for the exact same message. If a web application tracks
+token revocation or replay attacks using the raw signature bytes as a
+unique token identifier rather than parsing the cryptographic claims, an
+attacker can invert <span class="math inline">\(s\)</span> to generate
+an alternate valid token that bypasses deduplication checks without
+breaking the underlying cryptography.</p>
+<h2 id="weak-rsa-public-exponent-verification">Weak RSA Public Exponent
+Verification</h2>
+<p>When JWT libraries rely on RSA with a low public exponent (commonly
+<span class="math inline">\(e = 3\)</span>) and implement flawed PKCS#1
+v1.5 padding verification, Bleichenbacher-style signature forgery
+becomes viable.</p>
+<p>During PKCS#1 v1.5 verification, the signature <span
+class="math inline">\(S\)</span> is raised to the public exponent:</p>
+<p><span class="math display">\[D = S^e \pmod n\]</span></p>
+<p>The decrypted block <span class="math inline">\(D\)</span> must
+follow the structure:</p>
+<p><span class="math display">\[00 \parallel 01 \parallel \text{FF}
+\dots \text{FF} \parallel 00 \parallel \text{ASN.1 Header} \parallel
+\text{Hash}(m)\]</span></p>
+<p>If an implementation uses loose regular expressions or reads the
+ASN.1 structure from left to right without validating that the <span
+class="math inline">\(\text{FF}\)</span> padding occupies the entire
+remainder of the key length, the attacker can place garbage bytes at the
+end of the block. Because <span class="math inline">\(e = 3\)</span>,
+the forged block <span class="math inline">\(D&#39;\)</span> is small
+enough that computing an exact integer cube root over the real numbers
+is mathematically trivial:</p>
+<p><span class="math display">\[S = \lfloor \sqrt[3]{D&#39;}
+\rfloor\]</span></p>
+<p>If <span class="math inline">\(S^3\)</span> produces the exact prefix
+matching the expected digest with arbitrary trailing bytes that the
+parser ignores, the signature validates without knowing the private
+exponent <span class="math inline">\(d\)</span>.</p>
+<h2 id="invalid-curve-and-parameter-confusion">Invalid Curve and
+Parameter Confusion</h2>
+<p>ECDSA operates on defined parameters <span class="math inline">\((p,
+a, b, G, n, h)\)</span>. Certain JWT libraries allow the public key to
+be passed dynamically via the <code>jwk</code> (JSON Web Key) header
+parameter. If the verification routine does not explicitly check that
+the provided point <span class="math inline">\(Q = (x, y)\)</span>
+satisfies the curve equation:</p>
+<p><span class="math display">\[y^2 \equiv x^3 + ax + b \pmod
+p\]</span></p>
+<p>an attacker can supply coordinates belonging to an alternative curve
+that has a much smaller order. In a small subgroup, solving the discrete
+logarithm problem (<span class="math inline">\(Q = d \cdot G\)</span>)
+is computationally trivial using the Pohlig-Hellman algorithm, allowing
+immediate recovery of the ephemeral private key used to sign the forged
+token.</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

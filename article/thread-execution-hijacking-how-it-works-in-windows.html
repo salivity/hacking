@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Execution Hijacking: How It Works in Windows - hacking</title>
+    <meta name="description" content="Thread execution hijacking is a sophisticated process injection technique used by adversaries to run arbitrary shellcode within the address space of a legitimate, running Windows process. Rather than creating a suspicious new thread, this method identifi">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/thread-execution-hijacking-how-it-works-in-windows">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Thread Execution Hijacking: How It Works in Windows - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/thread-execution-hijacking-how-it-works-in-windows" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Thread execution hijacking is a sophisticated process injection technique used by adversaries to run arbitrary shellcode within the address space of a legitimate, running Windows process. Rather than creating a suspicious new thread, this method identifi" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="thread-execution-hijacking-how-it-works-in-windows">Thread
+Execution Hijacking: How It Works in Windows</h1>
+<p>Thread execution hijacking is a sophisticated process injection
+technique used by adversaries to run arbitrary shellcode within the
+address space of a legitimate, running Windows process. Rather than
+creating a suspicious new thread, this method identifies an existing
+thread inside a target process, temporarily suspends it, alters its
+execution context to point to injected code, and resumes it. This
+article explains the technical mechanics of thread execution hijacking,
+detailing the step-by-step procedure attackers use to divert process
+flow and how this stealthy behavior operates under the hood.</p>
+<h3 id="the-mechanism-of-thread-execution-hijacking">The Mechanism of
+Thread Execution Hijacking</h3>
+<p>Operating systems manage execution via threads, which maintain an
+internal state known as a "thread context." This context stores CPU
+register values, including the Instruction Pointer (<code>EIP</code> on
+32-bit systems or <code>RIP</code> on 64-bit systems), which determines
+the next CPU instruction to execute. By gaining write access to this
+context, an attacker can redirect the thread to execute payload memory
+instead of its original code path.</p>
+<p>The attack typically unfolds through five distinct stages:</p>
+<h4 id="1-target-selection-and-memory-allocation">1. Target Selection
+and Memory Allocation</h4>
+<p>The attacker identifies a legitimate target process (such as
+<code>explorer.exe</code> or <code>svchost.exe</code>) running under
+equal or accessible privilege levels. Using the Windows API, the
+attacker requests a process handle via <code>OpenProcess</code>. Once
+the handle is obtained, the attacker allocates a region of virtual
+memory within the target process using <code>VirtualAllocEx</code>,
+typically setting permissions to <code>PAGE_EXECUTE_READWRITE</code>
+(RWX) or initially <code>PAGE_READWRITE</code> to reduce detection.</p>
+<h4 id="2-writing-the-shellcode">2. Writing the Shellcode</h4>
+<p>With the memory region allocated, the attacker writes the compiled
+shellcode into the remote process using <code>WriteProcessMemory</code>.
+If the memory was initially marked as non-executable, the attacker
+updates the memory protection to <code>PAGE_EXECUTE_READ</code> using
+<code>VirtualProtectEx</code> to prepare it for execution.</p>
+<h4 id="3-identifying-and-suspending-a-thread">3. Identifying and
+Suspending a Thread</h4>
+<p>Instead of invoking <code>CreateRemoteThread</code>—an API call
+heavily scrutinized by Endpoint Detection and Response (EDR)
+platforms—the attacker enumerates existing threads in the target process
+using <code>CreateToolhelp32Snapshot</code> combined with
+<code>Thread32First</code> and <code>Thread32Next</code>.</p>
+<p>Once a suitable thread is identified, the attacker accesses it via
+<code>OpenThread</code> requesting <code>THREAD_SUSPEND_RESUME</code>,
+<code>THREAD_GET_CONTEXT</code>, and <code>THREAD_SET_CONTEXT</code>
+permissions. The thread is then paused using <code>SuspendThread</code>
+to freeze register states and halt execution safely.</p>
+<h4 id="4-manipulating-the-thread-context">4. Manipulating the Thread
+Context</h4>
+<p>While the thread is suspended, the attacker calls
+<code>GetThreadContext</code> to extract the thread's architectural
+register data. The key modification occurs here:</p>
+<ul>
+<li>On an x86 architecture, the <code>Eip</code> register member is
+updated to point to the base address of the injected shellcode.</li>
+<li>On an x64 architecture, the <code>Rip</code> register member is
+updated to the shellcode address.</li>
+</ul>
+<p>To maintain system stability and avoid crashing the host application,
+sophisticated implementations save the original register values or
+configure the shellcode to restore execution to the original instruction
+address once the malicious routine concludes.</p>
+<p>The modified context structure is then committed back to the
+suspended thread using <code>SetThreadContext</code>.</p>
+<h4 id="5-resuming-execution">5. Resuming Execution</h4>
+<p>Finally, the attacker calls <code>ResumeThread</code>. When the
+Windows kernel next schedules this thread for CPU execution, the
+processor reads the newly overwritten Instruction Pointer register
+(<code>EIP</code>/<code>RIP</code>). Rather than resuming normal
+operations, the thread begins executing the attacker's shellcode inside
+the security boundary and privilege context of the host process.</p>
+<h3 id="defensive-implications">Defensive Implications</h3>
+<p>Thread execution hijacking is favored by attackers because it avoids
+the high-visibility artifacts associated with standard remote thread
+creation. However, defenders and security tools identify this behavior
+by monitoring cross-process thread handle acquisitions, observing
+unusual sequences of <code>SuspendThread</code> and
+<code>SetThreadContext</code>, and detecting execution paths that divert
+into unbacked memory regions (memory allocations not mapped to an
+authorized disk-based DLL or executable).</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

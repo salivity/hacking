@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAN Bus Commands and Vehicle Hijacking Risks - hacking</title>
+    <meta name="description" content="Modern vehicles rely on the Controller Area Network (CAN) bus to enable communication between Electronic Control Units (ECUs) controlling vital functions such as steering, acceleration, and braking. Because the standard CAN protocol lacks built-in authen">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/can-bus-commands-and-vehicle-hijacking-risks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="CAN Bus Commands and Vehicle Hijacking Risks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/can-bus-commands-and-vehicle-hijacking-risks" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Modern vehicles rely on the Controller Area Network (CAN) bus to enable communication between Electronic Control Units (ECUs) controlling vital functions such as steering, acceleration, and braking. Because the standard CAN protocol lacks built-in authen" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="can-bus-commands-and-vehicle-hijacking-risks">CAN Bus Commands
+and Vehicle Hijacking Risks</h1>
+<p>Modern vehicles rely on the Controller Area Network (CAN) bus to
+enable communication between Electronic Control Units (ECUs) controlling
+vital functions such as steering, acceleration, and braking. Because the
+standard CAN protocol lacks built-in authentication and encryption, an
+attacker with access to the bus can inject fraudulent messages to
+manipulate physical systems. This article explains the types of commands
+used in automotive security research to influence steering and braking,
+the mechanisms behind these transmissions, and the industry defenses
+designed to mitigate these vulnerabilities.</p>
+<h3 id="the-mechanics-of-can-bus-communication">The Mechanics of CAN Bus
+Communication</h3>
+<p>The CAN protocol operates on a broadcast architecture where every
+node receives every transmitted message. ECUs determine whether to
+process a frame based on its Arbitration ID (identifier) rather than a
+destination address. Standard CAN frames consist of:</p>
+<ul>
+<li><strong>Arbitration ID:</strong> Determines message priority and
+identity (e.g., 11-bit in standard CAN 2.0A, 29-bit in CAN 2.0B).</li>
+<li><strong>Control Field / Data Length Code (DLC):</strong> Specifies
+the number of data bytes (0 to 8 bytes in standard CAN).</li>
+<li><strong>Data Field:</strong> Contains the payload, often structured
+as bitfields or multi-byte values representing sensor readings, state
+flags, or actuator targets.</li>
+<li><strong>Cyclic Redundancy Check (CRC):</strong> Verifies data
+integrity across the physical wire, though it provides no cryptographic
+security.</li>
+</ul>
+<p>Because CAN messages lack source authentication, an ECU cannot verify
+whether a frame originated from the legitimate sensor/controller or an
+unauthorized device attached to the bus.</p>
+<h3
+id="types-of-commands-transmitted-during-actuator-manipulation">Types of
+Commands Transmitted During Actuator Manipulation</h3>
+<p>Vehicle manufacturers utilize proprietary messaging structures for
+normal operation, alongside standardized diagnostic protocols for
+maintenance. Automotive researchers and threat actors target two primary
+categories of messages to influence safety-critical systems:</p>
+<h4
+id="1-high-frequency-normal-operational-frames-spoofing-and-flooding">1.
+High-Frequency Normal Operational Frames (Spoofing and Flooding)</h4>
+<p>Under normal driving conditions, advanced driver-assistance systems
+(ADAS), such as lane-keep assist (LKAS) and adaptive cruise control
+(ACC), transmit continuous status and request frames to steering and
+braking actuators.</p>
+<ul>
+<li><strong>Steering Manipulation:</strong> An electric power steering
+(EPS) ECU typically listens for continuous angle, torque, or angular
+rate requests. In research demonstrations, manipulating steering
+requires transmitting spoofed steering angle or torque request packets
+at a higher frequency than the legitimate controller (e.g., if the
+camera module sends updates every 20ms, an injector might broadcast
+every 5ms to dominate the receiver buffer and arbitration).</li>
+<li><strong>Braking Manipulation:</strong> Autonomous emergency braking
+(AEB) or electronic stability control (ESC) systems receive deceleration
+or brake pressure demand messages. Injecting frames with maximum
+allowable deceleration values can trigger unintended braking
+events.</li>
+</ul>
+<p>Most production ECUs incorporate counters (rolling counters) and
+proprietary checksums (such as CRC-8 or CRC-16 algorithms calculated
+over the payload and ID) to detect missing or corrupted frames.
+Successful injection of operational commands requires calculating valid
+counter increments and payload checksums in real time to prevent the
+receiving ECU from rejecting the packet or entering a fail-safe
+state.</p>
+<h4 id="2-diagnostic-and-routine-control-commands-uds--iso-14229">2.
+Diagnostic and Routine Control Commands (UDS / ISO 14229)</h4>
+<p>Automotive diagnostics utilize the Unified Diagnostic Services (UDS)
+protocol over CAN (often mapped via ISO 15765-2 / ISO-TP). Diagnostic
+routines are designed to test hardware components during servicing and
+often have the authority to override operational software.</p>
+<p>Key diagnostic mechanisms involved in system manipulation
+include:</p>
+<ul>
+<li><strong>Diagnostic Session Control (Service 0x10):</strong> Switches
+an ECU from the default session to an extended or
+manufacturing/development session (e.g., <code>0x10 0x03</code> for
+Extended Diagnostic Session). Certain actuations are strictly prohibited
+in the default session.</li>
+<li><strong>Security Access (Service 0x27):</strong> High-privilege
+actions frequently require seed-key authentication. If an attacker
+bypasses or authenticates via Service <code>0x27</code>, they gain
+elevated rights on the target ECU.</li>
+<li><strong>InputOutputControlByIdentifier (Service 0x2F):</strong> This
+service allows diagnostic tools to directly command an ECU's input and
+output lines. For example, a command can instruct an ABS/ESC unit to
+actuate brake valves or command a steering motor to step through angle
+calibrations, bypassing high-level driver inputs entirely.</li>
+<li><strong>RoutineControl (Service 0x31):</strong> Used to start, stop,
+or query specific internal testing routines pre-programmed into the ECU
+firmware, such as initiating an automated bleed procedure for hydraulic
+brakes or calibrating steering center.</li>
+</ul>
+<p>Unlike operational spoofing, using diagnostic overrides while a
+vehicle is in motion typically requires circumventing speed-threshold
+checks implemented in ECU firmware, as standard safety logic rejects
+diagnostic actuation when wheel speeds exceed zero.</p>
+<h3 id="bus-flooding-and-denial-of-service-dos">Bus Flooding and Denial
+of Service (DoS)</h3>
+<p>Before an injected command can successfully steer or stop a vehicle,
+the legitimate ECU transmitting valid control data must often be
+silenced. Attackers achieve this through:</p>
+<ul>
+<li><strong>Priority Dominance:</strong> Continuously transmitting
+frames with an Arbitration ID of <code>0x000</code> (the highest
+priority on a CAN network), which causes other nodes to back off during
+arbitration and starves the bus of legitimate traffic.</li>
+<li><strong>Targeted Bus-Off Attacks:</strong> Exploiting the CAN
+error-handling state machine by deliberately corrupting messages from a
+specific ECU (e.g., using precise voltage injection on recessive bits)
+until that ECU reaches the "Bus Off" threshold and disconnects from the
+network, allowing injected control frames to operate without
+competition.</li>
+</ul>
+<h3 id="defensive-mitigations">Defensive Mitigations</h3>
+<p>Automotive manufacturers and standards organizations have implemented
+several architectural defenses to prevent unauthorized frame
+injection:</p>
+<ul>
+<li><strong>Secure On-Board Communication (SecOC):</strong> Defined
+within the AUTOSAR standard, SecOC introduces Message Authentication
+Codes (MACs) and freshness values (counters or timestamps) into CAN
+payloads, ensuring that only authenticated nodes can issue control
+requests.</li>
+<li><strong>Central Gateway Segmentation:</strong> Modern architectures
+isolate safety-critical powertrain and chassis networks from
+infotainment, telematics, and OBD-II ports using secure hardware
+gateways that filter unauthorized message routing.</li>
+<li><strong>CAN FD and Cryptographic Hardware:</strong> Newer platforms
+adopting CAN with Flexible Data-Rate (CAN FD) utilize increased payload
+sizes (up to 64 bytes) to accommodate robust cryptographic signatures
+and integrate Hardware Security Modules (HSMs) directly inside
+ECUs.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

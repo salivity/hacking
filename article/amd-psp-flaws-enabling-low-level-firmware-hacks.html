@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMD PSP Flaws Enabling Low-Level Firmware Hacks - hacking</title>
+    <meta name="description" content="The AMD Platform Security Processor (PSP), officially known as the AMD Secure Processor, is a dedicated ARM-based security co-processor embedded within modern AMD CPUs to serve as a hardware-level Root of Trust. Despite its isolated architecture, researc">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/amd-psp-flaws-enabling-low-level-firmware-hacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AMD PSP Flaws Enabling Low-Level Firmware Hacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/amd-psp-flaws-enabling-low-level-firmware-hacks" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The AMD Platform Security Processor (PSP), officially known as the AMD Secure Processor, is a dedicated ARM-based security co-processor embedded within modern AMD CPUs to serve as a hardware-level Root of Trust. Despite its isolated architecture, researc" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="amd-psp-flaws-enabling-low-level-firmware-hacks">AMD PSP Flaws
+Enabling Low-Level Firmware Hacks</h1>
+<p>The AMD Platform Security Processor (PSP), officially known as the
+AMD Secure Processor, is a dedicated ARM-based security co-processor
+embedded within modern AMD CPUs to serve as a hardware-level Root of
+Trust. Despite its isolated architecture, researchers have uncovered
+critical vulnerabilities ranging from buffer overflows to cryptographic
+validation weaknesses in its proprietary firmware. These flaws allow
+attackers with appropriate access to execute unauthorized code at the
+highest privilege level, effectively bypassing platform security
+mechanisms like Secure Boot, firmware Trusted Platform Module (fTPM)
+protections, and AMD Secure Encrypted Virtualization (SEV).</p>
+<h3 id="the-architecture-and-privileges-of-the-psp">The Architecture and
+Privileges of the PSP</h3>
+<p>The PSP operates independently of the main x86 execution cores.
+Running its own operating system on an isolated ARM Cortex-A5 or similar
+core, the PSP controls cryptographic operations, platform
+initialization, key management, and the system boot sequence before the
+main CPU even initializes. Because it has unrestricted access to system
+memory, registers, and non-volatile storage, gaining execution control
+within the PSP grants an attacker deeper access than the OS kernel,
+hypervisor, or traditional System Management Mode (SMM).</p>
+<h3
+id="critical-vulnerabilities-enabling-low-level-firmware-execution">Critical
+Vulnerabilities Enabling Low-Level Firmware Execution</h3>
+<p>Unauthorized firmware hacking and persistence within the PSP rely on
+several classes of vulnerabilities discovered over various CPU
+generations:</p>
+<h4
+id="1-stack-based-buffer-overflows-in-embedded-applications-trustlets">1.
+Stack-Based Buffer Overflows in Embedded Applications (Trustlets)</h4>
+<p>One of the most notable classes of vulnerabilities involves memory
+management errors within PSP "trustlets" (isolated applications running
+on the PSP's internal operating system).</p>
+<ul>
+<li><strong>Example (CVE-2018-8935):</strong> Discovered by researchers,
+this vulnerability stemmed from improper bounds checking in the PSP’s
+fTPM trustlet while parsing cryptographic certificates. An attacker with
+admin privileges on the host system could send a malformed certificate
+to the fTPM, causing a stack-based buffer overflow. This permitted
+arbitrary code execution inside the secure enclave, bypassing
+hardware-enforced boundaries.</li>
+</ul>
+<h4
+id="2-insufficient-firmware-verification-and-cryptographic-bypass">2.
+Insufficient Firmware Verification and Cryptographic Bypass</h4>
+<p>The PSP is responsible for authenticating bootloader stages and
+system firmware (AGESA/BIOS) before passing control to the x86 cores.
+Several attack vectors target this verification process:</p>
+<ul>
+<li><strong>Signature Verification Flaws:</strong> Implementation bugs
+in cryptographic validation routines have historically allowed altered
+firmware modules to execute without triggering digital signature
+failures.</li>
+<li><strong>Rollback/Downgrade Vulnerabilities:</strong> Incomplete
+hardware anti-rollback enforcement allows attackers to flash older,
+officially signed firmware versions known to contain unpatched security
+bugs, which can then be exploited to escalate privileges.</li>
+</ul>
+<h4 id="3-fault-injection-and-hardware-glitching-attacks">3. Fault
+Injection and Hardware Glitching Attacks</h4>
+<p>Software-level validation within the PSP relies on the integrity of
+the underlying hardware signals. Physical attacks bypass software
+security by destabilizing the processor during critical verification
+routines:</p>
+<ul>
+<li><strong>FaulTPM Attack:</strong> Researchers demonstrated that
+voltage fault injection (voltage glitching) targeting the PSP during the
+secure boot phase could corrupt cryptographic instruction processing.
+This allows attackers to bypass code-signing verification, dump the
+volatile memory of the PSP, and extract sensitive data such as fTPM
+cryptographic keys, BitLocker encryption keys, and SEV secrets directly
+from the co-processor.</li>
+</ul>
+<h4 id="4-shared-memory-and-dma-attack-surfaces">4. Shared Memory and
+DMA Attack Surfaces</h4>
+<p>The PSP communicates with the x86 host environment via shared system
+memory and Direct Memory Access (DMA) interfaces. Vulnerabilities arise
+when:</p>
+<ul>
+<li>The PSP fails to enforce strict boundaries between host memory and
+internal secure registers.</li>
+<li>Time-of-check to time-of-use (TOCTOU) race conditions occur when
+reading untrusted input from DRAM, allowing host-level code to swap
+malicious payloads into memory mid-verification.</li>
+</ul>
+<h3 id="impact-of-low-level-psp-compromise">Impact of Low-Level PSP
+Compromise</h3>
+<p>Successful exploitation of these vulnerabilities allows an attacker
+to execute arbitrary code within the PSP, leading to:</p>
+<ul>
+<li><strong>Permanent Platform Rootkits:</strong> Attackers can inject
+persistent code into non-volatile SPI flash memory that survives OS
+reinstallation, hypervisor resets, and BIOS reflashing.</li>
+<li><strong>Bypassing SEV Isolation:</strong> Compromising the PSP
+nullifies the security guarantees of AMD Secure Encrypted Virtualization
+(SEV), allowing host-level attackers to decrypt virtual machine memory
+in cloud environments.</li>
+<li><strong>Decryption of System Storage:</strong> Extracting sealed
+fTPM master keys allows unauthorized decryption of storage volumes
+protected by technologies like BitLocker or LUKS.</li>
+</ul>
+<h3 id="mitigation-and-defense">Mitigation and Defense</h3>
+<p>Remediating PSP-level vulnerabilities requires low-level firmware
+patches distributed through AMD Generic Encapsulated Software
+Architecture (AGESA) updates provided by motherboard manufacturers.
+Critical mitigations include:</p>
+<ul>
+<li>Applying the latest motherboard BIOS updates to patch known memory
+management flaws in fTPM trustlets.</li>
+<li>Enforcing physical protections, chassis intrusion detection, and
+hardware shielding to defend against localized voltage and clock
+glitching.</li>
+<li>Implementing strict hardware-based anti-rollback fuses (eFuses) to
+prevent the deployment of legacy, vulnerable firmware revisions.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

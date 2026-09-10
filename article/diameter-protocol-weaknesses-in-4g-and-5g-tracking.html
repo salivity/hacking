@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diameter Protocol Weaknesses in 4G and 5G Tracking - hacking</title>
+    <meta name="description" content="The Diameter signaling protocol serves as the foundational messaging backbone for authentication, authorization, and accounting (AAA) across 4G LTE and hybrid 5G networks. However, inherent architectural deficiencies—most notably a legacy perimeter-tru">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/diameter-protocol-weaknesses-in-4g-and-5g-tracking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Diameter Protocol Weaknesses in 4G and 5G Tracking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/diameter-protocol-weaknesses-in-4g-and-5g-tracking" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Diameter signaling protocol serves as the foundational messaging backbone for authentication, authorization, and accounting (AAA) across 4G LTE and hybrid 5G networks. However, inherent architectural deficiencies—most notably a legacy perimeter-tru" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="diameter-protocol-weaknesses-in-4g-and-5g-tracking">Diameter
+Protocol Weaknesses in 4G and 5G Tracking</h1>
+<p>The Diameter signaling protocol serves as the foundational messaging
+backbone for authentication, authorization, and accounting (AAA) across
+4G LTE and hybrid 5G networks. However, inherent architectural
+deficiencies—most notably a legacy perimeter-trust model, inadequate
+origin verification, and cleartext signaling exchange—enable threat
+actors to pinpoint and monitor subscriber locations. By abusing
+legitimate mobility management and location-query commands across
+inter-carrier roaming networks, attackers can harvest sensitive cell
+identifiers and International Mobile Subscriber Identities (IMSIs)
+without the target user's knowledge.</p>
+<h2 id="the-flawed-perimeter-trust-model">The Flawed Perimeter Trust
+Model</h2>
+<p>Diameter was designed on the assumption that only trusted, vetted
+telecom operators would access signaling networks via IP eXchange (IPX)
+or General Packet Radio Service Roaming eXchange (GRX). This
+walled-garden paradigm has collapsed due to:</p>
+<ul>
+<li><strong>Unregulated Network Access:</strong> Attackers obtain direct
+access to the global signaling plane through compromised smaller
+carriers, corrupt telecommunications insiders, or third-party service
+aggregators offering illicit access to the global SS7/Diameter
+network.</li>
+<li><strong>Transitive Trust:</strong> Once inside the IPX environment,
+nodes are trusted by default. Upstream transit carriers rarely inspect
+or sanitize traffic passing between origin networks and destination home
+networks, allowing malformed or malicious packets to traverse
+interconnects unchecked.</li>
+</ul>
+<h2 id="lack-of-cryptographic-origin-validation">Lack of Cryptographic
+Origin Validation</h2>
+<p>A critical structural weakness of the Diameter base protocol (RFC
+6733) is the decoupling of network-layer authentication from
+application-layer message routing:</p>
+<ul>
+<li><strong>Header Spoofing:</strong> Diameter messages rely on
+Attribute-Value Pairs (AVPs) such as <code>Origin-Host</code> and
+<code>Origin-Realm</code> to identify the requesting entity. In standard
+deployments, the protocol lacks mandatory cryptographic signatures to
+prove that the sender legally owns the declared origin identity.</li>
+<li><strong>Hop-by-Hop Security Gaps:</strong> While Transport Layer
+Security (TLS) or IPsec can secure hop-by-hop links between adjacent
+nodes (such as between a Diameter Routing Agent and an IPX edge), it
+does not provide end-to-end integrity. Intermediary nodes can alter or
+spoof AVPs, preventing the target Home Subscriber Server (HSS) from
+verifying whether the query originated from an authorized roaming
+partner.</li>
+</ul>
+<h2 id="abuse-of-legitimate-mobility-commands">Abuse of Legitimate
+Mobility Commands</h2>
+<p>Unlike conventional network exploits that rely on memory corruption,
+Diameter tracking relies on semantic command abuse. Attackers repurpose
+standard operational commands to extract location telemetry:</p>
+<ul>
+<li><strong>Location-Info-Request (LIR) and User-Authorization-Request
+(UAR):</strong> Typically used by IMS (IP Multimedia Subsystem) nodes to
+route calls and SMS, an unauthorized external node can query the target
+subscriber's HSS to obtain the routing address of the serving Mobile
+Management Entity (MME) or Serving GPRS Support Node (SGSN).</li>
+<li><strong>Insert-Subscriber-Data-Answer (IDA) /
+Provide-Location-Request (PLR):</strong> By sending spoofed location
+requests directly to the serving MME, an adversary can extract the
+precise Global Cell ID (E-UTRAN Cell Global Identifier or ECGI) and the
+exact geographic coordinates (latitude and longitude) of the
+subscriber's connected base station (eNodeB).</li>
+<li><strong>Update-Location-Request (ULR):</strong> Attackers can
+masquerade as a rogue roaming MME, requesting authentication vectors and
+location updates. This not only discloses subscriber position but can
+also cause a Denial of Service (DoS) by unregistering the target from
+their legitimate network.</li>
+</ul>
+<h2 id="persistence-in-5g-deployments">Persistence in 5G
+Deployments</h2>
+<p>Although 5G Standalone (SA) architectures replace Diameter with an
+HTTP/2-based Service-Based Architecture (SBA) protected by the Security
+Edge Protection Proxy (SEPP), Diameter vulnerabilities persist in
+current operations:</p>
+<ul>
+<li><strong>5G Non-Standalone (NSA):</strong> Most current commercial 5G
+deployments rely on the legacy 4G Evolved Packet Core (EPC) for control
+plane signaling, leaving 5G subscribers fully vulnerable to standard
+Diameter-based tracking.</li>
+<li><strong>Interworking Functions (IWF):</strong> Standalone 5G
+networks must interoperate with legacy 2G, 3G, and 4G networks for
+international roaming. The translation proxies (IWFs) that map HTTP/2
+protocols to Diameter reintroduce semantic spoofing risks, allowing
+legacy Diameter messages to cross over and query 5G Unified Data
+Management (UDM) databases.</li>
+</ul>
+<h2 id="inadequate-diameter-edge-filtering">Inadequate Diameter Edge
+Filtering</h2>
+<p>Defenses often fail because standard Diameter Edge Agents (DEAs) are
+rarely configured with strict stateful inspection:</p>
+<ul>
+<li><strong>Stateless Firewalls:</strong> Many telecom firewalls only
+check if a Diameter packet contains valid syntax, rather than validating
+whether the message aligns with the subscriber's current context (such
+as flagging an impossible velocity event where a device appears in two
+distant countries within seconds).</li>
+<li><strong>Missing Correlation:</strong> Edge nodes rarely
+cross-reference signaling queries against active voice or data sessions,
+allowing unauthorized tracking requests to blend in with legitimate
+roaming overhead.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

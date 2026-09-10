@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Differential Power Analysis Techniques - hacking</title>
+    <meta name="description" content="Differential Power Analysis (DPA) is a sophisticated side-channel attack that extracts cryptographic keys from hardware devices by statistically analyzing their power consumption during computation. Unlike simple power analysis, which relies on direct vi">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/differential-power-analysis-techniques">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Differential Power Analysis Techniques - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/differential-power-analysis-techniques" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Differential Power Analysis (DPA) is a sophisticated side-channel attack that extracts cryptographic keys from hardware devices by statistically analyzing their power consumption during computation. Unlike simple power analysis, which relies on direct vi" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="differential-power-analysis-techniques">Differential Power
+Analysis Techniques</h1>
+<p>Differential Power Analysis (DPA) is a sophisticated side-channel
+attack that extracts cryptographic keys from hardware devices by
+statistically analyzing their power consumption during computation.
+Unlike simple power analysis, which relies on direct visual inspection
+of power traces, DPA utilizes statistical methods to detect subtle
+correlations between intermediate data values and power fluctuations.
+This article details the fundamental mechanics of DPA, the specific
+analytical techniques employed to isolate secret keys, and the
+corresponding countermeasures used to secure integrated circuits.</p>
+<h3 id="foundations-of-power-leakage">Foundations of Power Leakage</h3>
+<p>Integrated circuits constructed using Complementary
+Metal-Oxide-Semiconductor (CMOS) technology consume power primarily
+during logic state transitions. When transistors switch between logical
+<code>0</code> and <code>1</code>, parasitic capacitances charge and
+discharge, causing measurable current spikes.</p>
+<p>Because the operations within a cryptographic algorithm process
+sensitive intermediate values that depend directly on the secret key,
+the total power consumed during an operation correlates with the
+specific data being manipulated. DPA exploits this physical phenomenon
+without requiring invasive physical alteration of the silicon die.</p>
+<h3 id="core-power-models">Core Power Models</h3>
+<p>To translate physical measurements into mathematical assertions,
+analysts construct leakage models predicting how data influences power
+usage:</p>
+<ul>
+<li><strong>Hamming Weight Model:</strong> Assumes power consumption is
+proportional to the number of <code>1</code>s in a given data word being
+processed or transmitted across a bus. This model is commonly applied
+when analyzing microcontroller architectures.</li>
+<li><strong>Hamming Distance Model:</strong> Assumes power consumption
+is proportional to the number of bits that flip when transitioning from
+one state to another (the Hamming distance between the previous state
+and the current state). This model typically applies to hardware
+accelerators, registers, and memory buses.</li>
+</ul>
+<h3 id="the-differential-analysis-process">The Differential Analysis
+Process</h3>
+<p>DPA isolates secret keys through an iterative, hypothesis-testing
+process:</p>
+<ol type="1">
+<li><strong>Trace Acquisition:</strong> An oscilloscope measures and
+records the power consumption of the target chip across hundreds or
+thousands of cryptographic operations, each processing known inputs
+(such as plaintext) or outputs (such as ciphertext).</li>
+<li><strong>Intermediate Value Selection:</strong> The analyst
+identifies an algorithmic operation where a known value and a portion of
+the secret key (a subkey) interact—commonly the output of a substitution
+box (S-box) in algorithms like AES or DES.</li>
+<li><strong>Hypothesis Generation:</strong> For every possible value of
+the targeted subkey (e.g., 256 possibilities for an 8-bit key byte), the
+analyst calculates the theoretical intermediate value for each recorded
+execution.</li>
+<li><strong>Power Prediction:</strong> The leakage model (Hamming Weight
+or Distance) converts the theoretical intermediate values into predicted
+power consumption figures for each key hypothesis.</li>
+<li><strong>Statistical Correlation:</strong> Statistical metrics
+compare the real power traces against the predicted values across all
+samples:
+<ul>
+<li><strong>Difference of Means:</strong> Samples are split into two
+sets based on a specific predicted bit value (0 or 1). The average trace
+of one set is subtracted from the other. An incorrect key hypothesis
+results in random noise approaching zero, whereas the correct hypothesis
+yields a distinct differential spike at the exact point in time the
+operation occurred.</li>
+<li><strong>Correlation Power Analysis (CPA):</strong> A more advanced
+refinement of DPA using the Pearson correlation coefficient to evaluate
+the linear relationship between the predicted leakage values and the
+actual trace samples across time. The subkey hypothesis yielding the
+highest correlation coefficient represents the correct key.</li>
+</ul></li>
+</ol>
+<h3 id="common-countermeasures">Common Countermeasures</h3>
+<p>Securing embedded devices against DPA requires disrupting the
+correlation between data processing and physical power consumption:</p>
+<ul>
+<li><strong>Masking:</strong> Intermediate cryptographic values are
+combined with random numbers (masks) using linear operations (e.g., XOR)
+before processing. Masking ensures that physical power leakage is
+statistically independent of sensitive data, forcing an attacker to
+employ higher-order DPA techniques that require exponentially more
+traces.</li>
+<li><strong>Hiding:</strong> This approach alters the physical execution
+to introduce temporal and power noise. Techniques include inserting
+dummy operations, shuffling execution order, using randomized clock
+signals, and implementing dual-rail pre-charge logic, which ensures a
+constant number of bit transitions regardless of the underlying
+data.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

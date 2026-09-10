@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCOM Lateral Movement in Enterprise Windows Hacking - hacking</title>
+    <meta name="description" content="Distributed Component Object Model (DCOM) lateral movement provides adversaries with a highly effective, stealthy mechanism to traverse enterprise Windows networks without triggering standard security alerts. By leveraging legitimate Microsoft Remote Pro">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/dcom-lateral-movement-in-enterprise-windows-hacking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="DCOM Lateral Movement in Enterprise Windows Hacking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/dcom-lateral-movement-in-enterprise-windows-hacking" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Distributed Component Object Model (DCOM) lateral movement provides adversaries with a highly effective, stealthy mechanism to traverse enterprise Windows networks without triggering standard security alerts. By leveraging legitimate Microsoft Remote Pro" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="dcom-lateral-movement-in-enterprise-windows-hacking">DCOM
+Lateral Movement in Enterprise Windows Hacking</h1>
+<p>Distributed Component Object Model (DCOM) lateral movement provides
+adversaries with a highly effective, stealthy mechanism to traverse
+enterprise Windows networks without triggering standard security alerts.
+By leveraging legitimate Microsoft Remote Procedure Call (RPC)
+interfaces and pre-installed Windows objects, attackers can execute
+arbitrary code on remote endpoints while blending into normal
+administrative network behavior. This article examines the mechanics of
+DCOM-based lateral movement, why it excels at evading traditional
+detection, common execution vectors, and how enterprise defenders can
+mitigate the risk.</p>
+<h3 id="understanding-dcom-in-windows-environments">Understanding DCOM
+in Windows Environments</h3>
+<p>DCOM is a proprietary Microsoft technology that enables Component
+Object Model (COM) software components to communicate across network
+boundaries. It operates over RPC on TCP port 135 and dynamically
+assigned high ports. In a typical corporate network, DCOM is universally
+present and fundamental to the operation of administrative tools,
+distributed applications, and native operating system services.</p>
+<p>Because DCOM is deeply integrated into enterprise IT operations,
+blocking the underlying protocols entirely is rarely feasible, creating
+an inherent attack surface for threat actors who possess valid network
+credentials.</p>
+<h3 id="why-dcom-lateral-movement-is-stealthy">Why DCOM Lateral Movement
+is Stealthy</h3>
+<p>DCOM lateral movement functions primarily as a Living-off-the-Land
+(LotL) technique. Rather than introducing external binaries or tools
+such as PsExec—which generate easily recognizable network artifacts and
+service installations—attackers repurpose trusted system objects already
+present on the target host.</p>
+<p>The technique provides several distinct evasion advantages:</p>
+<ul>
+<li><strong>Abnormal Process Lineage:</strong> Traditional remote
+execution techniques like PsExec or WMI typically spawn processes under
+<code>services.exe</code> or <code>wmiprvse.exe</code>. In contrast,
+specific DCOM objects instantiate commands under benign parent processes
+such as <code>explorer.exe</code> or <code>mmc.exe</code>, circumventing
+detection rules focused on suspicious parent-child process
+relationships.</li>
+<li><strong>Traffic Blending:</strong> The network traffic generated by
+DCOM relies on standard RPC protocols, allowing malicious calls to hide
+in the background noise of normal workstation-to-server or domain
+controller communications.</li>
+<li><strong>No File Drops:</strong> Many DCOM methods allow direct
+in-memory execution or command execution without writing payloads to
+disk, leaving little to no initial forensic trace in the target system's
+filesystem.</li>
+</ul>
+<h3 id="common-dcom-objects-used-for-execution">Common DCOM Objects Used
+for Execution</h3>
+<p>Attackers interact with remote COM servers using scripting
+environments like PowerShell or compiled .NET applications. Several
+documented COM classes provide direct avenues for remote execution:</p>
+<ul>
+<li><strong>MMC20.Application:</strong> This object exposes the
+<code>Document.ActiveView.ExecuteShellCommand</code> method. When called
+remotely, the Microsoft Management Console (<code>mmc.exe</code>)
+launches on the target machine and executes a specified command or
+binary.</li>
+<li><strong>ShellWindows and ShellBrowserWindow:</strong> These objects
+allow an adversary to access the shell interface of the active desktop.
+By calling methods like <code>Document.Application.ShellExecute</code>,
+commands are spawned directly under the desktop shell
+(<code>explorer.exe</code>), masquerading as legitimate user
+activity.</li>
+<li><strong>Excel.Application / Word.Application:</strong> If Microsoft
+Office is installed on the target, attackers can remotely instantiate
+Office applications to trigger malicious macros, run shell commands, or
+interact with the operating system via built-in automation
+routines.</li>
+</ul>
+<h3 id="detection-and-mitigation-strategies">Detection and Mitigation
+Strategies</h3>
+<p>Securing environments against DCOM abuse requires layered endpoint
+and network controls:</p>
+<ul>
+<li><strong>Host-Based Firewalls:</strong> Restrict inbound RPC access
+(TCP port 135 and dynamic RPC ports) between internal endpoints.
+Workstations rarely have legitimate reasons to accept inbound DCOM
+connections from other workstations.</li>
+<li><strong>Parent-Child Process Monitoring:</strong> Configure Endpoint
+Detection and Response (EDR) solutions to flag anomalous child processes
+spawned by <code>mmc.exe</code>, <code>explorer.exe</code>, or Microsoft
+Office applications (such as <code>cmd.exe</code> or
+<code>powershell.exe</code>).</li>
+<li><strong>DCOM Access Permissions:</strong> Modify default COM
+permissions using Group Policy Objects (GPO) to restrict remote launch
+and remote activation permissions strictly to authorized administrative
+accounts.</li>
+<li><strong>Event Log Auditing:</strong> Enable advanced audit logging
+for system security extensions and monitor Windows Event Logs for Event
+ID 10016 (DCOM permission failures) and Event ID 4688 (Process Creation)
+with command-line arguments enabled.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

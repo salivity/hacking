@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defeating ASLR with Information Disclosure - hacking</title>
+    <meta name="description" content="Address Space Layout Randomization (ASLR) is a foundational defense mechanism that randomizes the memory locations of program components, such as the stack, heap, and shared libraries. While effective at preventing hardcoded memory references, ASLR can b">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/defeating-aslr-with-information-disclosure">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Defeating ASLR with Information Disclosure - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/defeating-aslr-with-information-disclosure" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Address Space Layout Randomization (ASLR) is a foundational defense mechanism that randomizes the memory locations of program components, such as the stack, heap, and shared libraries. While effective at preventing hardcoded memory references, ASLR can b" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="defeating-aslr-with-information-disclosure">Defeating ASLR with
+Information Disclosure</h1>
+<p>Address Space Layout Randomization (ASLR) is a foundational defense
+mechanism that randomizes the memory locations of program components,
+such as the stack, heap, and shared libraries. While effective at
+preventing hardcoded memory references, ASLR can be undermined by
+information disclosure vulnerabilities. This article explains how memory
+leaks expose memory layouts, the common disclosure techniques used to
+defeat ASLR, and the security measures needed to prevent them.</p>
+<h3 id="the-role-of-aslr-and-the-need-for-a-leak">The Role of ASLR and
+the Need for a Leak</h3>
+<p>ASLR protects systems by ensuring that the base addresses of
+executables and libraries change upon each execution. Consequently, an
+attacker cannot reliably predict the location of code sequences (such as
+Return-Oriented Programming gadgets) or injected payloads using static
+addresses.</p>
+<p>To overcome this defense, an attacker requires an "infoleak"—the
+disclosure of a valid memory address from the target process. Because
+libraries and binaries are mapped into memory in contiguous segments,
+knowing the runtime address of even a single function or data structure
+allows one to calculate the base address of that entire module using
+fixed relative offsets. Once the base address is known, all other
+functions and gadgets within that module can be located
+deterministically.</p>
+<h3 id="common-information-disclosure-techniques">Common Information
+Disclosure Techniques</h3>
+<p>Several classes of software vulnerabilities inadvertently leak
+pointers to user-accessible channels:</p>
+<h4 id="1-buffer-over-reads">1. Buffer Over-Reads</h4>
+<p>A buffer over-read occurs when a program reads more data from a
+memory buffer than intended, often due to improper bounds checking or
+reliance on missing null-terminators in strings. If adjacent memory
+contains pointers—such as saved frame pointers, return addresses, or
+pointers to heap structures—these raw memory addresses can be included
+in the program's output to the user.</p>
+<h4 id="2-format-string-vulnerabilities">2. Format String
+Vulnerabilities</h4>
+<p>When user-controlled input is passed directly as the format string
+argument to functions like <code>printf</code> or <code>syslog</code>,
+format specifiers (such as <code>%p</code> or <code>%x</code>) can be
+used to inspect memory. Attackers can walk the stack or dereference
+pointers, reading saved instruction pointers or pointers into shared
+libraries (such as <code>libc</code>), thereby exposing the necessary
+base addresses.</p>
+<h4 id="3-uninitialized-memory-exposure">3. Uninitialized Memory
+Exposure</h4>
+<p>If memory allocated on the stack or heap is not properly cleared
+before use, it may retain residual data from previous function calls or
+allocations. If this uninitialized structure is subsequently returned or
+copied to an output buffer, residual pointers can be exposed.</p>
+<h4 id="4-type-confusion-and-memory-alignment-padding">4. Type Confusion
+and Memory Alignment Padding</h4>
+<p>In complex applications, type confusion can cause the application to
+interpret a pointer as a scalar value or vice-versa, allowing pointers
+to be serialized and transmitted. Similarly, structures that contain
+padding bytes between fields may inadvertently leak the contents of
+uninitialized memory if serialized directly without zeroing the
+padding.</p>
+<h3 id="calculating-the-base-address">Calculating the Base Address</h3>
+<p>Once an address is disclosed, the base address calculation follows a
+consistent formula:</p>
+<p><span class="math display">\[\text{Base Address} = \text{Leaked
+Address} - \text{Known Static Offset}\]</span></p>
+<ol type="1">
+<li><strong>Identify the Symbol</strong>: Determine which function,
+return address, or structure pointer was disclosed (e.g.,
+<code>__libc_start_main</code> or a specific virtual method table).</li>
+<li><strong>Determine the Offset</strong>: Obtain the static offset of
+that symbol relative to the library or binary base from the target
+binary file.</li>
+<li><strong>Derive the Base</strong>: Subtract the static offset from
+the leaked runtime address.</li>
+<li><strong>Locate Target Functions</strong>: Add the offsets of desired
+functions or gadgets to the newly computed base address to execute the
+remainder of the chain.</li>
+</ol>
+<h3 id="defensive-mitigations">Defensive Mitigations</h3>
+<p>Preventing information disclosure is essential to maintaining the
+integrity of ASLR. Standard defensive practices include:</p>
+<ul>
+<li><strong>Strict Bounds Checking</strong>: Prevent buffer over-reads
+by validating boundaries on all read operations and using safe
+string-handling functions.</li>
+<li><strong>Format String Safety</strong>: Never pass dynamic strings as
+format arguments; always use explicit format specifiers (e.g.,
+<code>printf("%s", input)</code>).</li>
+<li><strong>Explicit Memory Initialization</strong>: Ensure that
+allocated memory, stack buffers, and data structures are zeroed (e.g.,
+using <code>memset</code> or <code>calloc</code>) before population and
+serialization.</li>
+<li><strong>Fine-Grained ASLR</strong>: Implement function-level or
+basic-block-level reordering to ensure that leaking a single address
+does not compromise the layout of the entire binary.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

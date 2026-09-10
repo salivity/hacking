@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Return-to-Libc Bypasses Data Execution Prevention - hacking</title>
+    <meta name="description" content="The return-to-libc technique circumvents Data Execution Prevention (DEP) by reusing legitimate, pre-existing executable code already resident in system memory rather than injecting foreign shellcode. This article explains the fundamentals of DEP, breaks">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-return-to-libc-bypasses-data-execution-prevention">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Return-to-Libc Bypasses Data Execution Prevention - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-return-to-libc-bypasses-data-execution-prevention" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The return-to-libc technique circumvents Data Execution Prevention (DEP) by reusing legitimate, pre-existing executable code already resident in system memory rather than injecting foreign shellcode. This article explains the fundamentals of DEP, breaks" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-return-to-libc-bypasses-data-execution-prevention">How
+Return-to-Libc Bypasses Data Execution Prevention</h1>
+<p>The return-to-libc technique circumvents Data Execution Prevention
+(DEP) by reusing legitimate, pre-existing executable code already
+resident in system memory rather than injecting foreign shellcode. This
+article explains the fundamentals of DEP, breaks down how return-to-libc
+hijacks control flow to execute library functions such as
+<code>system()</code>, and details why traditional memory protections
+fail to mitigate this form of code reuse.</p>
+<h3 id="the-problem-dep-solves">The Problem DEP Solves</h3>
+<p>Traditional buffer overflow exploits rely on injecting custom machine
+code—often called shellcode—into writable memory areas like the stack or
+heap. The attacker then overwrites the function's return address to
+point directly to their injected payload.</p>
+<p>Data Execution Prevention (DEP), also known as the No-Execute (NX)
+bit or W^X (Write XOR Execute), defends against this by enforcing strict
+page permissions. Under DEP:</p>
+<ul>
+<li>A memory page can be writable (e.g., the stack and heap to store
+variables).</li>
+<li>A memory page can be executable (e.g., the <code>.text</code>
+segment containing compiled instructions).</li>
+<li>A memory page cannot be both writable and executable
+simultaneously.</li>
+</ul>
+<p>If a program attempts to execute instructions located in a stack or
+heap page marked as non-executable, the CPU raises a hardware exception,
+immediately terminating the application and blocking the shellcode.</p>
+<h3 id="how-return-to-libc-circumvents-dep">How Return-to-Libc
+Circumvents DEP</h3>
+<p>Return-to-libc neutralizes DEP by eliminating the need to inject
+custom executable code. Instead of adding new instructions to a
+non-executable area, the attacker relies entirely on instructions that
+are already mapped into executable memory: the standard C library
+(<code>libc</code>).</p>
+<p>Almost all C programs dynamically link to <code>libc</code> (or
+runtime equivalents on other operating systems, such as
+<code>msvcrt.dll</code> on Windows). Because the operating system must
+execute standard functions like <code>printf()</code>,
+<code>malloc()</code>, and <code>system()</code>, the memory pages
+hosting <code>libc</code> are legitimately granted read and execute
+permissions.</p>
+<h3 id="mechanics-of-a-return-to-libc-attack">Mechanics of a
+Return-to-Libc Attack</h3>
+<p>The attack operates by carefully manipulating the stack to fool the
+CPU into calling an existing library function as if the program intended
+to do so.</p>
+<ol type="1">
+<li><p><strong>Identifying Target Functions and Arguments:</strong> An
+attacker locates the memory address of a powerful function inside
+<code>libc</code>, typically <code>system()</code>. They also locate or
+inject the argument needed, such as a pointer to the string
+<code>"/bin/sh"</code>. The string can reside in an environment
+variable, an existing string literal within the binary, or a writable
+memory segment.</p></li>
+<li><p><strong>Corrupting the Return Address:</strong> Using a standard
+buffer overflow (e.g., an unchecked <code>strcpy</code> or
+<code>gets</code> call), the attacker overwrites the saved instruction
+pointer (such as <code>EIP</code> on x86 or <code>RIP</code> on x86_64)
+on the stack.</p></li>
+<li><p><strong>Spoofing the Call Frame:</strong> On architectures like
+32-bit x86 where parameters are passed via the stack, the attacker
+arranges the payload layout sequentially:</p>
+<ul>
+<li><strong>Target Function Address:</strong> The address of
+<code>system()</code>, which replaces the saved return pointer.</li>
+<li><strong>Return Address for Target:</strong> A dummy address (or the
+address of <code>exit()</code>) where <code>system()</code> should
+return after it finishes executing.</li>
+<li><strong>Function Arguments:</strong> The memory address pointing to
+the string <code>"/bin/sh"</code>.</li>
+</ul></li>
+<li><p><strong>Triggering Execution:</strong> When the vulnerable
+function reaches its <code>ret</code> instruction, the CPU pops the
+address of <code>libc</code>'s <code>system()</code> into the
+instruction pointer. The CPU then begins executing <code>system()</code>
+directly from executable library memory. When <code>system()</code>
+looks at the stack for its first argument, it finds the pointer to
+<code>"/bin/sh"</code>, successfully launching a command shell.</p></li>
+</ol>
+<h3 id="why-dep-remains-ineffective">Why DEP Remains Ineffective</h3>
+<p>DEP only verifies <em>where</em> instructions are being fetched from,
+not <em>how</em> the program arrived there. In a return-to-libc
+attack:</p>
+<ul>
+<li>The stack contains only data (pointers and arguments). No
+instructions are fetched from the stack.</li>
+<li>The CPU fetches instructions exclusively from pages marked as
+executable (<code>libc</code>).</li>
+</ul>
+<p>Because no policy violation occurs at the hardware level, DEP allows
+execution to proceed normally. This principle of repurposing existing
+legitimate instructions later evolved into Return-Oriented Programming
+(ROP), which chains together small instruction sequences ("gadgets") to
+achieve arbitrary computation without writing new code.</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

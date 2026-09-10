@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Escape a Chroot Jail in Linux - hacking</title>
+    <meta name="description" content="A chroot jail restricts a process and its child processes to a designated sub-tree of the filesystem by altering their perceived root directory (/). While originally implemented for software testing and environment isolation, it is fundamentally not a se">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-to-escape-a-chroot-jail-in-linux">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Escape a Chroot Jail in Linux - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-to-escape-a-chroot-jail-in-linux" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A chroot jail restricts a process and its child processes to a designated sub-tree of the filesystem by altering their perceived root directory (/). While originally implemented for software testing and environment isolation, it is fundamentally not a se" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-to-escape-a-chroot-jail-in-linux">How to Escape a Chroot
+Jail in Linux</h1>
+<p>A <code>chroot</code> jail restricts a process and its child
+processes to a designated sub-tree of the filesystem by altering their
+perceived root directory (<code>/</code>). While originally implemented
+for software testing and environment isolation, it is fundamentally not
+a secure isolation mechanism. When attackers acquire administrative
+privileges or find specific misconfigurations within a chrooted
+environment, they can exploit inherent architectural limitations of the
+<code>chroot()</code> system call to regain access to the host's actual
+root filesystem.</p>
+<h3 id="1-the-nested-chroot-and-relative-path-traversal">1. The Nested
+Chroot and Relative Path Traversal</h3>
+<p>The most common technique requires root privileges inside the jail.
+The POSIX standard dictates that <code>chroot()</code> changes the root
+directory pointer for path resolution, but it does not modify the
+current working directory (<code>cwd</code>). An attacker can exploit
+this behavior through the following steps:</p>
+<ol type="1">
+<li>Create a temporary directory inside the current jail (e.g.,
+<code>mkdir /tmp/subjail</code>).</li>
+<li>Call <code>chroot()</code> pointing to this newly created
+directory.</li>
+<li>Call <code>chdir("../../../../../")</code> repeatedly. Because the
+current working directory is now outside the active chroot boundary,
+path traversal is evaluated against the actual underlying filesystem
+rather than the restricted root.</li>
+<li>Call <code>chroot(".")</code> once the actual system root is
+reached, resetting the process's root directory to the host root.</li>
+</ol>
+<h3 id="2-exploiting-leaked-file-descriptors">2. Exploiting Leaked File
+Descriptors</h3>
+<p>A process can escape a <code>chroot</code> environment if an external
+process inadvertently leaves an open file descriptor pointing outside
+the jail before spawning the chrooted process.</p>
+<p>If a file descriptor referencing a directory outside the jail remains
+open, the attacker can use the <code>fchdir()</code> system call on that
+descriptor. This immediately sets the current working directory outside
+the jail boundaries. Once positioned outside, the attacker can issue
+<code>chroot(".")</code> to reassign the root directory to that location
+and gain unrestricted filesystem access.</p>
+<h3 id="3-device-nodes-and-filesystem-mounting">3. Device Nodes and
+Filesystem Mounting</h3>
+<p>If the chroot environment contains the <code>mknod</code> capability
+or provides an unmanaged <code>/dev</code> directory, an attacker with
+root permissions can craft raw device nodes:</p>
+<ul>
+<li><strong>Direct Block Access:</strong> An attacker can create a raw
+block device corresponding to the host's physical partition (e.g.,
+<code>mknod /dev/sda1 b 8 1</code>) and inspect or alter files directly
+using tools like <code>debugfs</code> or standard hex editors.</li>
+<li><strong>Remounting:</strong> If the <code>CAP_SYS_ADMIN</code>
+capability is present, the attacker can mount host filesystems, virtual
+filesystems like <code>procfs</code> or <code>sysfs</code>, or temporary
+storage volumes directly inside the jail, providing unhindered avenues
+to bypass access controls.</li>
+</ul>
+<h3 id="4-process-injection-and-ptrace">4. Process Injection and
+<code>ptrace</code></h3>
+<p>If a <code>chroot</code> jail is deployed without separating process
+ID (PID) namespaces, processes inside the jail can view processes
+running outside the jail on the host system.</p>
+<p>An attacker who obtains root access inside the jail can use the
+<code>ptrace</code> system call to attach to a process executing outside
+the jail boundary. Once attached, the attacker can inject shellcode into
+the external process's memory space. Because that target process
+operates with the host's original root directory, executing code in that
+context completely circumvents the jail.</p>
+<h3 id="5-access-to-host-sockets-and-ipc">5. Access to Host Sockets and
+IPC</h3>
+<p>Jails configured with access to the host's abstract Unix domain
+sockets, D-Bus, or shared IPC mechanisms can be compromised by
+interacting with privileged host daemons. If a socket bound to a system
+management daemon (such as <code>systemd</code> or Docker) is mounted
+inside the jail, an attacker can issue commands directly to host
+management services to spawn new, unconfined processes on the host.</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

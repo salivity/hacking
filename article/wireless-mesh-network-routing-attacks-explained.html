@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireless Mesh Network Routing Attacks Explained - hacking</title>
+    <meta name="description" content="Decentralized wireless mesh networks (WMNs) rely on peer nodes to dynamically discover paths and relay data packets without a centralized authority. When adversaries leverage software-defined radios (SDRs) or rogue transceivers to inject, alter, or manip">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/wireless-mesh-network-routing-attacks-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Wireless Mesh Network Routing Attacks Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/wireless-mesh-network-routing-attacks-explained" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Decentralized wireless mesh networks (WMNs) rely on peer nodes to dynamically discover paths and relay data packets without a centralized authority. When adversaries leverage software-defined radios (SDRs) or rogue transceivers to inject, alter, or manip" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="wireless-mesh-network-routing-attacks-explained">Wireless Mesh
+Network Routing Attacks Explained</h1>
+<p>Decentralized wireless mesh networks (WMNs) rely on peer nodes to
+dynamically discover paths and relay data packets without a centralized
+authority. When adversaries leverage software-defined radios (SDRs) or
+rogue transceivers to inject, alter, or manipulate radio frequency (RF)
+transmissions, they can exploit the underlying routing protocols. These
+routing attacks degrade network reliability, introduce latency, cause
+severe packet loss, and partition the network.</p>
+<h3 id="blackhole-and-grayhole-attacks">Blackhole and Grayhole
+Attacks</h3>
+<p>In a blackhole attack, a compromised node exploits route discovery
+protocols—such as Ad hoc On-Demand Distance Vector (AODV) or Optimized
+Link State Routing (OLSR)—by falsely advertising the shortest or most
+optimal route to a destination. Once traffic is redirected to the rogue
+node, it drops all packets silently instead of forwarding them.</p>
+<p>A grayhole attack is a stealthier variant where the rogue node drops
+packets selectively—such as dropping specific protocol data, packets
+from targeted IP addresses, or dropping traffic at random
+intervals—making the disruption harder to detect by automated
+fault-detection systems.</p>
+<h3 id="wormhole-attacks">Wormhole Attacks</h3>
+<p>A wormhole attack requires an attacker to capture radio packets at
+one location in the mesh, tunnel them through an out-of-band,
+low-latency link (such as an unauthorized directional RF link or wired
+Ethernet), and replay them at another distant location. This creates the
+illusion that two distant nodes are direct neighbors. Because the
+tunneled path appears faster, the routing protocol routes significant
+network traffic through the wormhole. Once established, the attacker can
+eavesdrop, selectively drop packets, or suddenly sever the link to cause
+network-wide route recalculations and instability.</p>
+<h3 id="sinkhole-attacks">Sinkhole Attacks</h3>
+<p>In a sinkhole attack, an adversary uses radio transmission
+manipulation to make a compromised node appear exceptionally attractive
+to surrounding nodes. The attacker broadcasts forged routing metrics,
+such as an artificially low hop count, high link quality, or maximum
+battery reserves. Surrounding nodes update their routing tables to route
+their traffic through this "sink." Once the attacker attracts a critical
+volume of mesh traffic, they can execute eavesdropping, traffic
+analysis, or combine the exploit with a blackhole attack.</p>
+<h3 id="sybil-attacks">Sybil Attacks</h3>
+<p>Decentralized networks rely on peer identity and consensus to make
+routing decisions. In a Sybil attack, a single radio node illegitimately
+claims multiple identities by forging physical MAC addresses or
+cryptographic keys. By presenting itself as multiple distinct nodes, the
+attacker can manipulate multi-path routing protocols, disproportionately
+influence distributed routing decisions, outvote legitimate nodes, and
+bypass geographic routing algorithms.</p>
+<h3 id="rushing-attacks">Rushing Attacks</h3>
+<p>On-demand routing protocols suppress duplicate Route Request (RREQ)
+packets to prevent broadcast storms, meaning nodes only forward the
+first RREQ received for a particular route discovery sequence. An
+attacker executes a rushing attack by utilizing specialized radio
+hardware to relay RREQ packets faster than legitimate nodes—often
+bypassing local medium access control (MAC) delays or using higher
+transmission power. As a result, the attacker’s forwarded RREQ reaches
+neighboring nodes first, causing legitimate route discovery requests to
+be discarded and ensuring the final route traverses the attacker.</p>
+<h3 id="route-poisoning-and-state-exhaustion">Route Poisoning and State
+Exhaustion</h3>
+<p>Attackers can transmit spoofed routing update messages to alter
+legitimate topology maps. By injecting fake route errors (RERR) or
+advertising unreachable metrics for active nodes, attackers break
+existing paths and force constant route discoveries. This triggers state
+exhaustion, where constrained mesh radios deplete their processing
+power, memory, and battery reserves handling endless control-plane
+overhead, ultimately leading to physical node failure and network
+collapse.</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

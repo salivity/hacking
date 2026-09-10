@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How IMSI Catchers Force Cellular Downgrade Attacks - hacking</title>
+    <meta name="description" content="This article examines how International Mobile Subscriber Identity (IMSI) catchers exploit weaknesses in cellular network specifications to downgrade mobile devices to insecure, unencrypted protocols. It covers the core mechanisms behind these attacks, i">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-imsi-catchers-force-cellular-downgrade-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How IMSI Catchers Force Cellular Downgrade Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-imsi-catchers-force-cellular-downgrade-attacks" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines how International Mobile Subscriber Identity (IMSI) catchers exploit weaknesses in cellular network specifications to downgrade mobile devices to insecure, unencrypted protocols. It covers the core mechanisms behind these attacks, i" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-imsi-catchers-force-cellular-downgrade-attacks">How IMSI
+Catchers Force Cellular Downgrade Attacks</h1>
+<p>This article examines how International Mobile Subscriber Identity
+(IMSI) catchers exploit weaknesses in cellular network specifications to
+downgrade mobile devices to insecure, unencrypted protocols. It covers
+the core mechanisms behind these attacks, including radio frequency
+dominance, forced network fallback, cipher negotiation tampering, and
+protocol-level deficiencies in legacy standards, concluding with the
+defenses designed to mitigate these threats.</p>
+<h3 id="exploiting-signal-dominance-and-cell-reselection">Exploiting
+Signal Dominance and Cell Reselection</h3>
+<p>Mobile devices are engineered to maintain connectivity by
+continuously scanning for and connecting to the base station
+transmitting the strongest, most stable signal. An IMSI catcher,
+operating as a rogue base station (or "false base tower"), takes
+advantage of this design by transmitting system information messages at
+higher power levels than legitimate nearby towers.</p>
+<p>By manipulating standardized cell reselection parameters (such as the
+Cell Reselection Offset and RXLEV criteria in GSM), the rogue tower
+artificially presents itself as the most optimal cell. The victim device
+initiates a location update or attachment procedure to the rogue cell
+without requiring user intervention.</p>
+<h3 id="forced-protocol-downgrade-fallback-attacks">Forced Protocol
+Downgrade (Fallback Attacks)</h3>
+<p>Modern cellular generations (4G LTE and 5G) implement mutual
+authentication, requiring both the network and the device to verify each
+other's identity via cryptographic keys stored on the SIM card. To
+bypass these modern security controls, IMSI catchers frequently force
+devices to downgrade to legacy standards like 2G (GSM), where mutual
+authentication does not exist.</p>
+<p>To trigger a downgrade, the rogue tower can employ several
+techniques:</p>
+<ul>
+<li><strong>Reject Causes:</strong> When a device attempts to connect to
+the rogue cell via LTE or 3G, the tower responds with specific
+non-access stratum (NAS) rejection codes. Standardized codes—such as
+"LTE and non-LTE services not allowed" (Cause #7) or "EPS services not
+allowed" (Cause #8)—instruct the device's baseband processor that the
+current network generation is unavailable, compelling it to fall back to
+2G.</li>
+<li><strong>Selective RF Jamming:</strong> In some configurations,
+directional jamming signals are emitted across 3G, 4G, and 5G frequency
+bands. Unable to establish a connection on higher-tier networks, the
+phone drops down to the unjammed 2G spectrum where the rogue base
+station is actively transmitting.</li>
+</ul>
+<h3 id="cipher-negotiation-manipulation-a50-enforcement">Cipher
+Negotiation Manipulation (A5/0 Enforcement)</h3>
+<p>Once a mobile device is forced onto a 2G network, the rogue base
+station exploits the absence of network authentication. In GSM
+specifications, the handset authenticates itself to the network, but the
+device has no mechanism to verify that the base station is
+authentic.</p>
+<p>During the connection establishment, the base station dictates the
+encryption standard through the <code>Cipher Mode Command</code>:</p>
+<ol type="1">
+<li><strong>Cipher Suite Advertisement:</strong> The mobile station
+sends a <code>Classmark</code> message detailing which encryption
+algorithms it supports (e.g., A5/1, A5/2, A5/3, or A5/0).</li>
+<li><strong>Selecting the Null Cipher (A5/0):</strong> The rogue base
+station responds with a <code>Cipher Mode Command</code> selecting
+<strong>A5/0</strong>, which designates plaintext transmission with no
+cryptographic encryption.</li>
+<li><strong>Suppression of Warnings:</strong> Although the GSM standard
+originally specified that devices should notify users when encryption is
+disabled, most modern mobile operating systems and baseband firmwares
+historically suppress this ciphering indicator to avoid user confusion
+in regions where encryption is legally restricted or unsupported.</li>
+</ol>
+<p>As a result, all subsequent voice calls, SMS messages, and signaling
+data are transmitted in the clear over the radio interface, allowing the
+rogue device to capture and inspect subscriber traffic directly.</p>
+<h3 id="modern-mitigations">Modern Mitigations</h3>
+<p>Mitigating these downgrade techniques has driven significant
+architectural changes in newer telecommunications standards:</p>
+<ul>
+<li><strong>Disabling 2G:</strong> Operating systems such as Android and
+modern mobile basebands now allow users and enterprise administrators to
+completely disable 2G connectivity, preventing the device from falling
+back to unauthenticated protocols.</li>
+<li><strong>Mutual Authentication in 5G SA:</strong> 5G Standalone (SA)
+networks utilize Subscription Concealed Identifiers (SUCI) to encrypt
+the subscriber's identity over the air interface before authentication
+occurs, preventing identity harvesting.</li>
+<li><strong>Cellular Network Monitoring:</strong> Specialized hardware
+and mobile apps monitor the radio frequency environment for anomalies
+characteristic of IMSI catchers, such as inconsistent broadcast
+information, sudden signal level spikes, or requests to disable
+encryption.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

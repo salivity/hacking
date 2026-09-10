@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Java Deserialization Leads to Remote Code Execution - hacking</title>
+    <meta name="description" content="Unsafe object deserialization in Java represents a critical security vulnerability that allows attackers to execute arbitrary system commands by manipulating serialized object streams. In Java-based web applications, data is routinely converted into byte">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-java-deserialization-leads-to-remote-code-execution">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Java Deserialization Leads to Remote Code Execution - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-java-deserialization-leads-to-remote-code-execution" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Unsafe object deserialization in Java represents a critical security vulnerability that allows attackers to execute arbitrary system commands by manipulating serialized object streams. In Java-based web applications, data is routinely converted into byte" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="how-java-deserialization-leads-to-remote-code-execution">How
+Java Deserialization Leads to Remote Code Execution</h1>
+<p>Unsafe object deserialization in Java represents a critical security
+vulnerability that allows attackers to execute arbitrary system commands
+by manipulating serialized object streams. In Java-based web
+applications, data is routinely converted into byte streams for storage
+or network transit through serialization and later reconstructed through
+deserialization. When an application reconstructs an untrusted byte
+stream using standard Java mechanisms, it does not merely restore
+passive data; it re-instantiates classes and triggers automated
+execution paths. By chaining together specific classes already present
+in the application's runtime environment—commonly referred to as "gadget
+chains"—attackers can redirect program execution to invoke native
+operating system commands, resulting in full remote code execution
+(RCE).</p>
+<h3 id="the-mechanism-of-java-serialization-and-deserialization">The
+Mechanism of Java Serialization and Deserialization</h3>
+<p>Java's built-in object serialization utilizes the
+<code>java.io.Serializable</code> interface and classes like
+<code>ObjectOutputStream</code> and <code>ObjectInputStream</code>. When
+an object is serialized, its class structure, metadata, and field values
+are converted into a binary format. To reconstruct the object, the
+receiving application invokes
+<code>ObjectInputStream.readObject()</code>.</p>
+<p>During this reconstruction process, Java does not just validate the
+types after instantiation; it actively runs code to unpack the object.
+Classes implementing custom deserialization routines define a private
+<code>readObject()</code> method, which the JVM automatically invokes.
+Because this method executes during the unpack phase—before the
+application performs any type checks or business logic validation—any
+code path reachable from <code>readObject()</code> executes
+unconditionally upon receiving the payload.</p>
+<h3 id="the-role-of-gadget-chains">The Role of Gadget Chains</h3>
+<p>A malicious serialized payload rarely contains custom bytecode
+directly executed by the JVM. Instead, attackers exploit
+"gadgets"—existing, legitimate classes residing on the target
+application's classpath (such as core Java libraries or third-party
+dependencies like Apache Commons Collections, Spring, or Groovy).</p>
+<p>A gadget chain operates by linking methods across multiple
+classes:</p>
+<ol type="1">
+<li><strong>The Kick-off Gadget:</strong> The initial entry point,
+usually a class with a custom <code>readObject()</code> method that
+calls a standard method (such as <code>.hashCode()</code>,
+<code>.equals()</code>, or <code>.toString()</code>) on a member
+object.</li>
+<li><strong>The Intermediate Gadgets:</strong> Classes that handle
+common tasks such as collection mapping, dynamic proxy invocation, or
+reflection. When their methods are invoked by the kick-off gadget, they
+perform nested operations on other internal objects.</li>
+<li><strong>The Sink Gadget:</strong> The final class in the chain,
+capable of dangerous actions. Common sinks invoke reflection
+(<code>Method.invoke()</code>), custom class loading
+(<code>ClassLoader.defineClass()</code>), or direct process spawning
+(<code>Runtime.getRuntime().exec()</code> or
+<code>ProcessBuilder.start()</code>).</li>
+</ol>
+<h3 id="execution-flow-in-web-environments">Execution Flow in Web
+Environments</h3>
+<p>In web hacking scenarios, serialized payloads are commonly
+transmitted through HTTP request bodies, cookies, parameters, or
+internal messaging interfaces (such as Java Message Service or RMI).</p>
+<p>When the target web service receives an attacker-crafted stream:</p>
+<ol type="1">
+<li>The web application passes the raw byte stream to
+<code>ObjectInputStream.readObject()</code>.</li>
+<li>The runtime deserializes the root object, implicitly invoking its
+custom <code>readObject()</code> logic.</li>
+<li>The root object triggers calls down the configured gadget chain. For
+example, in the well-known Commons Collections gadget chain, a
+<code>TransformedMap</code> or <code>LazyMap</code> triggers an array of
+reflection calls (<code>ChainedTransformer</code>) when an entry is
+accessed.</li>
+<li>The transformer chain uses reflection to obtain an instance of
+<code>java.lang.Runtime</code> and calls the <code>exec()</code> method
+with an attacker-defined system command.</li>
+<li>The command runs under the system permissions of the Java runtime
+process, allowing the attacker to establish a reverse shell, exfiltrate
+data, or compromise the underlying host.</li>
+</ol>
+<h3 id="defensive-mitigations">Defensive Mitigations</h3>
+<p>Preventing command execution via deserialization requires eliminating
+untrusted inputs from reaching native deserialization engines:</p>
+<ul>
+<li><strong>Avoid Native Java Deserialization:</strong> Replace Java
+native serialization formats with safer data-interchange formats, such
+as JSON or Protocol Buffers, which do not serialize executable logic or
+class metadata.</li>
+<li><strong>Look-Ahead Object Filtering:</strong> If native
+deserialization is unavoidable, implement look-ahead deserialization via
+<code>java.io.ObjectInputFilter</code> (introduced in Java 9 and
+backported to Java 8). This mechanism evaluates class types against an
+explicit allowlist before resolving and instantiating them.</li>
+<li><strong>Dependency Hygiene:</strong> Monitor and update dependencies
+to remove known vulnerable libraries containing published gadget chains,
+although relying solely on library updates does not eliminate zero-day
+gadgets within the classpath.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

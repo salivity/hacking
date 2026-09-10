@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stealth Persistence: Shadow Administrators in Windows - hacking</title>
+    <meta name="description" content="Shadow administrator accounts represent a sophisticated persistence mechanism in Windows and Active Directory environments where accounts hold administrative-level control without belonging to well-known privileged groups like Domain Admins. Rather than">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/stealth-persistence-shadow-administrators-in-windows">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Stealth Persistence: Shadow Administrators in Windows - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/stealth-persistence-shadow-administrators-in-windows" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Shadow administrator accounts represent a sophisticated persistence mechanism in Windows and Active Directory environments where accounts hold administrative-level control without belonging to well-known privileged groups like Domain Admins. Rather than" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="stealth-persistence-shadow-administrators-in-windows">Stealth
+Persistence: Shadow Administrators in Windows</h1>
+<p>Shadow administrator accounts represent a sophisticated persistence
+mechanism in Windows and Active Directory environments where accounts
+hold administrative-level control without belonging to well-known
+privileged groups like Domain Admins. Rather than relying on overt group
+memberships that trigger security alerts, adversaries exploit granular
+Access Control Entries (ACEs) and delegated permissions across the
+directory. Understanding how these hidden privileges are structured, how
+they grant effective domain compromise, and how to detect them is
+critical for securing enterprise identity infrastructure.</p>
+<h3 id="the-concept-of-a-shadow-administrator">The Concept of a Shadow
+Administrator</h3>
+<p>Traditional access management relies on role-based access control and
+security groups (such as Enterprise Admins, Domain Admins, or Account
+Operators). Because security monitoring tools and Security Information
+and Event Management (SIEM) solutions closely track changes to these
+sensitive groups, direct additions are easily detected.</p>
+<p>To bypass this visibility, an adversary seeks "stealth privilege
+escalation" or persistence by granting specific, subtle Active Directory
+permissions to a seemingly standard user account. These accounts do not
+show up in privileged group enumerations, but the Discretionary Access
+Control Lists (DACLs) associated with directory objects grant them the
+ability to seize control of the domain whenever required.</p>
+<h3 id="key-permissions-leveraged-for-stealth-administration">Key
+Permissions Leveraged for Stealth Administration</h3>
+<p>Shadow administrative capability typically stems from specific Active
+Directory rights delegated directly on organizational units (OUs),
+sensitive groups, or high-privilege user accounts:</p>
+<ul>
+<li><strong><code>GenericAll</code> / Full Control:</strong> Grants
+complete control over the target object. When placed on a user object,
+the holder can reset the password, disable security restrictions, or
+modify user attributes without belonging to an administrative
+group.</li>
+<li><strong><code>WriteDacl</code>:</strong> Allows the holder to modify
+the security permissions of the target object. An attacker with this
+right can grant themselves <code>GenericAll</code> or add themselves to
+the object's access list dynamically when needed.</li>
+<li><strong><code>WriteOwner</code>:</strong> Enables changing the owner
+of an object. Once ownership is assumed, the new owner inherently
+possesses the ability to rewrite the object's DACL.</li>
+<li><strong><code>ResetPassword</code>
+(User-Force-Change-Password):</strong> Permits resetting passwords on
+target accounts. If delegated over privileged user objects or service
+accounts, it allows lateral movement or privilege escalation
+directly.</li>
+<li><strong>Directory Synchronization Rights
+(<code>DS-Replication-Get-Changes-All</code>):</strong> Often associated
+with domain replication services, these extended rights enable the
+replication of password hashes directly from the domain controller (a
+technique commonly known as DCSync).</li>
+</ul>
+<h3 id="mechanics-of-establishing-hidden-administrative-paths">Mechanics
+of Establishing Hidden Administrative Paths</h3>
+<p>Attackers establish or identify shadow admin paths through several
+vectors:</p>
+<ol type="1">
+<li><strong>Over-Delegation:</strong> Administrative tasks are
+frequently delegated at the OU level to allow help desk staff to reset
+passwords or manage group memberships. If privileged accounts reside
+within these managed OUs, the delegated accounts unintentionally inherit
+control over those privileged identities.</li>
+<li><strong>Transitive Access and Chained Relationships:</strong>
+Control can be distributed across multiple steps. For instance, Account
+A might have permission to modify Group B; Group B may have write
+permissions to a script; that script might be executed by a Domain
+Admin. This creates an indirect path to complete control that rarely
+surfaces in traditional audits.</li>
+<li><strong>Abuse of the AdminSDHolder Object:</strong> The
+<code>AdminSDHolder</code> object in Active Directory serves as a
+security template for protected accounts and groups. If an attacker
+modifies the DACL of the <code>AdminSDHolder</code> object itself, the
+changes are automatically propagated to all protected groups (like
+Domain Admins) by the background <code>SDProp</code> process, granting
+persistent access under the radar.</li>
+</ol>
+<h3 id="detection-and-defensive-strategies">Detection and Defensive
+Strategies</h3>
+<p>Mitigating the risk of shadow administrators requires shifting
+security audits from simple group membership reviews to graph-based and
+ACL-centric security analysis.</p>
+<ul>
+<li><strong>Graph-Based Identity Auditing:</strong> Use tools that
+analyze relationships and effective permissions within Active Directory
+to map all paths leading to domain dominance. Auditing must evaluate
+transitive rights rather than static lists.</li>
+<li><strong>Monitoring Sensitive ACL Modifications:</strong> Ingest and
+monitor Windows Event ID 4662 (An operation was performed on an object)
+and Event ID 5136 (A directory service object was modified),
+particularly targeting changes to high-value OUs, the
+<code>AdminSDHolder</code> container, and directory-level extended
+rights.</li>
+<li><strong>Separation of Privileged Assets:</strong> Ensure domain
+administrative accounts, tier-zero assets, and domain controllers are
+segregated in secure Organizational Units that have inheritance blocked
+and no delegated rights assigned to general user populations.</li>
+<li><strong>Regular Review of Replicating Directory Changes:</strong>
+Audit accounts holding directory replication rights to ensure only
+legitimate domain controllers and authorized synchronization accounts
+(such as Azure AD Connect) hold replication privileges.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

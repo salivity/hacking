@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux SUID Privilege Escalation Explained - hacking</title>
+    <meta name="description" content="In Linux operating systems, Set Owner User ID (SUID) binaries are critical components that allow users to run executables with the permissions of the file owner rather than the user executing them. While designed to allow standard users to perform specif">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/linux-suid-privilege-escalation-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Linux SUID Privilege Escalation Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/linux-suid-privilege-escalation-explained" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="In Linux operating systems, Set Owner User ID (SUID) binaries are critical components that allow users to run executables with the permissions of the file owner rather than the user executing them. While designed to allow standard users to perform specif" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="linux-suid-privilege-escalation-explained">Linux SUID Privilege
+Escalation Explained</h1>
+<p>In Linux operating systems, Set Owner User ID (SUID) binaries are
+critical components that allow users to run executables with the
+permissions of the file owner rather than the user executing them. While
+designed to allow standard users to perform specific privileged tasks,
+such as changing passwords, improperly configured or vulnerable SUID
+binaries frequently become targets for local privilege escalation.
+Attackers utilize several distinct mechanisms—ranging from native
+command-line escapes to binary exploitation—to break out of these
+programs and claim full root access.</p>
+<h3 id="understanding-the-suid-bit">Understanding the SUID Bit</h3>
+<p>When a file has the SUID permission bit enabled (represented
+numerically as <code>4000</code> or symbolically with an <code>s</code>
+in the owner execute position, such as <code>-rwsr-xr-x</code>), Linux
+assigns the process an Effective User ID (EUID) matching the file's
+owner. If the binary is owned by <code>root</code>, any commands or
+system calls made by that program run with root privileges. Attackers
+first identify these files using discovery commands like:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">find</span> / <span class="at">-perm</span> <span class="at">-4000</span> <span class="at">-type</span> f <span class="dv">2</span><span class="op">&gt;</span>/dev/null</span></code></pre></div>
+<p>Once a list of accessible SUID binaries is compiled, attackers
+examine the binaries for specific exploitable traits.</p>
+<h3 id="1-living-off-the-land-native-shell-escapes">1. Living off the
+Land (Native Shell Escapes)</h3>
+<p>The most common method of SUID abuse involves standard administrative
+tools that possess built-in functionality to read files, write files, or
+spawn subshells. Attackers refer to standardized databases like GTFOBins
+to identify legitimate binaries that become dangerous when the SUID bit
+is set.</p>
+<ul>
+<li><strong>Direct Shell Spawns:</strong> Utilities like
+<code>bash</code>, <code>python</code>, <code>perl</code>, or
+<code>find</code> allow users to execute child processes. If run under a
+root SUID context, executing an internal command—such as
+<code>find . -exec /bin/sh \;</code> or <code>bash -p</code>—instantly
+launches a root shell.</li>
+<li><strong>Privileged File Reads:</strong> Tools like <code>cat</code>,
+<code>less</code>, or <code>base64</code> can be executed with SUID
+permissions to view sensitive files otherwise restricted to root, such
+as <code>/etc/shadow</code>.</li>
+<li><strong>Arbitrary File Overwrites:</strong> Utilities like
+<code>tee</code> or <code>cp</code> can overwrite critical system
+configurations (e.g., adding an entry to <code>/etc/passwd</code> or
+dropping a script into <code>/etc/cron.d/</code>).</li>
+</ul>
+<h3 id="2-relative-path-execution-and-path-hijacking">2. Relative Path
+Execution and PATH Hijacking</h3>
+<p>Custom or legacy SUID binaries written in C or compiled wrappers
+often invoke other utilities using functions like <code>system()</code>
+or <code>execvp()</code>. If the developer calls an external utility
+without specifying its absolute path (e.g., calling
+<code>service apache2 restart</code> instead of
+<code>/usr/sbin/service apache2 restart</code>), an attacker can exploit
+the shell's search order.</p>
+<p>To hijack the execution flow:</p>
+<ol type="1">
+<li>The attacker creates a malicious script or compiled executable with
+the same name as the targeted internal command (e.g., named
+<code>service</code>) that launches <code>/bin/sh</code>.</li>
+<li>The attacker modifies their environment variable:
+<code>export PATH=/tmp:$PATH</code>.</li>
+<li>When the SUID binary executes, it searches the directories in
+<code>$PATH</code> sequentially, encounters the attacker's executable in
+<code>/tmp</code> first, and runs it with root privileges.</li>
+</ol>
+<h3
+id="3-shared-library-hijacking-and-rpathrunpath-misconfigurations">3.
+Shared Library Hijacking and RPATH/RUNPATH Misconfigurations</h3>
+<p>Compilers allow binaries to locate dependencies dynamically using
+runtime search paths (RPATH or RUNPATH). If a developer hardcodes an
+insecure or relative path (such as <code>.</code> or a user-writable
+directory) into the binary's ELF header, an attacker can substitute
+malicious libraries.</p>
+<p>Using tools like <code>readelf</code> or <code>objdump</code>, an
+attacker inspects dynamic tags:</p>
+<ul>
+<li>If a writable directory precedes standard library locations (like
+<code>/lib</code> or <code>/usr/lib</code>), an attacker can compile a
+malicious shared object (<code>.so</code>) designed to spawn a shell
+upon initialization.</li>
+<li>When the SUID binary executes, it links the malicious library,
+automatically triggering the payload as root.</li>
+</ul>
+<p>While the dynamic linker automatically ignores environment variables
+like <code>LD_PRELOAD</code> and <code>LD_LIBRARY_PATH</code> for SUID
+executables, hardcoded binary misconfigurations bypass these
+protections.</p>
+<h3 id="4-wildcard-and-argument-injection">4. Wildcard and Argument
+Injection</h3>
+<p>Binaries that pass user-supplied input directly to an underlying
+shell without validation can be manipulated via wildcard expansion or
+argument injection. If an SUID program internally executes a command
+like <code>tar -czf backup.tar.gz *</code>, an attacker can create files
+in that directory named after command-line flags (such as
+<code>--checkpoint=1</code> and
+<code>--checkpoint-action=exec=sh malicious.sh</code>). When the
+wildcard resolves, the program treats the filenames as execution flags
+rather than file targets, resulting in command execution.</p>
+<h3 id="5-memory-corruption-vulnerabilities">5. Memory Corruption
+Vulnerabilities</h3>
+<p>Custom-compiled SUID programs often lack the defensive hardening
+applied to standard system packages. If a binary is written in C or C++
+and improperly handles memory, attackers can leverage classic software
+exploitation techniques:</p>
+<ul>
+<li><strong>Buffer Overflows:</strong> Supplying oversized inputs via
+command-line arguments or environmental variables can overwrite the
+instruction pointer (EIP/RIP) to divert execution flow to injected
+shellcode or Return-Oriented Programming (ROP) chains.</li>
+<li><strong>Format String Attacks:</strong> Passing unvalidated format
+specifiers (e.g., <code>%x</code>, <code>%n</code>) into functions like
+<code>printf()</code> allows attackers to read and write arbitrary
+memory addresses.</li>
+<li><strong>Integer Overflows:</strong> Miscalculated array allocations
+can lead to heap corruptions, allowing attackers to overwrite function
+pointers and take control of the privileged process.</li>
+</ul>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Preventing SUID exploitation requires adhering to the principle of
+least privilege. System administrators can mitigate these risks by:</p>
+<ul>
+<li>Mounting user-writable partitions (such as <code>/tmp</code>,
+<code>/home</code>, and <code>/var</code>) with the <code>nosuid</code>
+flag.</li>
+<li>Replacing custom SUID binaries with fine-grained Linux Capabilities
+(such as <code>CAP_NET_BIND_SERVICE</code> or
+<code>CAP_DAC_READ_SEARCH</code>) or strictly scoped
+<code>sudoers</code> configurations.</li>
+<li>Performing regular audits using file integrity monitoring tools to
+identify unauthorized or newly created SUID files.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

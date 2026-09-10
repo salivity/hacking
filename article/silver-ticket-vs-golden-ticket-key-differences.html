@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silver Ticket vs Golden Ticket: Key Differences - hacking</title>
+    <meta name="description" content="In Active Directory environments, Kerberos ticket forgery represents one of the most potent post-exploitation techniques used by attackers for lateral movement and persistence. While both Golden and Silver Ticket attacks exploit weaknesses in Kerberos au">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/silver-ticket-vs-golden-ticket-key-differences">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Silver Ticket vs Golden Ticket: Key Differences - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/silver-ticket-vs-golden-ticket-key-differences" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="In Active Directory environments, Kerberos ticket forgery represents one of the most potent post-exploitation techniques used by attackers for lateral movement and persistence. While both Golden and Silver Ticket attacks exploit weaknesses in Kerberos au" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="silver-ticket-vs-golden-ticket-key-differences">Silver Ticket vs
+Golden Ticket: Key Differences</h1>
+<p>In Active Directory environments, Kerberos ticket forgery represents
+one of the most potent post-exploitation techniques used by attackers
+for lateral movement and persistence. While both Golden and Silver
+Ticket attacks exploit weaknesses in Kerberos authentication to forge
+identity claims, they differ fundamentally in their operational scope,
+the cryptographic material required to forge them, their interaction
+with Domain Controllers, and their detection footprints. Understanding
+these distinctions is critical for incident responders and network
+defenders seeking to identify and mitigate targeted Kerberos-based
+intrusions.</p>
+<h3 id="targeted-component-and-ticket-type">Targeted Component and
+Ticket Type</h3>
+<p>The primary distinction between the two attacks lies in which
+Kerberos ticket type is forged and which entity validates it:</p>
+<ul>
+<li><strong>Golden Ticket (Forged TGT):</strong> The attacker creates a
+counterfeit Ticket Granting Ticket (TGT). In Kerberos, a TGT acts as
+proof of identity and allows a user to request access to any network
+resource. Because a Golden Ticket mimics a valid TGT, the attacker can
+present it to the Key Distribution Center (KDC) to request a Ticket
+Granting Service (TGS) ticket for virtually any service across the
+entire Active Directory domain.</li>
+<li><strong>Silver Ticket (Forged TGS):</strong> The attacker creates a
+counterfeit Ticket Granting Service (TGS) ticket directly. A TGS ticket
+grants access only to a specific service or resource (such as CIFS,
+LDAP, HTTP, or MSSQL). Consequently, a Silver Ticket confers access
+exclusively to the target service running on a specific host, rather
+than domain-wide administrative authority.</li>
+</ul>
+<h3 id="cryptographic-keys-required">Cryptographic Keys Required</h3>
+<p>To forge a valid Kerberos ticket, an attacker must possess the secret
+key used to encrypt and sign that specific ticket type:</p>
+<ul>
+<li><strong>Golden Ticket:</strong> Requires the NTLM password hash or
+AES keys of the <strong><code>krbtgt</code></strong> account. The
+<code>krbtgt</code> account is the central service account used by the
+KDC to sign and encrypt all TGTs. Compromising this key requires Domain
+Admin or equivalent privileges.</li>
+<li><strong>Silver Ticket:</strong> Requires only the password hash
+(NTLM or AES) of the <strong>target service account</strong> hosting the
+service (often a local machine account or a dedicated user service
+account). Compromising the <code>krbtgt</code> account is unnecessary,
+meaning an attacker only needs local administrator privileges on the
+target server or access to that specific service account's
+credentials.</li>
+</ul>
+<h3 id="interaction-with-the-domain-controller">Interaction with the
+Domain Controller</h3>
+<p>Network communication and Domain Controller (DC) interaction vary
+drastically between the two techniques:</p>
+<ul>
+<li><strong>Golden Ticket:</strong> The attacker presents the forged TGT
+to the Domain Controller (specifically the KDC) to request a TGS ticket.
+Although the ticket itself is forged offline, the subsequent exchange
+creates network traffic destined for the DC.</li>
+<li><strong>Silver Ticket:</strong> The attacker communicates
+<strong>directly with the target application or server</strong>,
+bypassing the Domain Controller entirely. Because the target server
+decrypts and verifies the TGS ticket using its own local key, it assumes
+the KDC already validated the request and does not contact the DC for
+confirmation.</li>
+</ul>
+<h3 id="stealth-and-evasion">Stealth and Evasion</h3>
+<p>Because of the architectural differences, Silver Tickets are
+typically stealthier than Golden Tickets:</p>
+<ul>
+<li><strong>Golden Ticket Stealth:</strong> Easier to detect centrally.
+The forged TGT generates Kerberos service ticket requests on the Domain
+Controller. Security monitoring tools analyzing KDC logs can flag
+anomalies, such as mismatched encryption algorithms, abnormal ticket
+lifetimes, or accounts requesting tickets without prior authentication
+events.</li>
+<li><strong>Silver Ticket Stealth:</strong> Extremely difficult to
+detect through centralized logging. Because the Domain Controller is
+never contacted, no Kerberos events (such as Event ID 4769) are logged
+on the DC. Detection relies strictly on local event logs on the target
+system, where the activity often blends in with standard user
+access.</li>
+</ul>
+<h3 id="persistence-and-remediation">Persistence and Remediation</h3>
+<p>Remediating these attacks requires targeting different layers of the
+Active Directory infrastructure:</p>
+<ul>
+<li><strong>Golden Ticket Remediation:</strong> Requires resetting the
+domain's <code>krbtgt</code> account password <strong>twice</strong>.
+Because Active Directory stores both the current and previous
+<code>krbtgt</code> password hashes to prevent immediate service
+disruption, a single reset does not invalidate existing forged Golden
+Tickets.</li>
+<li><strong>Silver Ticket Remediation:</strong> Requires identifying the
+specific compromised service or computer account and resetting its
+password or machine account secret. Resetting the <code>krbtgt</code>
+account has zero effect on forged Silver Tickets.</li>
+</ul></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

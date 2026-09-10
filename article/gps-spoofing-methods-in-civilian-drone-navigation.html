@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Spoofing Methods in Civilian Drone Navigation - hacking</title>
+    <meta name="description" content="GPS spoofing represents a critical vulnerability in civilian drone operations, allowing external actors to manipulate an aircraft's perceived location, velocity, and time by transmitting counterfeit Global Navigation Satellite System (GNSS) signals. This">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/gps-spoofing-methods-in-civilian-drone-navigation">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="GPS Spoofing Methods in Civilian Drone Navigation - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/gps-spoofing-methods-in-civilian-drone-navigation" />
+    <meta property="og:image:url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="GPS spoofing represents a critical vulnerability in civilian drone operations, allowing external actors to manipulate an aircraft's perceived location, velocity, and time by transmitting counterfeit Global Navigation Satellite System (GNSS) signals. This" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <article><h1 id="gps-spoofing-methods-in-civilian-drone-navigation">GPS Spoofing
+Methods in Civilian Drone Navigation</h1>
+<p>GPS spoofing represents a critical vulnerability in civilian drone
+operations, allowing external actors to manipulate an aircraft's
+perceived location, velocity, and time by transmitting counterfeit
+Global Navigation Satellite System (GNSS) signals. This article examines
+the core signal generation techniques used to generate these false
+signals, exploring how synthetic RF transmissions exploit the
+unencrypted nature of civilian satellite navigation to misdirect
+unmanned aerial vehicles (UAVs).</p>
+<h3 id="unencrypted-gnss-vulnerability-in-civilian-drones">Unencrypted
+GNSS Vulnerability in Civilian Drones</h3>
+<p>Civilian unmanned aerial vehicles primarily rely on the standard
+positioning service provided by GNSS constellations, such as the GPS L1
+coarse-acquisition (C/A) signal operating at 1575.42 MHz. Unlike
+military signals (such as the GPS P(Y) code or M-code), the civilian L1
+C/A signal contains no cryptographic authentication or encryption. The
+signal structure—including the pseudo-random noise (PRN) codes, carrier
+frequencies, and navigation message formats—is publicly documented,
+making it fully replicable using off-the-shelf radio frequency
+hardware.</p>
+<h3 id="primary-signal-generation-techniques">Primary Signal Generation
+Techniques</h3>
+<p>Spoofing attacks against drone navigation systems utilize two primary
+signal generation paradigms: record-and-replay (meaconing) and synthetic
+signal generation.</p>
+<h4 id="1-record-and-replay-meaconing">1. Record-and-Replay
+(Meaconing)</h4>
+<p>Meaconing involves receiving legitimate satellite signals, delaying
+or altering them, and rebroadcasting them at higher power levels.</p>
+<ul>
+<li><strong>Mechanism:</strong> An RF receiver captures real-time
+satellite broadcasts from a different location or time. The attacker
+introduces a programmable delay or phase shift before retransmitting the
+signal toward the drone.</li>
+<li><strong>Characteristics:</strong> While meaconing bypasses the need
+to compute satellite orbits or generate complex navigation messages, it
+provides limited tactical control over the drone's trajectory. It
+typically triggers position jumps or time anomalies, which modern flight
+controllers may detect as inconsistencies.</li>
+</ul>
+<h4 id="2-fully-synthetic-signal-simulation">2. Fully Synthetic Signal
+Simulation</h4>
+<p>Synthetic generation involves algorithmically constructing complete,
+standard-compliant GNSS baseband signals from scratch using
+software-defined radio (SDR) platforms.</p>
+<ul>
+<li><strong>Ephemeris and Orbit Modeling:</strong> To create a
+convincing signal, the generator must simulate multiple satellites
+simultaneously (typically at least four to solve for 3D position and
+time). The system uses current orbital parameters—obtained via publicly
+available daily broadcast ephemeris or almanac files—to calculate the
+exact position and velocity of each simulated satellite relative to the
+target's intended false location.</li>
+<li><strong>Pseudorange Calculation:</strong> The generator calculates
+the propagation delay between each simulated satellite and the target
+drone. This requires modeling relativistic effects, atmospheric
+(ionospheric and tropospheric) delays, and Doppler shifts caused by
+satellite motion relative to the drone.</li>
+<li><strong>PRN Code and Navigation Message Synthesis:</strong> Each
+simulated satellite channel modulates a distinct 1023-chip PRN Gold code
+at 1.023 MHz onto a simulated 1575.42 MHz carrier. A 50 bps navigation
+message containing the satellite health, clock corrections, and orbital
+telemetry is interleaved into the data stream.</li>
+<li><strong>Baseband Processing and SDR Transmission:</strong> The
+composite multi-channel digital signal is rendered as in-phase and
+quadrature (I/Q) samples. An SDR converts these digital samples into
+analog RF signals, upconverts them to the L1 band, and amplifies them
+for directional or omnidirectional broadcast.</li>
+</ul>
+<h3 id="alignment-and-takeover-strategies">Alignment and Takeover
+Strategies</h3>
+<p>Successfully overriding a drone's navigation system without
+triggering defensive fail-safes requires careful alignment of the
+counterfeit signal with the legitimate signal:</p>
+<ul>
+<li><strong>Asynchronous (Brute-Force) Spoofing:</strong> The spoofer
+transmits high-power synthetic signals without matching the drone's
+current satellite tracking loops. The drone's receiver is forced to lose
+lock on authentic satellites due to interference, subsequently acquiring
+the stronger fake signal. This sudden transition often triggers
+flight-controller failsafes, such as return-to-home (RTH) or emergency
+landing.</li>
+<li><strong>Synchronous (Intermediate) Spoofing:</strong> The generator
+synthesizes signals that precisely match the phase, code delay, Doppler
+frequency, and power level of the authentic satellites currently tracked
+by the drone. Once the drone's delay-locked loops (DLL) and phase-locked
+loops (PLL) couple to the counterfeit signal, the attacker gradually
+increases the signal amplitude and slowly walks the signal code phase
+away from the true position. This allows smooth manipulation of the
+drone's trajectory without alerting the flight management system.</li>
+</ul>
+<h3 id="impact-on-flight-control-systems">Impact on Flight Control
+Systems</h3>
+<p>When the drone locks onto the generated signal, the flight controller
+receives skewed coordinate data. Attackers exploit drone safety
+logic—such as automated geo-fencing (forcing the drone to land by
+simulating entry into restricted airspace) or waypoint navigation
+(drawing the drone toward an alternate landing zone)—by gradually
+offsetting the reported coordinates relative to actual ground truth.</p></article>
+        <div id="comments-container"></div>
+
+        <script>
+            const utterancesScript = document.createElement('script');
+            
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>
