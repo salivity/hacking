@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Behind Electromagnetic Fault Injection - hacking</title>
+    <meta name="description" content="Electromagnetic fault injection (EMFI) is a non-invasive hardware hacking technique that disrupts a microchip's internal state to bypass security checks, skip critical instructions, or extract cryptographic keys. By generating brief, powerful, and locali">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/physics-behind-electromagnetic-fault-injection">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Physics Behind Electromagnetic Fault Injection - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/physics-behind-electromagnetic-fault-injection" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Electromagnetic fault injection (EMFI) is a non-invasive hardware hacking technique that disrupts a microchip's internal state to bypass security checks, skip critical instructions, or extract cryptographic keys. By generating brief, powerful, and locali" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="physics-behind-electromagnetic-fault-injection">Physics Behind
+Electromagnetic Fault Injection</h1>
+<p>Electromagnetic fault injection (EMFI) is a non-invasive hardware
+hacking technique that disrupts a microchip's internal state to bypass
+security checks, skip critical instructions, or extract cryptographic
+keys. By generating brief, powerful, and localized electromagnetic
+fields, an attacker induces unintended electrical anomalies within the
+target silicon. This article explores the fundamental physics
+principles—predominantly Faraday’s law of induction, semiconductor
+carrier dynamics, and transmission timing alterations—that govern how
+magnetic pulses translate into exploitable digital faults.</p>
+<h3
+id="faradays-law-of-induction-and-transient-magnetic-fields">Faraday’s
+Law of Induction and Transient Magnetic Fields</h3>
+<p>At the core of EMFI lies Faraday’s Law of Electromagnetic Induction.
+The injection hardware consists of a high-voltage pulse generator
+discharged through a microscopic inductive coil placed micrometers above
+the target integrated circuit (IC).</p>
+<p>When a sharp current pulse (<span
+class="math inline">\(di/dt\)</span>) discharges through the probe's
+coil, it creates a rapidly changing local magnetic flux density (<span
+class="math inline">\(dB/dt\)</span>). According to Faraday's law, a
+time-varying magnetic field induces an electromotive force (EMF) in any
+closed conductive loop within its proximity:</p>
+<p><span class="math display">\[\mathcal{E} =
+-\frac{d\Phi_B}{dt}\]</span></p>
+<p>Inside an IC, metal interconnect layers, bond wires, and power
+distribution networks act as conductive loops. The transient magnetic
+field penetrates the chip's packaging and couples into these
+micro-traces, generating unexpected voltage and current spikes that ride
+on top of the chip’s regular operational signals.</p>
+<h3 id="induced-voltages-and-logic-level-corruption">Induced Voltages
+and Logic Level Corruption</h3>
+<p>Digital CMOS logic interprets logic states ('0' or '1') based on
+defined voltage thresholds relative to supply rails (<span
+class="math inline">\(V_{DD}\)</span> and ground <span
+class="math inline">\(V_{SS}\)</span>). The induced EMF generated by the
+EM pulse shifts the instantaneous voltage along the interconnects:</p>
+<ul>
+<li><strong>Constructive Interference:</strong> If the induced voltage
+is positive and coincides with a logic low, the total voltage can
+surpass the input threshold of a downstream gate, causing the gate to
+register an erroneous logic high.</li>
+<li><strong>Destructive Interference:</strong> If the induced voltage is
+negative during a logic high, it pulls the signal below the recognition
+threshold, causing a temporary logic low.</li>
+</ul>
+<p>Because modern microcontrollers operate at low voltages (often
+between 1.0V and 3.3V) with tight noise margins, a modest induced spike
+of a few hundred millivolts is sufficient to corrupt a data bus or
+control line, creating bit flips.</p>
+<h3
+id="semiconductor-carrier-dynamics-and-parasitic-effects">Semiconductor
+Carrier Dynamics and Parasitic Effects</h3>
+<p>The physics of EMFI also extends to the silicon substrate itself. An
+intense, localized electromagnetic field interacts with the charge
+carriers (electrons and holes) within the doped semiconductor
+regions:</p>
+<ol type="1">
+<li><strong>Transient Electric Fields in the Substrate:</strong> The
+electric field component of the EM pulse exerts a Lorentz force on free
+carriers, causing drift currents within the substrate.</li>
+<li><strong>Parasitic Diode Conduction:</strong> Complementary MOS
+(CMOS) structures inherently contain parasitic bipolar junction
+transistors (BJTs) arranged in p-n-p-n configurations. Local voltage
+spikes caused by the EM pulse can forward-bias these normally
+reverse-biased p-n junctions, injecting unwanted minority carriers into
+sensitive transistor channels.</li>
+<li><strong>Channel Inversion Disruption:</strong> If the localized
+field alters the electric potential across a MOSFET gate oxide, it
+modifies the channel conductance independently of the actual gate
+control signal, temporarily forcing a transistor into an open or closed
+state.</li>
+</ol>
+<h3 id="propagation-delays-and-setup-time-violations">Propagation Delays
+and Setup-Time Violations</h3>
+<p>Rather than directly flipping static memory bits, EMFI is most
+commonly leveraged to induce transient timing violations during
+instruction execution.</p>
+<p>A CMOS transistor's switching speed depends directly on its supply
+voltage:</p>
+<p><span class="math display">\[I_{DS} \propto (V_{GS} -
+V_{TH})^2\]</span></p>
+<p>When an EM pulse causes a momentary voltage drop across the internal
+power distribution grid, the drive current of affected logic gates
+plummets. This surge in gate propagation delay causes the output of a
+combinatorial logic circuit to arrive late at the destination
+flip-flop.</p>
+<p>When the logic signal fails to stabilize before the next clock edge,
+a <strong>setup-time violation</strong> occurs. The register latches
+incorrect, metastable, or default zero states. At the machine-code
+level, this manifests as modifying an instruction opcode—such as
+altering a conditional branch check (<code>BEQ</code>/<code>BNE</code>)
+into a <code>NOP</code> (No Operation) or changing an authentication
+comparison result—allowing an attacker to bypass critical firmware
+security routines seamlessly.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

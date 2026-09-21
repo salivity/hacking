@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server-Side JavaScript Injection Execution Vectors - hacking</title>
+    <meta name="description" content="Server-Side JavaScript Injection (SSJSI) occurs when an application running a JavaScript-based runtime, such as Node.js, evaluates untrusted user input as executable code. This article examines the primary execution vectors attackers leverage to achieve">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/server-side-java-script-injection-execution-vectors">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Server-Side JavaScript Injection Execution Vectors - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/server-side-java-script-injection-execution-vectors" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Server-Side JavaScript Injection (SSJSI) occurs when an application running a JavaScript-based runtime, such as Node.js, evaluates untrusted user input as executable code. This article examines the primary execution vectors attackers leverage to achieve" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="server-side-javascript-injection-execution-vectors">Server-Side
+JavaScript Injection Execution Vectors</h1>
+<p>Server-Side JavaScript Injection (SSJSI) occurs when an application
+running a JavaScript-based runtime, such as Node.js, evaluates untrusted
+user input as executable code. This article examines the primary
+execution vectors attackers leverage to achieve SSJSI, detailing how
+unsafe functions, vulnerable serialization mechanisms, template engines,
+and database constructs allow malicious actors to compromise backend
+environments and achieve Remote Code Execution (RCE).</p>
+<h3 id="direct-code-evaluation-functions">Direct Code Evaluation
+Functions</h3>
+<p>The most direct vector for SSJSI is the misuse of native JavaScript
+functions designed to dynamically parse and run code strings. When
+unsanitized user input is passed directly to <code>eval()</code>,
+<code>new Function()</code>, <code>setTimeout()</code>, or
+<code>setInterval()</code>, the runtime executes that input with the
+full privileges of the server process. Once inside the execution
+context, attackers can access the core runtime environment:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Example of an unsafe evaluation vector</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> userInput <span class="op">=</span> req<span class="op">.</span><span class="at">body</span><span class="op">.</span><span class="at">expression</span><span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> result <span class="op">=</span> <span class="pp">eval</span>(userInput)<span class="op">;</span> </span></code></pre></div>
+<p>By injecting payloads utilizing Node.js core modules, such as
+<code>require('child_process').execSync('id')</code>, attackers bypass
+application logic to execute operating system commands directly on the
+host server.</p>
+<h3 id="unsafe-object-deserialization">Unsafe Object
+Deserialization</h3>
+<p>Node.js applications often rely on third-party serialization
+libraries to store or transmit session data. Vulnerable packages, such
+as older versions of <code>node-serialize</code> or
+<code>serialize-javascript</code>, support the serialization of
+functions using Immediately Invoked Function Expressions (IIFE).</p>
+<p>Attackers exploit this vector by crafting a serialized payload
+containing an anonymous function tagged with execution markers (e.g.,
+<code>_$$ND_FUNC$$_</code>). When the application passes this payload to
+an unsafe deserialization function (such as <code>unserialize()</code>),
+the runtime immediately invokes the function body before the object is
+even mapped, resulting in blind arbitrary code execution.</p>
+<h3 id="server-side-template-injection-ssti">Server-Side Template
+Injection (SSTI)</h3>
+<p>Modern Node.js web frameworks frequently use template engines like
+EJS, Pug, Handlebars, or Nunjucks to dynamically render views. When user
+input is concatenated directly into the template string rather than
+passed as dynamic data context, an SSTI vulnerability arises.</p>
+<p>Because template engines often allow embedded JavaScript expressions,
+an attacker can break out of variable interpolation tags and execute raw
+JavaScript. In EJS, for instance, an attacker can inject
+<code>&lt;%- global.process.mainModule.require('child_process').execSync('cat /etc/passwd') %&gt;</code>
+to trigger native runtime evaluation during the server-side compilation
+phase.</p>
+<h3 id="nosql-query-injection-with-dynamic-code-execution">NoSQL Query
+Injection with Dynamic Code Execution</h3>
+<p>Certain NoSQL databases, notably MongoDB, support native JavaScript
+execution within database operations via operators like
+<code>$where</code>, <code>mapReduce</code>, or <code>group</code>. If a
+web application builds NoSQL queries by concatenating raw user input
+into these operators, the input is evaluated by the database's internal
+JavaScript engine.</p>
+<p>While this execution occurs within the database sandbox rather than
+the primary web server runtime, attackers can use it to read sensitive
+database records, execute computationally heavy loops to cause
+denial-of-service, or chain database-specific functions to exfiltrate
+data out-of-band.</p>
+<h3 id="exploitation-via-the-global-context">Exploitation via the Global
+Context</h3>
+<p>Once any of these vectors allows an attacker to execute arbitrary
+JavaScript within Node.js, the execution environment provides minimal
+isolation by default. Attackers systematically escape application-level
+sandboxes by traversing the global scope. Standard attack chains
+leverage <code>global.process</code> or
+<code>this.constructor.constructor("return process")()</code> to import
+internal modules such as <code>child_process</code>, <code>fs</code>,
+and <code>net</code>. Through these modules, attackers gain full
+interactive shells, read sensitive environmental variables (such as API
+keys and database credentials), and establish persistent footholds
+within the compromised internal network.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

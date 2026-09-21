@@ -1,0 +1,1442 @@
+[
+  [
+    240,
+    "Wireless Mesh Network Routing Attacks Explained",
+    "Decentralized wireless mesh networks (WMNs) rely on peer nodes to dynamically discover paths and relay data packets without a centralized authority. When adversaries leverage software-defined radios (SDRs) or rogue transceivers to inject, alter, or manip",
+    false
+  ],
+  [
+    239,
+    "Decoding Trunked Emergency Radio Communications",
+    "Modern digital radio scanners and software-defined radios (SDRs) intercept and decode trunked emergency communications by continuously monitoring dedicated control channels, tracking dynamic frequency assignments, and demodulating digital voice streams.",
+    false
+  ],
+  [
+    238,
+    "Proxmark3 Frequencies and Antennas for Badge Cloning",
+    "The Proxmark3 is the industry-standard hardware tool for RFID analysis, penetration testing, and access credential cloning. This article examines the specific radio frequency bands—Low Frequency (LF) and High Frequency (HF)—utilized by the Proxmark3,",
+    false
+  ],
+  [
+    237,
+    "Understanding NFC Skimming and Card Security",
+    "Near-field communication (NFC) skimming involves unauthorized attempts to read contactless payment card data using wireless scanning technology. This article examines the mechanics behind contactless card communication, the technical constraints of harve",
+    false
+  ],
+  [
+    236,
+    "GPS Spoofing Methods in Civilian Drone Navigation",
+    "GPS spoofing represents a critical vulnerability in civilian drone operations, allowing external actors to manipulate an aircraft's perceived location, velocity, and time by transmitting counterfeit Global Navigation Satellite System (GNSS) signals. This",
+    false
+  ],
+  [
+    235,
+    "Hacking Satellite Telemetry With Low-Cost SDR",
+    "Capturing and decoding unencrypted telemetry from orbiting satellites no longer requires enterprise-grade ground stations or classified military hardware. Using inexpensive Software Defined Radio (SDR) USB dongles paired with DIY antennas and open-source",
+    false
+  ],
+  [
+    234,
+    "Maritime AIS Vulnerabilities and Vessel Spoofing",
+    "Maritime Automatic Identification Systems (AIS) are critical for global vessel tracking and collision avoidance, yet they fundamentally lack cryptographic security. This article examines the core vulnerabilities within the AIS protocol that allow threat",
+    false
+  ],
+  [
+    233,
+    "How ADS-B Vulnerabilities Enable Ghost Aircraft Spoofing",
+    "Automatic Dependent Surveillance-Broadcast (ADS-B) serves as the primary surveillance technology for modern air traffic management, yet it was designed without native cryptographic authentication or encryption. This fundamental architectural flaw allows",
+    false
+  ],
+  [
+    232,
+    "Rogue Base Station Mechanics and Equipment",
+    "Rogue base stations, commonly known as IMSI catchers or false cell towers, exploit cellular protocol characteristics to intercept traffic, track device locations, and conduct denial-of-service attacks against mobile endpoints. This article outlines the t",
+    false
+  ],
+  [
+    231,
+    "Evil Twin Captive Portal Attacks on Wi-Fi",
+    "This article examines how threat actors deploy rogue \"Evil Twin\" access points coupled with fraudulent captive portals to intercept and harvest enterprise Wi-Fi credentials. It outlines the technical mechanics behind the attack—from radio frequency spo",
+    false
+  ],
+  [
+    230,
+    "WPA3 Dragonfly Handshake Downgrade Attacks",
+    "The Wi-Fi Protected Access 3 (WPA3) standard introduced the Simultaneous Authentication of Equals (SAE) protocol, based on the Dragonfly handshake, to eliminate the offline dictionary attacks that plagued WPA2. Despite these theoretical cryptographic imp",
+    false
+  ],
+  [
+    229,
+    "How BlueBorne Achieved Unpaired Bluetooth RCE",
+    "This article details how the BlueBorne vulnerability suite bypassed traditional security boundaries to achieve zero-click Remote Code Execution (RCE) over unpaired Bluetooth connections. Discovered in 2017, BlueBorne exposed fundamental architectural fla",
+    false
+  ],
+  [
+    228,
+    "BLE GATT Vulnerabilities in IoT Sensor Hacking",
+    "Bluetooth Low Energy (BLE) Generic Attribute Profile (GATT) architectures serve as the primary communication protocol for countless Internet of Things (IoT) devices, yet architectural oversights and poor implementation frequently expose them to unauthori",
+    false
+  ],
+  [
+    227,
+    "How Attackers Capture Zigbee Network Keys",
+    "This article provides an overview of how threat actors exploit the Zigbee pairing process to intercept and capture network keys. It examines the technical vulnerabilities inherent in legacy and misconfigured Zigbee smart home networks, the specialized ha",
+    false
+  ],
+  [
+    226,
+    "LoRaWAN Cryptographic and Replay Vulnerabilities",
+    "LoRaWAN is a foundational protocol for long-range, low-power Internet of Things (IoT) deployments, yet implementation oversights and architectural trade-offs expose it to severe cryptographic weaknesses and replay attacks. While the standard mandates AES",
+    false
+  ],
+  [
+    225,
+    "How Hackers Use SIM Swapping to Bypass SMS MFA",
+    "SIM swapping is a sophisticated form of identity theft where cybercriminals hijack a victim’s mobile phone number to intercept sensitive communications. By deceiving or bribing telecommunications operators into transferring a target's service to an att",
+    false
+  ],
+  [
+    224,
+    "Diameter Protocol Weaknesses in 4G and 5G Tracking",
+    "The Diameter signaling protocol serves as the foundational messaging backbone for authentication, authorization, and accounting (AAA) across 4G LTE and hybrid 5G networks. However, inherent architectural deficiencies—most notably a legacy perimeter-tru",
+    false
+  ],
+  [
+    223,
+    "How SS7 Flaws Enable Call Interception and Tracking",
+    "Signaling System 7 (SS7) is an international telecommunications backbone developed in the 1970s to coordinate call routing, billing, and roaming between cellular networks worldwide. Because the protocol was designed during an era when only a handful of s",
+    false
+  ],
+  [
+    222,
+    "How IMSI Catchers Force Cellular Downgrade Attacks",
+    "This article examines how International Mobile Subscriber Identity (IMSI) catchers exploit weaknesses in cellular network specifications to downgrade mobile devices to insecure, unencrypted protocols. It covers the core mechanisms behind these attacks, i",
+    false
+  ],
+  [
+    221,
+    "SDR Interception of Hospital Pager Systems",
+    "Legacy hospital paging networks often broadcast sensitive operational and patient data in cleartext over public radio frequencies. Software Defined Radio (SDR) technology allows inexpensive radio frequency receivers paired with computer processing to cap",
+    false
+  ],
+  [
+    220,
+    "How Rolljam Devices Hack Rolling Code Systems",
+    "This article explains how Rolljam devices defeat modern vehicle security by intercepting and harvesting valid rolling codes from keyless entry fobs. While rolling code systems were designed to eliminate traditional replay attacks by rendering each transm",
+    false
+  ],
+  [
+    219,
+    "TPMS Radio Frequency Replay Attack Flaws",
+    "Tire Pressure Monitoring Systems (TPMS) are vulnerable to signal replay attacks due to fundamental security omissions in their wireless radio frequency (RF) design. Because these embedded systems prioritize battery longevity and low manufacturing costs o",
+    false
+  ],
+  [
+    218,
+    "How TCU Vulnerabilities Enable Remote Car Hacking",
+    "Modern connected vehicles rely on Telematics Control Units (TCUs) to bridge internal vehicular electronics with external cellular networks, enabling features like remote diagnostics, fleet tracking, and smartphone-controlled locks. However, because TCUs",
+    false
+  ],
+  [
+    217,
+    "CAN Bus Commands and Vehicle Hijacking Risks",
+    "Modern vehicles rely on the Controller Area Network (CAN) bus to enable communication between Electronic Control Units (ECUs) controlling vital functions such as steering, acceleration, and braking. Because the standard CAN protocol lacks built-in authen",
+    false
+  ],
+  [
+    216,
+    "How Microprobing Bypasses Chip Tamper Meshes",
+    "This article explores how microprobing stations and advanced physical failure analysis techniques are used to navigate and circumvent the physical tamper-mesh layers of secure cryptographic microcontrollers. It covers the operational mechanics of active",
+    false
+  ],
+  [
+    215,
+    "How POS Hardware Skimmers Are Installed",
+    "Point-of-sale (POS) hardware interposers, often referred to as internal skimmers or \"shimmer\" devices, represent an advanced physical attack vector against retail payment terminals. Unlike external overlays that attach to the exterior of a card reader, i",
+    false
+  ],
+  [
+    214,
+    "How Cold Boot Attacks Use Cooling Spray on RAM",
+    "A cold boot attack is a physical side-channel exploit where an attacker extracts volatile data from a computer's Dynamic Random-Access Memory (DRAM) after powering the machine off. Under normal room-temperature conditions, DRAM loses its electrical charg",
+    false
+  ],
+  [
+    213,
+    "AMD PSP Flaws Enabling Low-Level Firmware Hacks",
+    "The AMD Platform Security Processor (PSP), officially known as the AMD Secure Processor, is a dedicated ARM-based security co-processor embedded within modern AMD CPUs to serve as a hardware-level Root of Trust. Despite its isolated architecture, researc",
+    false
+  ],
+  [
+    212,
+    "Exploiting Intel ME to Achieve Ring -3 Execution",
+    "The Intel Management Engine (ME) is an autonomous subsystem embedded in modern Intel chipsets that operates beneath the operating system, hypervisor, and system firmware, granting it effectively unlimited control over the host platform at a privilege lev",
+    false
+  ],
+  [
+    211,
+    "Persistent UEFI Bootkit Infection Techniques",
+    "This article examines how threat actors deploy persistent bootkits against the Unified Extensible Firmware Interface (UEFI) to establish covert, ring-minus-level persistence. Operating below the operating system and hypervisor, UEFI bootkits subvert foun",
+    false
+  ],
+  [
+    210,
+    "How IPMI Vulnerabilities Enable Remote BMC Hacking",
+    "Intelligent Platform Management Interface (IPMI) provides out-of-band server management, allowing administrators to control hardware independently of the operating system. However, structural flaws in the IPMI specification, legacy protocols, and insecur",
+    false
+  ],
+  [
+    209,
+    "Interfacing I2C Sensors with Bus Pirate",
+    "Interfacing with proprietary I2C sensors using a Bus Pirate allows security researchers to evaluate hardware security, reverse-engineer communication protocols, and audit embedded device firmware interactions. This article outlines the essential procedur",
+    false
+  ],
+  [
+    208,
+    "PCIe DMA Attacks: Bypassing OS Locks Explained",
+    "Direct Memory Access (DMA) attacks using malicious Peripheral Component Interconnect Express (PCIe) expansion cards allow adversaries to completely bypass operating system lock screens by reading and writing to physical memory independently of the centra",
+    false
+  ],
+  [
+    207,
+    "Hardware Inside Keystroke Injection USB Cables",
+    "Weaponized USB cables appear identical to standard charging and data cables, yet they conceal miniaturized hardware capable of executing devastating keystroke injection attacks. By packing microcontrollers, wireless chips, and flash storage inside standa",
+    false
+  ],
+  [
+    206,
+    "How BadUSB Reprograms Firmware into Keyboards",
+    "The BadUSB attack is a critical hardware security vulnerability that exploits inherent design flaws in USB architecture by reprogramming the firmware of microcontroller chips inside everyday USB peripherals. Instead of delivering conventional file-based",
+    false
+  ],
+  [
+    205,
+    "Silicon Chip Decapping Processes for IC Hacking",
+    "Silicon chip decapping, or delidding, is the process of removing the protective polymer or ceramic encapsulation of an integrated circuit (IC) to expose the underlying silicon die for hardware security analysis, reverse engineering, and fault injection a",
+    false
+  ],
+  [
+    204,
+    "How to Decode Serial Buses Using Logic Analyzers",
+    "This article explores how hardware security researchers and analysts use digital logic analyzers to intercept, inspect, and decode proprietary serial bus traffic. It covers the end-to-end methodology, from locating physical test points on a printed circu",
+    false
+  ],
+  [
+    203,
+    "Optical Eavesdropping via Monitor Cables and LEDs",
+    "Optical side-channel attacks allow threat actors to reconstruct sensitive computational data by intercepting inadvertent light emissions from hardware components like monitor cables and device status LEDs. This article details how optical leakage from di",
+    false
+  ],
+  [
+    202,
+    "How Capacitor Acoustic Emissions Leak Crypto Keys",
+    "High-frequency acoustic side-channel attacks exploit involuntary mechanical vibrations in electronic components to extract sensitive information from secure systems. By capturing the ultrasonic noise emitted by multilayer ceramic capacitors during crypto",
+    false
+  ],
+  [
+    201,
+    "Differential Power Analysis Techniques",
+    "Differential Power Analysis (DPA) is a sophisticated side-channel attack that extracts cryptographic keys from hardware devices by statistically analyzing their power consumption during computation. Unlike simple power analysis, which relies on direct vi",
+    false
+  ],
+  [
+    200,
+    "How Voltage Glitching Skips CPU Authentication",
+    "Voltage glitching is a hardware fault-injection technique where an attacker briefly drops the power supply rail of a microcontroller or microprocessor to induce deterministic behavioral errors. By creating an electrical transient precisely when the targe",
+    false
+  ],
+  [
+    199,
+    "Physics Behind Electromagnetic Fault Injection",
+    "Electromagnetic fault injection (EMFI) is a non-invasive hardware hacking technique that disrupts a microchip's internal state to bypass security checks, skip critical instructions, or extract cryptographic keys. By generating brief, powerful, and locali",
+    false
+  ],
+  [
+    198,
+    "SPI Flash Extraction for Firmware Recovery",
+    "Physical SPI flash chip extraction is a fundamental hardware hacking technique that allows researchers and security analysts to bypass software-level protections and retrieve an embedded device’s complete firmware image. By physically isolating the Ser",
+    false
+  ],
+  [
+    197,
+    "How to Access Root Shell via UART Ports",
+    "This article explores the methodology security researchers use to identify exposed Universal Asynchronous Receiver-Transmitter (UART) serial interfaces on embedded hardware and assess them for root shell access. Embedded systems frequently retain debug p",
+    false
+  ],
+  [
+    196,
+    "Extracting Flash Memory Using JTAG Pinouts",
+    "This article provides an overview of how the Joint Test Action Group (JTAG) interface functions within embedded systems, the methods hardware security analysts use to identify undocumented debug interfaces on printed circuit boards (PCBs), and the concep",
+    false
+  ],
+  [
+    195,
+    "Polymorphic Shellcode Encoders in Binary Hacking",
+    "Polymorphic shellcode encoders are specialized tools used in binary exploitation to disguise malicious machine instructions by dynamically altering their byte representation while preserving original functionality. During exploitation, raw assembly paylo",
+    false
+  ],
+  [
+    194,
+    "How Direct RAM Dumping Reveals Master Cryptographic Keys",
+    "Physical access to a computing system allows attackers to bypass operating system security controls and extract volatile memory through direct memory dumping. Because active cryptographic operations require symmetric and asymmetric master keys to reside",
+    false
+  ],
+  [
+    193,
+    "Defeating Hardware Control Flow Integrity Mechanisms",
+    "Hardware-enforced Control Flow Integrity (CFI) mechanisms, such as Intel Control-flow Enforcement Technology (CET) and ARM Pointer Authentication (PAC) paired with Branch Target Identification (BTI), significantly raise the barrier for modern binary expl",
+    false
+  ],
+  [
+    192,
+    "How Virtualization Obfuscation Hinders Decompilation",
+    "Virtualization-based software obfuscation significantly impedes reverse engineering by transforming standard compiled code into proprietary, pseudo-random bytecode executed by an embedded interpreter. Instead of targeting familiar CPU architectures, reve",
+    false
+  ],
+  [
+    191,
+    "SEH Overwrite Vulnerabilities in Binary Exploitation",
+    "This article examines how Structured Exception Handling (SEH) vulnerabilities operate in 32-bit Windows binary exploitation, detailing the mechanics of SEH frame corruption. It covers how stack-based buffer overflows reach exception registration records,",
+    false
+  ],
+  [
+    190,
+    "How Malware Uses Dynamic Import Resolution",
+    "Dynamic import resolution is an evasion technique used by malware developers to obfuscate interactions with the underlying operating system. Instead of declaring functions within the binary's Import Address Table (IAT), which makes malicious intent easy",
+    false
+  ],
+  [
+    189,
+    "Understanding User-Mode API Hook Bypasses",
+    "Endpoint Detection and Response (EDR) solutions frequently monitor process execution by placing inline hooks on critical user-mode APIs, particularly within ntdll.dll. To evade detection, threat actors utilize several structural evasion mechanisms that a",
+    false
+  ],
+  [
+    188,
+    "Thread Execution Hijacking: How It Works in Windows",
+    "Thread execution hijacking is a sophisticated process injection technique used by adversaries to run arbitrary shellcode within the address space of a legitimate, running Windows process. Rather than creating a suspicious new thread, this method identifi",
+    false
+  ],
+  [
+    187,
+    "Understanding Process Hollowing Memory Operations",
+    "Process hollowing is a code injection technique where an adversary creates a legitimate process in a suspended state, unmaps its executable memory, and replaces it with a malicious payload before resuming execution. This article examines the sequence of",
+    false
+  ],
+  [
+    186,
+    "What Is DLL Search Order Hijacking in Windows?",
+    "DLL search order hijacking is a technique where an attacker exploits the default mechanism Windows uses to locate and load Dynamic-Link Libraries (DLLs) into memory. By placing a malicious DLL with an identical name in a directory searched before the leg",
+    false
+  ],
+  [
+    185,
+    "Anti-Debugging Techniques in Software Protection",
+    "Commercial software protections—such as VMProtect, Themida, and Denuvo—rely on a layered defense of anti-debugging mechanisms to safeguard intellectual property, prevent license tampering, and block reverse engineering. This article examines the core",
+    false
+  ],
+  [
+    184,
+    "Dynamic Function Hooking with Frida on Mobile Apps",
+    "Dynamic binary instrumentation (DBI) allows security analysts to inject custom scripts into running application processes without modifying the underlying binary on disk. Frida has become the industry standard for this task in mobile application penetrat",
+    false
+  ],
+  [
+    183,
+    "Ghidra Binary Decompilation in Malware Analysis",
+    "Binary decompilation using Ghidra is an indispensable technique in malware analysis and cybersecurity research. By converting stripped, compiled machine code back into a readable, high-level C pseudocode representation, Ghidra enables researchers to quic",
+    false
+  ],
+  [
+    182,
+    "How Symbolic Execution Automates Bug Discovery",
+    "Symbolic execution allows security researchers to identify vulnerabilities by evaluating mathematical representations of program inputs rather than executing code with fixed values. Automated frameworks streamline this process by systematically exploring",
+    false
+  ],
+  [
+    181,
+    "Off-by-One Vulnerabilities and Stack Hijacking",
+    "An off-by-one boundary error occurs when software writes precisely one byte past the intended boundary of an allocated buffer. While seemingly minor, corrupting a single byte on the call stack—specifically the least significant byte of the saved base p",
+    false
+  ],
+  [
+    180,
+    "Double-Free Heap Exploitation Techniques",
+    "Double-free vulnerabilities occur when an application frees the same memory allocation multiple times without an intervening reallocation, leading to heap metadata corruption. In memory-unsafe languages like C and C++, attackers can manipulate these corr",
+    false
+  ],
+  [
+    179,
+    "Use-After-Free Exploits: Hijacking Control Flow",
+    "This article explains how Use-After-Free (UAF) vulnerabilities operate at the binary level to subvert software security. A Use-After-Free condition occurs when a program continues to use a pointer after the associated memory chunk has been deallocated. B",
+    false
+  ],
+  [
+    178,
+    "How Blind ROP Attacks Work Without Binary Access",
+    "Blind Return-Oriented Programming (BROP) is an advanced exploitation technique that enables an attacker to achieve remote code execution against a target application without possessing the original binary code. By repeatedly interacting with a crash-resi",
+    false
+  ],
+  [
+    177,
+    "How Return-to-Libc Bypasses Data Execution Prevention",
+    "The return-to-libc technique circumvents Data Execution Prevention (DEP) by reusing legitimate, pre-existing executable code already resident in system memory rather than injecting foreign shellcode. This article explains the fundamentals of DEP, breaks",
+    false
+  ],
+  [
+    176,
+    "Defeating ASLR with Information Disclosure",
+    "Address Space Layout Randomization (ASLR) is a foundational defense mechanism that randomizes the memory locations of program components, such as the stack, heap, and shared libraries. While effective at preventing hardcoded memory references, ASLR can b",
+    false
+  ],
+  [
+    175,
+    "How Integer Overflows Cause Memory Corruption",
+    "Integer overflows occur when an arithmetic operation attempts to create a numeric value that falls outside the range representable by a given number of bits. In low-level languages like C and C++, which lack automatic bounds checking, these arithmetic an",
+    false
+  ],
+  [
+    174,
+    "Heap Metadata Corruption for Arbitrary Allocation",
+    "Heap metadata corruption enables attackers to manipulate an allocator's internal tracking structures, tricking it into returning user-controlled memory locations instead of legitimate heap buffers. In binary exploitation, gaining arbitrary allocation is",
+    false
+  ],
+  [
+    173,
+    "Format String Vulnerability Arbitrary Memory Write",
+    "A format string vulnerability occurs when user-supplied input is directly evaluated as the format argument in functions like C's printf family, allowing attackers to read from and write to arbitrary memory locations. By exploiting specific conversion spe",
+    false
+  ],
+  [
+    172,
+    "Bypassing Stack Canaries Using Memory Leaks",
+    "Stack canaries are compiler-generated integrity checks designed to prevent buffer overflow attacks by placing a known guard value between local variables and the return address. When an adversary encounters a canary-protected binary, exploiting a standar",
+    false
+  ],
+  [
+    171,
+    "How ROP Gadget Chains Bypass Executable Protections",
+    "Return-Oriented Programming (ROP) is an advanced exploitation technique designed to circumvent executable space protections, such as Data Execution Prevention (DEP) and the No-Execute (NX) bit. This article explains the underlying mechanics of ROP, how s",
+    false
+  ],
+  [
+    170,
+    "Open Redirect Phishing Attack Techniques",
+    "Open redirect vulnerabilities occur when a web application accepts untrusted input that specifies an external URL and redirects the user to that URL without proper validation. While often categorized as low-severity bugs on their own, attackers routinely",
+    false
+  ],
+  [
+    169,
+    "XPath Injection Attacks on Backend XML Databases",
+    "XPath injection occurs when an application incorporates untrusted user input directly into an XML Path Language (XPath) query, enabling attackers to alter the query's logic and structure. Unlike traditional relational database attacks that rely on SQL sy",
+    false
+  ],
+  [
+    168,
+    "Difference Between DOM-Based and Reflected XSS",
+    "Cross-Site Scripting (XSS) remains one of the most prevalent web security vulnerabilities, allowing attackers to execute malicious scripts in a victim's browser. While both Reflected XSS and DOM-based XSS typically require user interaction—such as clic",
+    false
+  ],
+  [
+    167,
+    "Null Byte Injection in File Validation",
+    "Null byte injection is an exploitation technique where an attacker inserts a null character (0x00, often encoded as %00 or \\0) into user-supplied input to alter how strings are processed by an application and its underlying operating system. In legacy we",
+    false
+  ],
+  [
+    166,
+    "Server-Side JavaScript Injection Execution Vectors",
+    "Server-Side JavaScript Injection (SSJSI) occurs when an application running a JavaScript-based runtime, such as Node.js, evaluates untrusted user input as executable code. This article examines the primary execution vectors attackers leverage to achieve",
+    false
+  ],
+  [
+    165,
+    "How IDOR Enables Bulk Data Exfiltration",
+    "Insecure Direct Object Reference (IDOR) vulnerabilities represent one of the most critical access control flaws in modern web applications, frequently serving as an open doorway for massive data breaches. This article explores how IDOR vulnerabilities oc",
+    false
+  ],
+  [
+    164,
+    "Risks of HTTP Response Splitting Attacks",
+    "HTTP response splitting occurs when untrusted user input is passed into HTTP response headers without proper sanitization, allowing attackers to inject Carriage Return and Line Feed (CRLF) characters. This article explores how this vulnerability operates",
+    false
+  ],
+  [
+    163,
+    "How Clickjacking Tricks Authenticated Administrators",
+    "Visual clickjacking, also known as user interface (UI) redressing, is a deceptive web exploitation technique where an attacker tricks a user into interacting with a hidden, privileged interface. When targeted at authenticated administrators, these attack",
+    false
+  ],
+  [
+    162,
+    "Understanding PHP Object Injection Techniques",
+    "PHP Object Injection (POI) is an application-level vulnerability that occurs when untrusted, user-supplied data is passed directly to the PHP unserialize() function. This article outlines the primary mechanisms and entry points threat actors use to trigg",
+    false
+  ],
+  [
+    161,
+    "How Java Deserialization Leads to Remote Code Execution",
+    "Unsafe object deserialization in Java represents a critical security vulnerability that allows attackers to execute arbitrary system commands by manipulating serialized object streams. In Java-based web applications, data is routinely converted into byte",
+    false
+  ],
+  [
+    160,
+    "Mass Assignment API Flaws Exposing Admin Rights",
+    "Mass assignment vulnerabilities—also known as auto-binding or object injection—occur when web frameworks automatically bind client-provided HTTP request parameters directly to internal data models without proper filtering. During API penetration test",
+    false
+  ],
+  [
+    159,
+    "Prototype Pollution to RCE in Server-Side JavaScript",
+    "Prototype pollution is a vulnerability specific to JavaScript runtimes where an attacker injects properties into base object prototypes, typically Object.prototype. In server-side environments like Node.js, this tampering cascades globally across the app",
+    false
+  ],
+  [
+    158,
+    "Subdomain Takeovers: Key Domain Management Flaws",
+    "Subdomain takeover attacks occur when an attacker gains control over an organization’s inactive or abandoned subdomain, allowing them to host malicious content, steal session cookies, or bypass security policies under a legitimate brand name. This arti",
+    false
+  ],
+  [
+    157,
+    "HTTP Parameter Pollution: Bypassing Security Controls",
+    "HTTP Parameter Pollution (HPP) is an evasion and manipulation technique where an attacker supplies multiple HTTP parameters with the identical name in a single request. This article examines how discrepancies in parameter parsing between different networ",
+    false
+  ],
+  [
+    156,
+    "How to Escalate LFI to RCE in Web Applications",
+    "Local File Inclusion (LFI) occurs when a web application improperly sanitizes user input, allowing attackers to read sensitive files from the server's local filesystem. While LFI is traditionally considered an information disclosure vulnerability, it can",
+    false
+  ],
+  [
+    155,
+    "Predicting CSRF Tokens: Cryptographic Flaws and Defense",
+    "Anti-Cross-Site Request Forgery (anti-CSRF) tokens rely entirely on unpredictability to prevent unauthorized state-changing actions from being submitted on behalf of authenticated users. When an application utilizes flawed random number generation, deter",
+    false
+  ],
+  [
+    154,
+    "Race Conditions and Double-Spending in Financial Apps",
+    "Concurrency flaws in financial web applications occur when systems process simultaneous requests without adequate synchronization, creating execution windows where security controls can be bypassed. In financial environments, attackers exploit these race",
+    false
+  ],
+  [
+    153,
+    "Cross-Site WebSocket Hijacking Explained",
+    "Cross-Site WebSocket Hijacking (CSWSH) is a vulnerability where an attacker tricks a victim's browser into establishing an unauthorized WebSocket connection to a vulnerable application. Because WebSockets are not restricted by the Same-Origin Policy (SOP",
+    false
+  ],
+  [
+    152,
+    "SSTI to Remote Code Execution Exploitation Guide",
+    "Server-Side Template Injection (SSTI) occurs when untrusted user input is directly concatenated into a template rather than passed as data, allowing attackers to inject template directives. When template engines evaluate malicious input, attackers can br",
+    false
+  ],
+  [
+    151,
+    "How CORS Misconfigurations Lead to Data Theft",
+    "Cross-Origin Resource Sharing (CORS) is a browser mechanism that relaxes the strict boundaries of the Same-Origin Policy (SOP) to allow web applications to share resources across different domains. When developers implement CORS incorrectly—particularl",
+    false
+  ],
+  [
+    150,
+    "Mathematical Flaws in JWT Signature Verification",
+    "JSON Web Tokens (JWTs) are widely used for modern web application authentication, relying on asymmetric and symmetric cryptography to ensure payload integrity. However, when libraries improperly implement cryptographic standards or mismanage underlying m",
+    false
+  ],
+  [
+    149,
+    "How HTTP Request Smuggling Exploits Proxy Discrepancies",
+    "HTTP request smuggling is a critical web security vulnerability that occurs when front-end reverse proxies and back-end servers interpret the boundaries of HTTP requests differently. Modern web architectures frequently use reverse proxies, load balancers",
+    false
+  ],
+  [
+    148,
+    "Parser Vulnerabilities in Blind XXE Attacks",
+    "Blind XML External Entity (XXE) attacks occur when an application processes untrusted XML input and resolves external entities without reflecting the parsed content directly in the server's response. In these scenarios, attackers exploit specific parser",
+    false
+  ],
+  [
+    147,
+    "GraphQL Batching Attacks: Brute-Force Exploitation",
+    "GraphQL batching attacks allow malicious actors to bypass standard security controls and execute automated brute-force campaigns by consolidating hundreds or thousands of operations into a single HTTP request. Traditional web application firewalls (WAFs)",
+    false
+  ],
+  [
+    146,
+    "SSRF WAF Bypass Techniques Explained",
+    "Server-Side Request Forgery (SSRF) occurs when an attacker abuses functionality on a vulnerable server to read or update internal resources. While Web Application Firewalls (WAFs) are deployed to inspect incoming requests and filter out malicious destina",
+    false
+  ],
+  [
+    145,
+    "Harvesting Sensitive Tokens from Unix Core Dumps",
+    "Harvesting sensitive tokens from core dump files allows an attacker with local access to extract plaintext secrets—such as API keys, cryptographic tokens, and passwords—directly from the preserved memory space of crashed or terminated processes. Beca",
+    false
+  ],
+  [
+    144,
+    "Impact of Glibc Buffer Overflows on Linux Hacking",
+    "This article examines how buffer overflow vulnerabilities in the GNU C Library (glibc) significantly shape the Linux security and hacking landscape. Because glibc serves as the fundamental runtime backbone for virtually every mainstream Linux distributio",
+    false
+  ],
+  [
+    143,
+    "Linux Boot Persistence via Initramfs Tampering",
+    "Manipulating the initial RAM filesystem (initramfs or initrd) allows adversaries with elevated privileges to establish persistence that executes before the real root filesystem is mounted and before user-space security controls initialize. This article e",
+    false
+  ],
+  [
+    142,
+    "OpenSSH Backdoor Injection Techniques",
+    "This article examines the mechanisms and conceptual techniques historically used by threat actors to introduce backdoors into the OpenSSH daemon (sshd) source code, as well as the defensive strategies employed to detect and mitigate source-level tamperin",
+    false
+  ],
+  [
+    141,
+    "How PwnKit CVE-2021-4034 Gives Root Access on Linux",
+    "The PwnKit vulnerability, tracked as CVE-2021-4034, is a critical local privilege escalation flaw uncovered in Polkit's pkexec utility that went undetected for over a decade. By abusing an out-of-bounds memory write caused by an unexpected argument count",
+    false
+  ],
+  [
+    140,
+    "LKM Rootkits vs User-Mode Backdoors in Linux",
+    "In Linux security, the fundamental distinction between Loadable Kernel Module (LKM) rootkits and user-mode backdoors is their execution domain and privilege level. While user-mode backdoors run in the constrained space of standard applications (Ring 3) t",
+    false
+  ],
+  [
+    139,
+    "How Seccomp Bypasses Occur in Linux Exploitation",
+    "Secure Computing Mode (seccomp) is a Linux kernel security facility designed to restrict the system calls a process can make, effectively reducing the kernel attack surface during a binary compromise. While seccomp acts as a critical line of defense, att",
+    false
+  ],
+  [
+    138,
+    "How Cgroup Flaws Enable Linux Container Escapes",
+    "Linux control groups (cgroups) are a core kernel feature designed to allocate, meter, and isolate system resources like CPU, memory, and I/O among processes. While often conflated with security boundaries, cgroups were engineered primarily for resource a",
+    false
+  ],
+  [
+    137,
+    "Linux Pseudoterminal Hijacking and Command Injection",
+    "Pseudoterminal (PTY) hijacking is a post-exploitation technique in Linux environments where an attacker manipulates an active terminal session to execute unauthorized commands within the context of another logged-in user. By exploiting terminal subsystem",
+    false
+  ],
+  [
+    136,
+    "Linux OverlayFS Vulnerabilities and Container Breakouts",
+    "Linux OverlayFS is a union mount filesystem widely used by container runtimes to combine read-only base images with a writable upper layer. While efficient, structural oversights in how OverlayFS handles file capabilities, extended attributes, and user n",
+    false
+  ],
+  [
+    135,
+    "Understanding Systemd Service Persistence in Linux",
+    "Systemd is the default init system for most modern Linux distributions, responsible for bootstrapping the user space and managing system processes. Because systemd operates with high privileges and controls the lifecycle of services, modifying or creatin",
+    false
+  ],
+  [
+    134,
+    "How to Escape a Chroot Jail in Linux",
+    "A chroot jail restricts a process and its child processes to a designated sub-tree of the filesystem by altering their perceived root directory (/). While originally implemented for software testing and environment isolation, it is fundamentally not a se",
+    false
+  ],
+  [
+    133,
+    "Exploiting Linux Proc Filesystem Environment Variables",
+    "This article examines how the Linux virtual /proc filesystem can become a critical vector for data exposure during a security breach or penetration test. By exploring the architecture of process-specific memory mappings—specifically the /proc/[pid]/env",
+    false
+  ],
+  [
+    132,
+    "Linux PAM Backdoors: Mechanics and Detection",
+    "Pluggable Authentication Modules (PAM) provide a centralized architecture for authentication, account management, and session control across Linux environments. Because PAM handles core administrative boundaries—including SSH access, local logons, and",
+    false
+  ],
+  [
+    131,
+    "Linux Privilege Escalation via Shared Library Preloading",
+    "Shared library preloading is a Linux feature that allows users to force the dynamic linker to load specified shared objects before any system libraries. While primarily designed for debugging, performance profiling, and software patching, this mechanism",
+    false
+  ],
+  [
+    130,
+    "Linux Capabilities Privilege Escalation Explained",
+    "Linux POSIX capabilities partition the traditional, all-or-nothing root privilege model into distinct, granular units of authority. While designed to reduce the reliance on monolithic setuid binaries, misconfiguring or excessively granting these capabili",
+    false
+  ],
+  [
+    129,
+    "NFS Root Squashing Linux Privilege Escalation",
+    "Network File System (NFS) misconfigurations represent a common and dangerous vector for local privilege escalation in Linux environments. This article examines how the norootsquash directive bypasses standard access controls, allows an attacker with root",
+    false
+  ],
+  [
+    128,
+    "Hijacking Linux Cron Jobs for Root Persistence",
+    "Automated task scheduling through cron is a standard component of Linux administration, frequently executed with root privileges. Because these jobs run predictably in the background, attackers often target them to achieve persistence or escalate privile",
+    false
+  ],
+  [
+    127,
+    "Sudoers Configuration Mistakes and System Takeover",
+    "The /etc/sudoers file governs administrative rights on Unix and Linux systems, dictating precisely which users can execute commands with elevated root privileges. When administrators introduce configuration errors—such as granting permissions to binari",
+    false
+  ],
+  [
+    126,
+    "How the Dirty COW Race Condition Exploit Worked",
+    "The Dirty COW vulnerability (CVE-2016-5195) was a critical privilege escalation bug present in the Linux kernel for nearly nine years. It stemmed from a subtle race condition inside the kernel's memory management subsystem, specifically within how it han",
+    false
+  ],
+  [
+    125,
+    "How eBPF Is Used as a Linux Rootkit",
+    "This article examines how extended Berkeley Packet Filter (eBPF) technology, originally designed for benign observability and networking, can be repurposed by adversaries as a stealthy Linux rootkit. It outlines the core architectural mechanisms attacker",
+    false
+  ],
+  [
+    124,
+    "Linux SUID Privilege Escalation Explained",
+    "In Linux operating systems, Set Owner User ID (SUID) binaries are critical components that allow users to run executables with the permissions of the file owner rather than the user executing them. While designed to allow standard users to perform specif",
+    false
+  ],
+  [
+    123,
+    "LLMNR and NetBIOS Poisoning Credential Harvesting",
+    "Link-Local Multicast Name Resolution (LLMNR) and NetBIOS Name Service (NBT-NS) poisoning is an internal attack vector that allows adversaries to intercept local network traffic and steal user authentication hashes. By exploiting these legacy fallback pro",
+    false
+  ],
+  [
+    122,
+    "SMB Signing Disabled: Enterprise Security Risks",
+    "Server Message Block (SMB) signing is a critical security mechanism that cryptographically confirms the authenticity and integrity of network traffic between clients and servers. When an enterprise disables SMB signing, it leaves its internal network exp",
+    false
+  ],
+  [
+    121,
+    "Understanding PowerShell CLM and Custom Runspaces",
+    "PowerShell Constrained Language Mode (CLM) is a security feature designed to restrict access to underlying APIs, COM objects, and unconstrained .NET types, mitigating the risk of arbitrary code execution. While CLM is commonly enforced within default Pow",
+    false
+  ],
+  [
+    120,
+    "Understanding AMSI Bypass Techniques and Defenses",
+    "The Antimalware Scan Interface (AMSI) is a Windows defense mechanism integrated into applications to detect script-based threats at runtime. This article examines the architectural model of AMSI, the primary theoretical methods utilized to subvert it, an",
+    false
+  ],
+  [
+    119,
+    "Bypassing AppLocker with Trusted Binaries",
+    "Application whitelisting solutions such as Microsoft AppLocker are designed to prevent the execution of unauthorized software within enterprise environments. However, adversaries frequently circumvent these controls by leveraging trusted, pre-installed o",
+    false
+  ],
+  [
+    118,
+    "Windows Access Token Manipulation and Privilege Escalation",
+    "Windows access token manipulation is a post-exploitation technique where an actor modifies, duplicates, or steals security tokens to assume the identity and privileges of another user or process. In the Windows security model, every process and thread op",
+    false
+  ],
+  [
+    117,
+    "WMI Fileless Persistence and Execution Explained",
+    "Windows Management Instrumentation (WMI) is a core administration framework built into the Windows operating system that allows administrators to automate tasks, query system configurations, and manage processes. In cybersecurity, threat actors frequentl",
+    false
+  ],
+  [
+    116,
+    "DCOM Lateral Movement in Enterprise Windows Hacking",
+    "Distributed Component Object Model (DCOM) lateral movement provides adversaries with a highly effective, stealthy mechanism to traverse enterprise Windows networks without triggering standard security alerts. By leveraging legitimate Microsoft Remote Pro",
+    false
+  ],
+  [
+    115,
+    "RBCD Lateral Movement in Active Directory Explained",
+    "Resource-Based Constrained Delegation (RBCD) is an Active Directory feature that, when misconfigured, allows attackers to escalate privileges and move laterally across corporate networks. By modifying a target computer's security attributes to trust an a",
+    false
+  ],
+  [
+    114,
+    "Active Directory Unconstrained Delegation Attacks",
+    "Active Directory unconstrained delegation is a legacy Kerberos feature designed to allow services to impersonate users across multiple back-end resources without re-prompting for credentials. However, this architectural design creates severe vulnerabilit",
+    false
+  ],
+  [
+    113,
+    "Stealth Persistence: Shadow Administrators in Windows",
+    "Shadow administrator accounts represent a sophisticated persistence mechanism in Windows and Active Directory environments where accounts hold administrative-level control without belonging to well-known privileged groups like Domain Admins. Rather than",
+    false
+  ],
+  [
+    112,
+    "Active Directory gMSA Abuse and Persistence Techniques",
+    "This article examines how threat actors abuse group Managed Service Accounts (gMSAs) to establish long-term persistence in Active Directory environments. It explores the operational mechanics of gMSAs, the specific misconfigurations and permission struct",
+    false
+  ],
+  [
+    111,
+    "How PetitPotam Coerces Windows Domain Controllers",
+    "PetitPotam is a post-exploitation technique that forces Windows Domain Controllers to initiate an authentication request to an untrusted external server, allowing attackers to perform severe NTLM relay attacks. By exploiting unauthenticated or low-privil",
+    false
+  ],
+  [
+    110,
+    "PrintNightmare Flaws in Windows Print Spooler",
+    "The PrintNightmare vulnerability (tracked under CVE-2021-1675 and CVE-2021-34527) exposed fundamental security weaknesses in how the Windows operating system manages print jobs and driver distribution. This article analyzes the architectural flaws within",
+    false
+  ],
+  [
+    109,
+    "How NTDS.dit Extraction Exposes Enterprise Passwords",
+    "Active Directory serves as the central identity and access management system for modern enterprises, making its primary database file, NTDS.dit, one of the most critical targets for threat actors. This article examines the architectural role of NTDS.dit,",
+    false
+  ],
+  [
+    108,
+    "LSASS Memory Credential Harvesting Techniques",
+    "The Local Security Authority Subsystem Service (LSASS) is a core Windows process responsible for enforcing security policies, managing user authentication, and storing security tokens in active memory. Because LSASS temporarily holds sensitive material",
+    false
+  ],
+  [
+    107,
+    "How Golden SAML Attacks Bypass Cloud Federation MFA",
+    "The Golden SAML technique is an advanced post-exploitation attack in which an adversary steals the private token-signing key from an on-premises Identity Provider (IdP), such as Active Directory Federation Services (AD FS), to forge digitally signed Secu",
+    false
+  ],
+  [
+    106,
+    "AS-REP Roasting: Extract Hashes Without Pre-Auth",
+    "AS-REP roasting is an Active Directory attack technique that allows adversaries to retrieve encrypted Kerberos authentication data for offline cracking without triggering account lockouts. The attack specifically targets user accounts configured with Ker",
+    false
+  ],
+  [
+    105,
+    "How BloodHound Uses Graph Theory in Active Directory",
+    "BloodHound revolutionizes Active Directory (AD) security by leveraging graph theory to reveal unintended, indirect privilege escalation paths that are practically impossible to identify through traditional administrative audits. By mapping Active Directo",
+    false
+  ],
+  [
+    104,
+    "Silver Ticket vs Golden Ticket: Key Differences",
+    "In Active Directory environments, Kerberos ticket forgery represents one of the most potent post-exploitation techniques used by attackers for lateral movement and persistence. While both Golden and Silver Ticket attacks exploit weaknesses in Kerberos au",
+    false
+  ],
+  [
+    103,
+    "Kerberos Golden Ticket Attacks Explained",
+    "A Kerberos Golden Ticket attack is a post-exploitation technique in Active Directory environments where an adversary counterfeits a valid Ticket Granting Ticket (TGT) to obtain unrestricted, persistent administrative access. By compromising the Key Distr",
+    false
+  ],
+  [
+    102,
+    "Understanding DCSync Attacks in Active Directory",
+    "DCSync is a credential extraction technique that allows an attacker with sufficient privileges to simulate the behavior of a Domain Controller (DC) and request sensitive account data, including password hashes, directly from Active Directory. Rather than",
+    false
+  ],
+  [
+    101,
+    "How Kerberoasting Exploits SPNs in Active Directory",
+    "Kerberoasting is a post-exploitation attack technique targeting Active Directory environments that allows non-privileged domain users to extract service account password hashes for offline cracking. By requesting Kerberos service tickets for valid Servic",
+    false
+  ],
+  [
+    100,
+    "The Future of Hacking with Automated Machine Learning",
+    "As automated machine learning (ML) becomes standard for both cybercriminals and security professionals, the landscape of digital warfare is shifting into a highly autonomous, algorithmic arms race. This article explores the future of computer hacking in",
+    false
+  ],
+  [
+    99,
+    "How APTs Maintain Stealth and Evade Detection",
+    "Advanced Persistent Threats (APTs) are highly sophisticated cyberadversaries that infiltrate networks to steal sensitive data over extended periods. To avoid detection during these long-term espionage campaigns, APTs employ advanced evasion techniques, i",
+    false
+  ],
+  [
+    98,
+    "Risks of Legacy Enterprise Software Without Security Patches",
+    "Operating legacy enterprise software that no longer receives security patches poses severe, long-term threats to an organization’s security posture, compliance alignment, and financial stability. This article examines the critical risks associated with",
+    false
+  ],
+  [
+    97,
+    "How Defense in Depth Prevents Cyber Attacks",
+    "Defense in depth is a foundational cybersecurity strategy that employs multiple, layered security controls to protect an organization's digital assets. Rather than relying on a single defensive line, this approach ensures that if one barrier fails, subse",
+    false
+  ],
+  [
+    96,
+    "Why Connected Medical Devices Are Vulnerable to Hacking",
+    "Internet-connected medical devices, ranging from pacemakers and insulin pumps to hospital imaging machines, face unique cybersecurity risks that directly threaten patient safety. This article examines the specific vulnerabilities of these devices, explai",
+    false
+  ],
+  [
+    95,
+    "How SIEM Aggregates Data Logs to Stop Hacking",
+    "Security Information and Event Management (SIEM) systems protect organizations by collecting, normalizing, and analyzing log data from across an entire IT infrastructure in real-time. By centralizing information from firewalls, servers, endpoints, and da",
+    false
+  ],
+  [
+    94,
+    "Social Media Scraping and Spear-Phishing",
+    "Social media data scraping and targeted spear-phishing attacks share a direct, symbiotic relationship where the former serves as the primary intelligence-gathering mechanism for the latter. By harvesting publicly available personal and professional infor",
+    false
+  ],
+  [
+    93,
+    "Physical Security Audits to Prevent On-Site Hacking",
+    "Physical security audits are a crucial line of defense against cyber threats, systematically identifying vulnerabilities that allow unauthorized actors physical access to on-site IT systems. This article explores how these audits prevent local hacking by",
+    false
+  ],
+  [
+    92,
+    "Cybersecurity Threats in the Automotive Industry",
+    "As modern vehicles become increasingly connected and reliant on software, the threat of automotive hacking has transitioned from a theoretical concept to a pressing reality. This article explores the specific safety and security risks associated with com",
+    false
+  ],
+  [
+    91,
+    "How Docker Containers Prevent Lateral Cyber Attacks",
+    "This article explains how containerization technologies, such as Docker, protect IT environments from lateral computer hacking attempts. By utilizing operating-system-level virtualization features like namespaces, control groups, and network isolation, D",
+    false
+  ],
+  [
+    90,
+    "Risks of Default Admin Credentials and Hacking Bots",
+    "Using default administrative credentials is one of the most critical security vulnerabilities a system can have, making it an easy target for automated computer hacking bots. This article explains how automated bots scan the internet for default login de",
+    false
+  ],
+  [
+    89,
+    "Why Hackers and Researchers Use Fuzzing Software",
+    "Fuzzing, or fuzz testing, is an automated software testing technique that injects invalid, unexpected, or random data into a computer program to find coding errors and security loopholes. This article explains how this dual-use technology assists both cy",
+    false
+  ],
+  [
+    88,
+    "Challenges of Prosecuting Cross-Border Cybercriminals",
+    "Prosecuting cybercriminals who operate across international borders presents a complex web of diplomatic and legal obstacles. This article examines the primary challenges nations face when attempting to hold foreign hackers accountable, focusing on juris",
+    false
+  ],
+  [
+    87,
+    "How Drive-By Downloads Infect Your Computer",
+    "Drive-by downloads are a highly effective method used by cybercriminals to silently install malware on a victim's device without their active consent or knowledge. This article explains how these covert attacks occur, detailing the transition from visiti",
+    false
+  ],
+  [
+    86,
+    "Role of Packet Analyzers After a Network Breach",
+    "Following a cybersecurity breach, organizations must quickly assess the damage, identify vulnerabilities, and secure their systems. Packet analyzers—also known as network protocol analyzers or packet sniffers—play a critical role in post-breach foren",
+    false
+  ],
+  [
+    85,
+    "How Side-Channel Attacks Exploit Hardware Security",
+    "Side-channel attacks represent a highly sophisticated class of cyber threats that bypass traditional software security by analyzing the physical outputs of a computer chip during its operation. Instead of exploiting software bugs or weak passwords, these",
+    false
+  ],
+  [
+    84,
+    "Insider Threat and Corporate Hacking Correlation",
+    "This article examines the direct statistical correlation between employee insider threats and corporate computer hacking. It explores how malicious and negligent insiders facilitate external cyberattacks, analyzes key industry statistics detailing this r",
+    false
+  ],
+  [
+    83,
+    "Browser Extension Security Risks and Hacking Threats",
+    "Browser extensions are powerful tools that customize our web browsing experience, but they also represent a significant security blind spot for everyday internet users. This article explores how vulnerabilities within these add-ons allow cybercriminals t",
+    false
+  ],
+  [
+    82,
+    "Detecting Cyber Threats in Encrypted Traffic",
+    "As organizations increasingly encrypt their network data to protect privacy, cybercriminals are leveraging this same encryption to hide malicious activities, such as malware delivery and data exfiltration. This article explores the primary strategies sec",
+    false
+  ],
+  [
+    81,
+    "How Memory Corruption Enables Software Hacking",
+    "Memory corruption is the technical foundation of complex software hacking, serving as the primary mechanism through which attackers subvert a program's intended behavior. This article explains how programming errors allow malicious actors to alter comput",
+    false
+  ],
+  [
+    80,
+    "Shadow Brokers Leak Impact on Consumer Hacking Tools",
+    "This article explores the historical significance of the 2016 and 2017 leaks by the Shadow Brokers, a mysterious hacking group that released highly classified hacking tools stolen from the National Security Agency (NSA). We examine how this unprecedented",
+    false
+  ],
+  [
+    79,
+    "How Wireless Deauthentication Attacks Aid Hacking",
+    "Wireless deauthentication attacks are a powerful tool in a hacker's arsenal, used to disrupt the connection between a target device and its wireless router. By sending spoofed disassociation frames, an attacker can instantly disconnect any device from a",
+    false
+  ],
+  [
+    78,
+    "Legal Limits of Corporate Hacking Back",
+    "As cyber threats against businesses intensify, some organizations consider \"hacking back\"—actively retaliating against digital intruders. This article examines the strict legal boundaries, primarily governed by the Computer Fraud and Abuse Act (CFAA),",
+    false
+  ],
+  [
+    77,
+    "How Session Hijacking Bypasses Login Screens",
+    "This article explains how session hijacking allows unauthorized users to bypass web login screens and gain immediate access to secure accounts. By understanding the mechanics of web sessions, session tokens, and the methods attackers use to steal them, y",
+    false
+  ],
+  [
+    76,
+    "How to Legally Report a Corporate Cyber Security Breach",
+    "When a corporation suffers a major computer hacking incident, navigating the legal requirements for reporting the breach is critical to avoid massive regulatory penalties, legal liability, and reputational damage. This article outlines the essential, ste",
+    false
+  ],
+  [
+    75,
+    "How API Exploitation Powers Modern Cyberattacks",
+    "Application Programming Interfaces (APIs) have become the backbone of modern software architecture, enabling seamless data exchange between disparate services and cloud-native applications. However, this ubiquity has made them the premier target for cybe",
+    false
+  ],
+  [
+    74,
+    "Red Team vs Blue Team in Cybersecurity",
+    "This article explains the distinct operational purposes of Red Teams and Blue Teams within corporate computer hacking simulations. While Red Teams act as offensive adversaries to expose security vulnerabilities, Blue Teams serve as defensive guardians to",
+    false
+  ],
+  [
+    73,
+    "How Web Server Misconfiguration Leads to Hacking",
+    "Web server misconfigurations are among the most common and dangerous security flaws pointing to data breaches today. This article explains how seemingly minor oversights—such as leaving default settings active, enabling directory browsing, or exposing",
+    false
+  ],
+  [
+    72,
+    "Impact of State-Level Hacking on Power Grids",
+    "State-sponsored cyberattacks on critical infrastructure, particularly national power grids, pose a severe threat to global security and public safety. This article examines the catastrophic consequences of these digital assaults, ranging from immediate w",
+    false
+  ],
+  [
+    71,
+    "How DNS Spoofing Redirects User Traffic",
+    "This article explores how DNS spoofing, also known as DNS cache poisoning, manipulates the Domain Name System to redirect legitimate internet traffic to malicious servers. We will examine the mechanics of this cyberattack, how it exploits vulnerabilities",
+    false
+  ],
+  [
+    70,
+    "How Logic Bombs Differ From Other Malware",
+    "While most malicious software is designed to replicate or grant immediate access to a hacker, a logic bomb is a stealthy string of code that remains dormant until specific conditions are met. This article explores the unique characteristics of logic bomb",
+    false
+  ],
+  [
+    69,
+    "Commercial Exploit Marketplaces in Global Hacking",
+    "Commercial exploit marketplaces have emerged as pivotal intermediaries in the global cybersecurity landscape, facilitating the trade of zero-day vulnerabilities between independent security researchers and high-paying buyers. This article examines the ro",
+    false
+  ],
+  [
+    68,
+    "How Zero Trust Replaces Perimeter Security",
+    "This article explores how zero-trust architecture fundamentally shifts cybersecurity from a \"trust but verify\" perimeter-based model to a \"never trust, always verify\" approach. We will examine the core differences between traditional firewall defenses an",
+    false
+  ],
+  [
+    67,
+    "Best Operating Systems for Ethical Hacking",
+    "This article provides an overview of the primary dedicated operating systems preferred by cybersecurity professionals, ethical hackers, and penetration testers. We will examine the industry-standard platforms—such as Kali Linux, Parrot OS, and BlackArc",
+    false
+  ],
+  [
+    66,
+    "Directory Traversal Vulnerability Explained",
+    "This article explains how directory traversal vulnerabilities (also known as path traversal) allow unauthorized users to access restricted files on a web server. It examines how attackers exploit weak input validation to bypass security controls, navigat",
+    false
+  ],
+  [
+    65,
+    "Legal Risks of Hacking Devices You Do Not Own",
+    "Performing invasive computer hacking techniques on devices you do not explicitly own carries severe legal consequences, ranging from federal criminal prosecution to devastating civil lawsuits. This article outlines the primary legal frameworks that gover",
+    false
+  ],
+  [
+    64,
+    "Biometric Security for Physical Access Control",
+    "This article explores how modern biometric security systems safeguard physical entry points against sophisticated hacking methods. We examine the key technologies behind biometric authentication—including liveness detection, cryptographic credential ha",
+    false
+  ],
+  [
+    63,
+    "What is a Script Kiddie in Hacking Hierarchy",
+    "This article provides a comprehensive definition of a \"script kiddie\" within the computer hacking subculture. It examines their placement at the absolute bottom of the cyber threat hierarchy, details their typical motivations, and explains how their reli",
+    false
+  ],
+  [
+    62,
+    "How Network Segmentation Prevents Lateral Movement",
+    "Network segmentation is a fundamental cybersecurity strategy that divides a larger network into smaller, isolated subnetworks, or segments. By partitioning the network, organizations can apply distinct security controls to different zones, ensuring that",
+    false
+  ],
+  [
+    61,
+    "Socio-Political Motivations Behind Hacktivism",
+    "Hacktivism, the use of computer hacking to promote a political agenda or social change, is driven by a complex web of ideological beliefs. This article explores the primary socio-political motivations behind hacktivism, examining how digital activists us",
+    false
+  ],
+  [
+    60,
+    "How Privilege Escalation Turns Minor Breaches into Disasters",
+    "In cybersecurity, a minor breach is often just the foot in the door for a malicious actor. This article explores how cybercriminals use privilege escalation to bypass security restrictions, gain administrative control, and transform a low-level network i",
+    false
+  ],
+  [
+    59,
+    "How Human Error Vulnerabilizes Corporate Networks",
+    "While enterprises invest billions in advanced cybersecurity software, the human element remains the most significant vulnerability in modern corporate networks. This article examines how common human mistakes—ranging from misconfigured cloud servers an",
+    false
+  ],
+  [
+    58,
+    "Tracing the Origin of Complex Hacking Attacks",
+    "Digital forensics investigators use a combination of network tracking, malware analysis, log reconstruction, and threat intelligence to trace the ultimate origin of complex computer hacking attacks. This article provides a step-by-step breakdown of how t",
+    false
+  ],
+  [
+    57,
+    "Quantum Computing Impact on Hacking and Encryption",
+    "Quantum computing is set to revolutionize the digital landscape, bringing unprecedented computational power that threatens to dismantle modern cybersecurity. This article explores how quantum processors will render current encryption standards obsolete,",
+    false
+  ],
+  [
+    56,
+    "How Hardware Keyloggers Work in Physical Hacking",
+    "Hardware keyloggers represent a potent physical threat to computer security, capable of capturing every keystroke a user types without relying on malicious software. This article explores how these physical hacking devices function, the different types a",
+    false
+  ],
+  [
+    55,
+    "Virus vs Worm vs Trojan: Key Differences",
+    "While terms like virus, worm, and trojan are often used interchangeably to describe malicious software, they function in fundamentally different ways. This article explains the core distinctions between these three types of threats, focusing on how they",
+    false
+  ],
+  [
+    54,
+    "How Mobile OS Defends Against Hacking",
+    "Mobile operating systems like Android and iOS employ sophisticated, dynamic defense mechanisms to protect devices from modern hacking threats. This article explores how these platforms utilize real-time security measures—including advanced sandboxing,",
+    false
+  ],
+  [
+    53,
+    "How Cyber Attacks Affect Stock Prices",
+    "When a publicly traded company suffers a successful computer hacking incident, the immediate reaction in the stock market is typically swift and negative. This article examines the immediate financial consequences of a cyberattack on a company's share pr",
+    false
+  ],
+  [
+    52,
+    "Why Supply Chain Attacks Bypass Cyber Defenses",
+    "This article examines how attackers exploit third-party supply chain vulnerabilities to circumvent standard enterprise cybersecurity defenses. It details the mechanics of how trust relationships are weaponized, why traditional perimeter defenses fail to",
+    false
+  ],
+  [
+    51,
+    "What Is the Purpose of Footprinting in Hacking?",
+    "Before launching a cyberattack or executing a penetration test, hackers and security professionals engage in an essential reconnaissance phase known as footprinting. This article explains the ultimate purpose of a footprinting exercise, detailing how gat",
+    false
+  ],
+  [
+    50,
+    "How Watering Hole Attacks Target Specific Industries",
+    "A watering hole attack is a highly targeted cyber threat where attackers compromise websites frequently visited by a specific industry or group of users to infect their devices with malware. This article explores how cybercriminals orchestrate these soph",
+    false
+  ],
+  [
+    49,
+    "Essential Technical Skills for Ethical Hacking",
+    "Launching a career in ethical hacking requires a robust foundation of technical expertise to successfully identify, analyze, and secure system vulnerabilities. This article outlines the core technical skills needed to enter the cybersecurity field as a p",
+    false
+  ],
+  [
+    48,
+    "How Air-Gapped Systems Can Be Hacked",
+    "While physically isolating a computer from the internet—known as air-gapping—provides a robust layer of defense, it does not guarantee absolute security. This article explores how highly sophisticated hacking methods bypass physical isolation, levera",
+    false
+  ],
+  [
+    47,
+    "What is Phreaking and How It Led to Modern Hacking",
+    "This article explores the historical origins of \"phreaking\"—the practice of hacking telecommunication systems—and examines its direct evolution into modern computer hacking. By understanding how early phone hackers manipulated analog networks, we can",
+    false
+  ],
+  [
+    46,
+    "How Credential Stuffing Uses Automation to Hack Accounts",
+    "This article explains how cybercriminals use credential stuffing and automated software to breach user accounts across the internet. It details the mechanics of these cyberattacks, explains why automated tools are critical to their success, and outlines",
+    false
+  ],
+  [
+    45,
+    "Architectural Challenges of Cloud Computing Security",
+    "Securing cloud computing environments requires a fundamental shift from traditional perimeter-based security to a dynamic, identity-centric model. This article explores the unique architectural challenges of defending cloud systems against hacking, focus",
+    false
+  ],
+  [
+    44,
+    "How Hackers Use Paste Sites and Dark Web to Leak Data",
+    "Cybercriminal organizations and hacking groups frequently utilize public paste sites and specialized dark web forums to publish, monetize, and distribute stolen data. This article explores the specific tactics these groups use to leverage platforms like",
+    false
+  ],
+  [
+    43,
+    "Cryptography in Cybersecurity and Hacking",
+    "This article explores the dual nature of cryptography, examining how it serves as a foundational pillar for protecting digital data while simultaneously acting as a powerful tool for cybercriminals to execute and conceal computer hacking activities. In l",
+    false
+  ],
+  [
+    42,
+    "How Deepfakes Enhance Social Engineering Attacks",
+    "Deepfake technology has revolutionized the landscape of cybercrime by significantly enhancing the success rate of social engineering attacks. By leveraging artificial intelligence to create highly convincing synthetic media—including manipulated audio,",
+    false
+  ],
+  [
+    41,
+    "Post-Exploitation Steps in Penetration Testing",
+    "The post-exploitation phase of an authorized computer hacking simulation, or penetration testing, focuses on determining the potential impact of a successful system compromise. After initially gaining access to a target system, security professionals sys",
+    false
+  ],
+  [
+    40,
+    "How Hackers Exploit Firmware-Level Vulnerabilities",
+    "Firmware-level vulnerabilities represent some of the most critical security threats in modern computing, enabling advanced attackers to bypass traditional operating system defenses. This article explains how highly sophisticated threat actors target hard",
+    false
+  ],
+  [
+    39,
+    "Kevin Mitnick and Federal Hacking Enforcement History",
+    "The arrest and prosecution of Kevin Mitnick in the 1990s stands as a pivotal watershed moment in the history of federal computer hacking enforcement. This article examines how the Mitnick case catalyzed the modernization of United States cybercrime laws,",
+    false
+  ],
+  [
+    38,
+    "How Cross-Site Scripting Attacks Work in Browsers",
+    "Cross-site scripting (XSS) is a prevalent security vulnerability that enables attackers to inject malicious scripts into otherwise trusted websites. This article explains how XSS operates directly within a victim's web browser, the mechanisms behind how",
+    false
+  ],
+  [
+    37,
+    "Moral Implications of Ethical Hacking Courses",
+    "This article explores the ethical and moral dilemmas surrounding the instruction of professional hacking courses within academic institutions. It examines the delicate balance between training cybersecurity defenders and inadvertently equipping potential",
+    false
+  ],
+  [
+    36,
+    "How Network Sniffers Assist Passive Reconnaissance",
+    "During the passive reconnaissance phase of a cyberattack or security audit, gathering intelligence without alerting the target is critical. Network sniffers play a vital role in this stage by silently capturing and analyzing data packets flowing across a",
+    false
+  ],
+  [
+    35,
+    "How Bug Bounties Redirect Hacking Talent to Defense",
+    "Corporate bug bounty programs serve as a powerful mechanism for redirecting computer hacking talent from malicious activities toward proactive defense. By offering legal avenues, financial incentives, and professional recognition, these programs channel",
+    false
+  ],
+  [
+    34,
+    "How Hacking Tools Are Sold on the Dark Web",
+    "The dark web has evolved into a highly organized, anonymous commercial hub that simplifies the acquisition of cyber weapons. This article examines how illicit marketplaces operate, the specific hacking tools available for purchase, and how modern busines",
+    false
+  ],
+  [
+    33,
+    "Key Indicators of Compromise After a Security Breach",
+    "Following a cybersecurity incident, security teams must rapidly identify and contain the threat to prevent further damage. This article provides a direct overview of the primary indicators of compromise (IoCs) that incident response and security operatio",
+    false
+  ],
+  [
+    32,
+    "Man-in-the-Middle Attacks in Computer Hacking",
+    "A man-in-the-middle (MitM) attack is a dangerous cyber threat where an attacker secretly intercepts, relays, and alters communications between two trusting parties. Within the broader umbrella of computer hacking, MitM attacks are categorized as network-",
+    false
+  ],
+  [
+    31,
+    "Automated Scanning vs Manual Hacking",
+    "Understanding the distinction between automated vulnerability scanning and manual computer hacking is crucial for securing modern digital infrastructure. While automated scanning utilizes software tools to quickly identify known security flaws across a n",
+    false
+  ],
+  [
+    30,
+    "How MFA Stops Automated Hacking Scripts",
+    "Automated hacking scripts rely on speed, scale, and predictable credential entry to breach user accounts. This article explores how Multi-Factor Authentication (MFA) effectively neutralizes these automated threats by introducing dynamic, unpredictable ve",
+    false
+  ],
+  [
+    29,
+    "Strategic Objectives of Corporate Ransomware",
+    "Corporate ransomware attacks are no longer simple, opportunistic crimes; they are highly targeted operations with specific, business-disrupting goals. This article explores the primary strategic objectives behind modern ransomware deployment in corporate",
+    false
+  ],
+  [
+    28,
+    "How Reverse Engineering Aids Academic Computer Hacking",
+    "Reverse engineering proprietary software plays a vital role in the academic field of computer hacking by providing researchers and students with practical insights into closed-source systems. This article explores how analyzing compiled code fosters vuln",
+    false
+  ],
+  [
+    27,
+    "How Stuxnet Changed Public View of Cyber Warfare",
+    "The discovery of the Stuxnet virus in 2010 marked a watershed moment in digital history, fundamentally shifting the public perception of military computer hacking from a theoretical threat to a highly destructive reality. This article explores how Stuxne",
+    false
+  ],
+  [
+    26,
+    "How Rootkits Maintain Persistent Access in Hacking",
+    "Rootkits are highly sophisticated malware designed to grant cybercriminals unauthorized, long-term control over a computer system while remaining completely hidden. This article explains how rootkits function to help hackers maintain persistent, undetect",
+    false
+  ],
+  [
+    25,
+    "How Honeypots Detect Hackers in Corporate Networks",
+    "In modern cybersecurity, proactive defense mechanisms are essential for safeguarding sensitive corporate data. This article explores the specific purpose of a honeypot—a decoy system designed to mimic a legitimate network asset—in detecting active co",
+    false
+  ],
+  [
+    24,
+    "How OSINT Prepares Individuals for Hacking",
+    "Open-source intelligence (OSINT) serves as the foundational reconnaissance phase for almost every cyberattack. By gathering publicly available information, an individual can map out a target's digital footprint, identify vulnerabilities, and craft highly",
+    false
+  ],
+  [
+    23,
+    "Security Risks of IoT Device Hacking",
+    "The rapid expansion of the Internet of Things (IoT) has introduced unparalleled convenience to modern life, but it has also created a vast landscape of cybersecurity vulnerabilities. This article explores the primary security risks associated with the co",
+    false
+  ],
+  [
+    22,
+    "How DDoS Attacks Relate to Traditional Hacking",
+    "A distributed denial-of-service (DDoS) attack differs significantly from traditional computer hacking, yet the two concepts remain deeply interconnected. While traditional hacking focuses on breaching security perimeters to steal, alter, or access unauth",
+    false
+  ],
+  [
+    21,
+    "Psychological Profile of Malicious Hackers",
+    "Understanding the minds of cybercriminals is essential for developing stronger cybersecurity defenses and behavioral threat detection systems. This article explores the common psychological profile associated with malicious computer hackers, examining ke",
+    false
+  ],
+  [
+    20,
+    "Hacking Syndicate Command and Control Infrastructure",
+    "This article explores how modern computer hacking syndicates structurally organize their command-and-control (C2) infrastructure. It examines the multi-tiered architectures, redirection techniques, decentralized networks, and evasion strategies cybercrim",
+    false
+  ],
+  [
+    19,
+    "US Federal Laws Governing Criminal Computer Hacking",
+    "Prosecuting computer hacking in the United States relies on a robust framework of federal statutes designed to address unauthorized access, data theft, and system disruption. This article explores the primary laws used by federal prosecutors to combat cy",
+    false
+  ],
+  [
+    18,
+    "How AI Has Changed Modern Computer Hacking",
+    "Artificial intelligence (AI) has fundamentally altered the cybersecurity landscape by enabling hackers to execute cyberattacks with unprecedented speed, scale, and sophistication. This article explores how malicious actors leverage machine learning and l",
+    false
+  ],
+  [
+    17,
+    "Top Software Tools Used by Ethical Hackers",
+    "Authorized computer hacking, commonly known as ethical hacking or penetration testing, relies on a specialized suite of software tools to identify security vulnerabilities before malicious actors can exploit them. This article explores the primary softwa",
+    false
+  ],
+  [
+    16,
+    "How Phishing Leads to Advanced Cyberattacks",
+    "This article explores how phishing serves as the primary entry point for complex cyber espionage and advanced persistent threat (APT) campaigns. While often viewed as simple email scams, phishing is the critical first step that enables attackers to bypas",
+    false
+  ],
+  [
+    15,
+    "How to Prevent Computer Hacking in Organizations",
+    "In an era of escalating cyber threats, safeguarding organizational digital assets requires a shift from reactive firefighting to proactive defense. This article outlines the essential defensive strategies organizations can deploy to mitigate computer hac",
+    false
+  ],
+  [
+    14,
+    "How SQL Injection Works in Web Hacking",
+    "This article explores SQL injection (SQLi), one of the oldest and most prevalent vulnerabilities in web security. We will examine how attackers exploit poorly sanitized database queries to bypass authentication, access sensitive data, and manipulate data",
+    false
+  ],
+  [
+    13,
+    "Ethical Responsibilities of Zero-Day Researchers",
+    "When cybersecurity researchers discover zero-day vulnerabilities—security flaws unknown to the software vendor—they hold significant power and responsibility. This article explores the ethical obligations these researchers must navigate, examining th",
+    false
+  ],
+  [
+    12,
+    "How Pen Testing Frameworks Mimic Real-World Hacking",
+    "Penetration testing frameworks are specialized software suites used by cybersecurity professionals to identify and patch security vulnerabilities before malicious actors can exploit them. This article explains how these frameworks simulate real-world com",
+    false
+  ],
+  [
+    11,
+    "Black Hat vs Grey Hat vs White Hat Hacking",
+    "Computer hackers are broadly categorized into three distinct groups based on their motivations, legality, and ethical standards: white-hat, black-hat, and grey-hat hackers. This article examines the core differences between these three cybersecurity role",
+    false
+  ],
+  [
+    10,
+    "How Buffer Overflow Vulnerabilities Enable Hacking",
+    "A buffer overflow vulnerability is a critical security flaw that occurs when a program writes more data to a block of memory than it was allocated to hold. This article explains how malicious actors exploit this oversight to corrupt computer memory, hija",
+    false
+  ],
+  [
+    9,
+    "Common Wireless Network Security Vulnerabilities",
+    "Wireless networks are highly susceptible to cyberattacks due to the physical accessibility of radio signals. This article explores the most common vulnerabilities exploited during wireless computer hacking sessions, including weak encryption protocols, d",
+    false
+  ],
+  [
+    8,
+    "State-Sponsored Hacking and Geopolitical Power",
+    "State-sponsored cyber operations have become a primary tool for modern international maneuvering. This article explores how nation-states leverage computer hacking to conduct espionage, disrupt critical infrastructure, influence foreign elections, and sh",
+    false
+  ],
+  [
+    7,
+    "How the Morris Worm Changed Cybersecurity History",
+    "Released in November 1988, the Morris Worm was one of the earliest computer worms distributed via the internet, and it fundamentally altered the trajectory of digital security. This article explores how a graduate student's programming mistake exposed th",
+    false
+  ],
+  [
+    6,
+    "How Cryptocurrency Changed Cybercrime Economics",
+    "This article explores how the rise of cryptocurrency has fundamentally restructured the economic models of computer hacking. By providing secure, pseudonymous, and irreversible transaction methods, digital currencies have solved the monetization problem",
+    false
+  ],
+  [
+    5,
+    "Social Engineering in Hacking",
+    "Social engineering is often the critical first step in a cyberattack, bypassing technical defenses by exploiting human psychology. This article explores how hackers use manipulation, deception, and psychological triggers during the initial reconnaissance",
+    false
+  ],
+  [
+    4,
+    "How Do White-Hat Hackers Protect Corporate Infrastructure?",
+    "White-hat hackers, also known as ethical hackers, use the exact same tools and techniques as cybercriminals, but they do so with permission to find and fix security vulnerabilities before they can be exploited. By taking an offensive approach to defense,",
+    false
+  ],
+  [
+    3,
+    "What Are the Legal Differences in Hacking?",
+    "The primary legal differences between ethical and malicious computer hacking hinge on authorization, intent, and compliance with governing laws. While both practices require similar technical skill sets, ethical hacking is performed with explicit written",
+    false
+  ],
+  [
+    2,
+    "How Did Tech Hacking Evolve from Model Railroad Clubs?",
+    "The subculture of modern computer hacking traces its unexpected roots back to the campus of the Massachusetts Institute of Technology (MIT) in the late 1950s and 1960s, specifically within the Tech Model Railroad Club (TMRC). Rather than beginning with c",
+    false
+  ],
+  [
+    1,
+    "What is the Definition of Computer Hacking Today?",
+    "In the modern digital age, computer hacking is defined as the unauthorized access, manipulation, or exploitation of digital systems, networks, or devices to alter their intended behavior. While popularly associated with cybercrime and data breaches, the",
+    false
+  ]
+]

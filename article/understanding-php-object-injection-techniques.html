@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding PHP Object Injection Techniques - hacking</title>
+    <meta name="description" content="PHP Object Injection (POI) is an application-level vulnerability that occurs when untrusted, user-supplied data is passed directly to the PHP unserialize() function. This article outlines the primary mechanisms and entry points threat actors use to trigg">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-php-object-injection-techniques">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding PHP Object Injection Techniques - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-php-object-injection-techniques" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="PHP Object Injection (POI) is an application-level vulnerability that occurs when untrusted, user-supplied data is passed directly to the PHP unserialize() function. This article outlines the primary mechanisms and entry points threat actors use to trigg" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="understanding-php-object-injection-techniques">Understanding PHP
+Object Injection Techniques</h1>
+<p>PHP Object Injection (POI) is an application-level vulnerability that
+occurs when untrusted, user-supplied data is passed directly to the PHP
+<code>unserialize()</code> function. This article outlines the primary
+mechanisms and entry points threat actors use to trigger this flaw,
+including input transmission methods, the role of PHP magic methods,
+Property-Oriented Programming (POP) chains, and secondary injection
+vectors such as Phar stream wrappers.</p>
+<h3 id="the-root-cause-insecure-deserialization">The Root Cause:
+Insecure Deserialization</h3>
+<p>Serialization in PHP converts an object or data structure into a
+storable byte stream via <code>serialize()</code>, while
+<code>unserialize()</code> reconstructs the original object in memory.
+When an application calls <code>unserialize()</code> on unsanitized user
+input, it allows an external entity to instantiate arbitrary classes
+available within the PHP runtime environment and control the attributes
+(properties) of those instantiated objects.</p>
+<h3 id="primary-input-delivery-vectors">Primary Input Delivery
+Vectors</h3>
+<p>To deliver serialized payloads, attackers locate injection points
+where application inputs are reflected directly into the deserialization
+routine:</p>
+<ul>
+<li><strong>HTTP Request Parameters:</strong> Web applications
+frequently pass serialized user state across HTTP GET or POST
+parameters. If an endpoint accepts an input like
+<code>?data=O:4:"User":...</code> without cryptographic signing (such as
+HMAC), the serialized string can be altered directly.</li>
+<li><strong>Cookies and Session Identifiers:</strong> Applications
+sometimes store complex session data or preferences inside
+base64-encoded cookies. If these cookies are decoded and passed to
+<code>unserialize()</code>, modifying the cookie value triggers object
+injection.</li>
+<li><strong>Database and Cache Inputs:</strong> In secondary or stored
+injection scenarios, an attacker may inject a serialized string into a
+database field or a caching tier (e.g., Redis). When a background worker
+or another component reads and deserializes that entry, the payload
+executes.</li>
+</ul>
+<h3 id="weaponizing-magic-methods">Weaponizing Magic Methods</h3>
+<p>PHP objects contain built-in "magic methods"—functions prefixed with
+double underscores that run automatically during specific events. When a
+malicious object is injected, attackers rely on these methods to trigger
+unauthorized behavior:</p>
+<ul>
+<li><code>__wakeup()</code>: Executes immediately when an object is
+deserialized, often used by developers to re-establish database
+connections or open resources.</li>
+<li><code>__destruct()</code>: Executes when an object loses all
+references or when the PHP script finishes execution, making it a
+reliable trigger for cleanup routines, file deletions, or logging
+functions.</li>
+<li><code>__toString()</code>: Runs when an object is treated as a
+string, such as during concatenation, string comparison, or template
+rendering.</li>
+<li><code>__call()</code>: Executes when an inaccessible or non-existent
+method is called on an object.</li>
+</ul>
+<p>Attackers do not inject new code directly through the serialized
+string; instead, they define property values that alter the logic inside
+these existing magic methods.</p>
+<h3 id="property-oriented-programming-pop-chains">Property-Oriented
+Programming (POP) Chains</h3>
+<p>If a single magic method does not perform a high-severity action,
+attackers build a POP chain. Similar to Return-Oriented Programming
+(ROP) in binary exploitation, a POP chain links multiple classes
+together:</p>
+<ol type="1">
+<li>The initial payload triggers a magic method (e.g.,
+<code>__destruct()</code>).</li>
+<li>The logic within that method references another object held within
+its properties.</li>
+<li>Calling a method on or interacting with that secondary object
+invokes another method (e.g., invoking <code>__toString()</code> or an
+arbitrary function call).</li>
+<li>The chain terminates in a "sink"—a function capable of critical
+operations, such as <code>eval()</code>, <code>system()</code>,
+<code>file_put_contents()</code>, or <code>include()</code>.</li>
+</ol>
+<p>Attackers frequently search an application's codebase or included
+third-party libraries (Composer dependencies) to locate compatible
+gadget chains capable of achieving Remote Code Execution (RCE) or
+arbitrary file read/write operations.</p>
+<h3 id="alternative-trigger-phar-deserialization">Alternative Trigger:
+Phar Deserialization</h3>
+<p>PHP object injection can also be triggered without an explicit
+<code>unserialize()</code> call via the <code>phar://</code> stream
+wrapper.</p>
+<p>Phar (PHP Archive) files contain serialized metadata. If an
+application performs a filesystem operation (such as
+<code>file_exists()</code>, <code>is_dir()</code>,
+<code>file_get_contents()</code>, or <code>unlink()</code>) on a
+user-controlled path prefix, an attacker can specify a path such as
+<code>phar://path/to/uploaded/file.jpg</code>. The PHP runtime
+automatically deserializes the metadata inside the archive when opening
+the stream, invoking the same magic methods and POP chains as a direct
+call to <code>unserialize()</code>.</p>
+<h3 id="remediation-strategies">Remediation Strategies</h3>
+<p>Mitigating PHP Object Injection requires preventing untrusted data
+from reaching the deserialization engine:</p>
+<ul>
+<li><strong>Avoid Native Deserialization:</strong> Replace
+<code>unserialize()</code> with standard data interchange formats such
+as JSON (<code>json_encode()</code> and
+<code>json_decode()</code>).</li>
+<li><strong>Restrict Allowed Classes:</strong> When
+<code>unserialize()</code> is required, restrict class instantiation
+using the <code>allowed_classes</code> option (e.g.,
+<code>unserialize($data, ['allowed_classes' =&gt; false])</code> to
+completely disable object instantiation).</li>
+<li><strong>Data Integrity Verification:</strong> If serialized data
+must traverse the client, protect it with a cryptographically secure
+hash (HMAC) and verify the signature before processing.</li>
+<li><strong>Disable Unnecessary Stream Wrappers:</strong> Restrict the
+handling of arbitrary file paths to prevent <code>phar://</code>
+metadata parsing during filesystem operations.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

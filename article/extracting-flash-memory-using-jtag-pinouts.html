@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extracting Flash Memory Using JTAG Pinouts - hacking</title>
+    <meta name="description" content="This article provides an overview of how the Joint Test Action Group (JTAG) interface functions within embedded systems, the methods hardware security analysts use to identify undocumented debug interfaces on printed circuit boards (PCBs), and the concep">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/extracting-flash-memory-using-jtag-pinouts">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Extracting Flash Memory Using JTAG Pinouts - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/extracting-flash-memory-using-jtag-pinouts" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article provides an overview of how the Joint Test Action Group (JTAG) interface functions within embedded systems, the methods hardware security analysts use to identify undocumented debug interfaces on printed circuit boards (PCBs), and the concep" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="extracting-flash-memory-using-jtag-pinouts">Extracting Flash
+Memory Using JTAG Pinouts</h1>
+<p>This article provides an overview of how the Joint Test Action Group
+(JTAG) interface functions within embedded systems, the methods hardware
+security analysts use to identify undocumented debug interfaces on
+printed circuit boards (PCBs), and the conceptual process of reading
+memory contents when debug protections are absent. Additionally, it
+highlights standard industry mitigations used to secure hardware against
+unauthorized access.</p>
+<h3 id="understanding-jtag-and-hardware-debugging">Understanding JTAG
+and Hardware Debugging</h3>
+<p>The IEEE 1149.1 standard, commonly known as JTAG, was originally
+developed to automate boundary-scan testing for printed circuit boards.
+Over time, silicon vendors extended this interface to support On-Chip
+Debugging (OCD) and In-System Programming (ISP).</p>
+<p>JTAG relies on a standardized set of Test Access Port (TAP)
+signals:</p>
+<ul>
+<li><strong>TCK (Test Clock):</strong> Provides the clock signal
+synchronizing internal state machine operations.</li>
+<li><strong>TMS (Test Mode Select):</strong> Drives the 16-state TAP
+controller state machine.</li>
+<li><strong>TDI (Test Data In):</strong> Serial data input line.</li>
+<li><strong>TDO (Test Data Out):</strong> Serial data output line.</li>
+<li><strong>TRST (Test Reset):</strong> Optional asynchronous reset
+signal for the TAP controller.</li>
+</ul>
+<p>When left unprotected on production hardware, these physical lines
+grant direct, low-level access to the internal buses and core registers
+of a microchip, bypassing higher-level operating system controls.</p>
+<h3 id="locating-jtag-pinouts-on-a-target-pcb">Locating JTAG Pinouts on
+a Target PCB</h3>
+<p>Hardware manufacturers frequently omit standard header connectors on
+final consumer products to reduce costs and discourage tampering.
+However, test pads often remain accessible. Identifying these pinouts
+typically involves three phases:</p>
+<ol type="1">
+<li><strong>Visual and Structural Inspection:</strong> Searching for
+linear or rectangular groupings of circular test pads (often 4 to 10
+pins). Designers sometimes leave silkscreen labels (e.g.,
+<code>TDI</code>, <code>TDO</code>, <code>CLK</code>) or identifiable
+ground plane alignments.</li>
+<li><strong>Multimeter Analysis:</strong> Identifying the static lines.
+Continuity mode locates Ground (<code>GND</code>) by testing against
+large ground planes or shielding. Voltage measurement identifies
+<code>VCC</code> by checking for steady 3.3V or 1.8V levels during
+device operation.</li>
+<li><strong>Automated Enumeration:</strong> Connecting potential test
+pins to a microcontroller or logic analyzer running boundary-scan
+discovery routines. By cycling through pin combinations and monitoring
+the Test Access Port for expected responses to the <code>IDCODE</code>
+instruction (a standard 32-bit identifier), the active pin configuration
+can be determined.</li>
+</ol>
+<h3 id="the-mechanism-of-flash-memory-extraction">The Mechanism of Flash
+Memory Extraction</h3>
+<p>Once the TAP controller is accessible, extracting data from connected
+flash memory relies on one of two primary architectural pathways:</p>
+<h4 id="1-core-assisted-memory-reading-ocd-access">1. Core-Assisted
+Memory Reading (OCD Access)</h4>
+<p>If the JTAG interface connects directly to the system CPU core (such
+as an ARM Cortex or MIPS processor), an analyst can use a hardware debug
+probe (such as an OpenOCD-compatible interface) to halt the processor.
+Because the processor has full access to the memory-mapped I/O (MMIO)
+buses, the debugger can issue commands instructing the CPU to read
+consecutive addresses corresponding to the flash storage location and
+stream the bytes out over the serial <code>TDO</code> line.</p>
+<h4 id="2-direct-peripheral-bus-control">2. Direct Peripheral Bus
+Control</h4>
+<p>In configurations where memory is directly addressable via
+boundary-scan registers, the debugger can shift instructions into the
+boundary-scan register to drive memory address and control lines
+directly. This toggles read strobes on external NOR or SPI flash chips,
+allowing raw binary data to be captured without involving the host CPU's
+operating logic.</p>
+<h3 id="countermeasures-and-hardware-hardening">Countermeasures and
+Hardware Hardening</h3>
+<p>Securing consumer electronics against physical extraction techniques
+requires defense-in-depth at the board and silicon levels:</p>
+<ul>
+<li><strong>Blowing Security eFuses:</strong> Modern Systems on Chip
+(SoCs) include permanent electronic fuses that can permanently disable
+JTAG/TAP controllers during factory provisioning.</li>
+<li><strong>Password and Certificate Authentication:</strong> Many
+chipsets support cryptographically gated JTAG interfaces that require a
+signed token or shared secret before enabling debugging
+capabilities.</li>
+<li><strong>Encrypted Flash and Secure Boot:</strong> Encrypting flash
+contents using hardware-bound keys stored in a secure element or Trusted
+Execution Environment (TEE) ensures that even if raw flash data is read,
+it remains indecipherable without the platform key.</li>
+<li><strong>PCB Layout Hygiene:</strong> Routing debug traces across
+inner PCB layers and removing test pads altogether complicates probe
+connectivity, requiring destructive microscopic techniques to access raw
+signals.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacking Satellite Telemetry With Low-Cost SDR - hacking</title>
+    <meta name="description" content="Capturing and decoding unencrypted telemetry from orbiting satellites no longer requires enterprise-grade ground stations or classified military hardware. Using inexpensive Software Defined Radio (SDR) USB dongles paired with DIY antennas and open-source">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/hacking-satellite-telemetry-with-low-cost-sdr">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Hacking Satellite Telemetry With Low-Cost SDR - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/hacking-satellite-telemetry-with-low-cost-sdr" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Capturing and decoding unencrypted telemetry from orbiting satellites no longer requires enterprise-grade ground stations or classified military hardware. Using inexpensive Software Defined Radio (SDR) USB dongles paired with DIY antennas and open-source" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="hacking-satellite-telemetry-with-low-cost-sdr">Hacking Satellite
+Telemetry With Low-Cost SDR</h1>
+<p>Capturing and decoding unencrypted telemetry from orbiting satellites
+no longer requires enterprise-grade ground stations or classified
+military hardware. Using inexpensive Software Defined Radio (SDR) USB
+dongles paired with DIY antennas and open-source software, security
+researchers and radio enthusiasts can intercept real-time downlinks from
+space. This article explores the hardware, software pipelines, and radio
+frequency (RF) mechanics required to intercept, demodulate, and parse
+satellite health, orbital telemetry, and scientific payloads directly
+from orbit.</p>
+<h3 id="the-low-cost-hardware-stack">The Low-Cost Hardware Stack</h3>
+<p>The foundation of modern satellite eavesdropping is the RTL-SDR, a
+repurposed DVB-T TV tuner based on the Realtek RTL2832U chip that costs
+between $25 and $40. These devices operate as wideband radio receivers
+capable of tuning across frequencies typically ranging from 24 MHz to
+1.7 GHz—a spectrum that covers most low Earth orbit (LEO) satellite
+downlinks.</p>
+<p>Antenna design must match the target frequency and polarization.
+Because signals from orbiting satellites twist as they travel through
+the ionosphere (Faraday rotation), circularly polarized antennas are
+preferred. Common low-cost builds include:</p>
+<ul>
+<li><strong>V-Dipole Antennas:</strong> Tuned specifically for 137 MHz
+weather satellites (such as NOAA-15, 18, and 19).</li>
+<li><strong>Quadrifilar Helix (QFH) or Turnstile Antennas:</strong>
+Ideal for omnidirectional reception of circularly polarized signals
+across the VHF and UHF bands.</li>
+<li><strong>Yagi-Uda Antennas:</strong> Handheld directional antennas
+used for higher-gain tracking of weak CubeSat signals in the 435–438 MHz
+amateur satellite band.</li>
+</ul>
+<h3 id="tracking-and-doppler-correction">Tracking and Doppler
+Correction</h3>
+<p>Satellites in low Earth orbit travel at roughly 7.5 kilometers per
+second, meaning a line-of-sight pass lasts only 5 to 15 minutes.
+Intercepting the signal requires knowing exact pass times and adjusting
+for the Doppler effect, which compresses the frequency as the satellite
+approaches and stretches it as it moves away.</p>
+<p>Operators use open-source satellite tracking software such as
+Gpredict or Orbitron, driven by Two-Line Element sets (TLEs) published
+regularly by organizations like Celestrak. These tracking programs
+interface directly with SDR software via network protocols to
+dynamically adjust the receiver’s center frequency in real time,
+neutralizing Doppler shift automatically.</p>
+<h3 id="intercepting-the-raw-rf-signal">Intercepting the Raw RF
+Signal</h3>
+<p>The antenna routes the physical radio wave into the SDR, which
+samples the analog RF spectrum and converts it into digital I/Q
+(In-phase and Quadrature) data streams. General-purpose SDR control
+software—such as SDR++, GQRX, or SDR#—visualizes the spectrum via an
+interactive fast Fourier transform (FFT) waterfall display.</p>
+<p>When the target satellite rises above the horizon, its transmission
+appears as a distinct spike or pattern on the waterfall. The SDR
+software applies bandpass filtering to isolate the transmission from
+adjacent noise and records the raw audio or baseband I/Q file to
+disk.</p>
+<h3 id="demodulating-and-decoding-telemetry">Demodulating and Decoding
+Telemetry</h3>
+<p>Raw I/Q data represents the physical modulation scheme used by the
+satellite, typically Frequency Shift Keying (FSK), Audio Frequency Shift
+Keying (AFSK), or Phase Shift Keying (BPSK). Translating this waveform
+into readable digital data requires a dedicated demodulator and protocol
+decoder.</p>
+<ol type="1">
+<li><strong>Demodulation:</strong> Software suites like GNU Radio or
+dedicated utilities like <code>direwolf</code> and
+<code>soundmodem</code> process the audio/baseband signal, stripping the
+carrier frequency and recovering the raw bitstream.</li>
+<li><strong>Framing:</strong> The bitstream is framed into standardized
+packet formats. Many amateur satellites and educational CubeSats utilize
+the AX.25 packet radio protocol or CCSDS (Consultative Committee for
+Space Data Systems) standards.</li>
+<li><strong>Parsing:</strong> Multi-mission decoders like SatDump, or
+satellite-specific telemetry dashboards, ingest the framed packets. The
+software maps raw hex values against published telemetry definitions to
+display real-time engineering metrics: solar panel voltage, battery
+charge levels, onboard temperatures, spin rates, and operational
+subsystem statuses.</li>
+</ol>
+<h3 id="security-implications">Security Implications</h3>
+<p>A substantial number of scientific satellites, amateur CubeSats, and
+legacy orbital assets transmit telemetry without cryptographic
+protection or authentication. While passively listening to downlinks is
+generally legal and non-disruptive, analyzing this unencrypted telemetry
+exposes the internal state of the spacecraft. In security research,
+understanding these open telemetry streams is frequently the first
+reconnaissance step in identifying weak uplink-verification schemes,
+predictable command structures, or flaws in ground-to-space
+communication architectures.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

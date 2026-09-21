@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMI Fileless Persistence and Execution Explained - hacking</title>
+    <meta name="description" content="Windows Management Instrumentation (WMI) is a core administration framework built into the Windows operating system that allows administrators to automate tasks, query system configurations, and manage processes. In cybersecurity, threat actors frequentl">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/wmi-fileless-persistence-and-execution-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="WMI Fileless Persistence and Execution Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/wmi-fileless-persistence-and-execution-explained" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Windows Management Instrumentation (WMI) is a core administration framework built into the Windows operating system that allows administrators to automate tasks, query system configurations, and manage processes. In cybersecurity, threat actors frequentl" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="wmi-fileless-persistence-and-execution-explained">WMI Fileless
+Persistence and Execution Explained</h1>
+<p>Windows Management Instrumentation (WMI) is a core administration
+framework built into the Windows operating system that allows
+administrators to automate tasks, query system configurations, and
+manage processes. In cybersecurity, threat actors frequently abuse WMI
+to achieve execution and maintain long-term persistence without dropping
+traditional executable files to disk. By understanding the underlying
+architecture of WMI eventing, organizations can better identify how
+these fileless techniques operate, recognize signs of compromise, and
+implement robust detection mechanisms across enterprise endpoints.</p>
+<h2 id="the-architecture-of-wmi-event-subscriptions">The Architecture of
+WMI Event Subscriptions</h2>
+<p>WMI includes an event-driven architecture designed to monitor the
+operating system for specific state changes. When utilized for
+persistence, the mechanism relies on three distinct COM classes residing
+within the WMI repository (typically stored in the
+<code>C:\Windows\System32\wbem\Repository</code> directory):</p>
+<ol type="1">
+<li><strong><code>__EventFilter</code></strong>: A WQL (WMI Query
+Language) query that defines the trigger condition. The filter monitors
+for system events such as system startup, specific time intervals, user
+logon, or the creation of particular processes.</li>
+<li><strong><code>__EventConsumer</code></strong>: A class that
+specifies the action to be performed when the trigger condition is met.
+The most commonly abused consumer types are
+<code>CommandLineEventConsumer</code> (which executes a specified
+command line or process) and <code>ActiveScriptEventConsumer</code>
+(which executes arbitrary VBScript or JScript directly in memory via
+<code>scrcons.exe</code>).</li>
+<li><strong><code>__FilterToConsumerBinding</code></strong>: A
+relational class that links a specific <code>__EventFilter</code>
+instance to an <code>__EventConsumer</code> instance. Without this
+binding, the consumer will not execute when the filter triggers.</li>
+</ol>
+<p>Because these configurations are stored within the complex binary
+format of the WMI CIM (Common Information Model) repository rather than
+as individual files on the filesystem or traditional Windows Registry
+run keys, this technique is classified as fileless persistence.</p>
+<h2 id="execution-and-privilege-context">Execution and Privilege
+Context</h2>
+<p>When an event triggers a consumer, the WMI service
+(<code>winmgmt</code>) handles the execution. On modern Windows systems,
+the provider host processes (<code>WmiPrvSE.exe</code> or
+<code>scrcons.exe</code>) typically execute these actions under the
+context of the <code>NT AUTHORITY\SYSTEM</code> account.</p>
+<p>This behavior provides two significant advantages from an adversarial
+perspective:</p>
+<ul>
+<li><strong>Privilege Retention</strong>: Even if the initial access
+occurred at a lower administrative level, the persistent task executes
+with the highest local operating system privileges.</li>
+<li><strong>Living-off-the-Land (LotL)</strong>: Execution is performed
+using trusted, digitally signed native Windows binaries. This reduces
+the footprint on disk and can evade basic signature-based antivirus
+solutions that primarily inspect standalone <code>.exe</code> or
+<code>.dll</code> artifacts.</li>
+</ul>
+<p>Payloads executed via <code>CommandLineEventConsumer</code> often
+invoke script interpreters such as PowerShell or MSHTA with encoded
+commands, allowing the payload to fetch secondary stages directly into
+memory without leaving static disk artifacts.</p>
+<h2 id="detection-and-forensic-analysis">Detection and Forensic
+Analysis</h2>
+<p>Because WMI persistence leaves minimal traces on the filesystem,
+security teams rely on specialized telemetry and repository inspection
+tools for detection:</p>
+<ul>
+<li><strong>Sysmon Telemetry</strong>: Microsoft System Monitor (Sysmon)
+provides dedicated Event IDs for monitoring WMI activity:
+<ul>
+<li><strong>Event ID 19</strong>: WmiEvent (WmiEventFilter activity
+detected)</li>
+<li><strong>Event ID 20</strong>: WmiEvent (WmiEventConsumer activity
+detected)</li>
+<li><strong>Event ID 21</strong>: WmiEvent (WmiEventConsumerToFilter
+activity detected)</li>
+</ul></li>
+<li><strong>Windows Event Logs</strong>: The
+<code>Microsoft-Windows-WMI-Activity/Operational</code> log records
+query executions, consumer launches, and potential operational errors,
+which assist in timeline reconstruction.</li>
+<li><strong>Repository Auditing</strong>: Administrators can query the
+WMI namespaces (predominantly <code>root\subscription</code>) via
+PowerShell using commands such as <code>Get-CimInstance</code> to
+inspect registered filters, consumers, and bindings. Tools like
+Microsoft's Autoruns also parse the WMI repository to highlight
+non-standard startup consumers.</li>
+</ul>
+<h2 id="remediation-and-mitigation">Remediation and Mitigation</h2>
+<p>Mitigating WMI abuse requires a combination of strict privilege
+management and proactive monitoring. Restricting standard users from
+interacting with sensitive WMI namespaces limits the opportunity for
+local abuse. Furthermore, implementing Application Control policies
+(such as AppLocker or Windows Defender Application Control) helps
+prevent WMI-spawned scripts from executing unauthorized command-line
+interpreters or untrusted scripts. When persistence is discovered, the
+corresponding instances of the filter, consumer, and binding must all be
+removed from the WMI repository using administrative management
+tools.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

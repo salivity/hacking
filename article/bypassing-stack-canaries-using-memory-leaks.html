@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bypassing Stack Canaries Using Memory Leaks - hacking</title>
+    <meta name="description" content="Stack canaries are compiler-generated integrity checks designed to prevent buffer overflow attacks by placing a known guard value between local variables and the return address. When an adversary encounters a canary-protected binary, exploiting a standar">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/bypassing-stack-canaries-using-memory-leaks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bypassing Stack Canaries Using Memory Leaks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/bypassing-stack-canaries-using-memory-leaks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Stack canaries are compiler-generated integrity checks designed to prevent buffer overflow attacks by placing a known guard value between local variables and the return address. When an adversary encounters a canary-protected binary, exploiting a standar" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="bypassing-stack-canaries-using-memory-leaks">Bypassing Stack
+Canaries Using Memory Leaks</h1>
+<p>Stack canaries are compiler-generated integrity checks designed to
+prevent buffer overflow attacks by placing a known guard value between
+local variables and the return address. When an adversary encounters a
+canary-protected binary, exploiting a standard stack buffer overflow
+becomes non-viable because overwriting the return address inevitably
+corrupts the canary, triggering a process crash via
+<code>__stack_chk_fail</code>. However, adversaries routinely circumvent
+this mitigation by pairing stack overflows with memory leak
+vulnerabilities, which expose the secret canary value from memory so it
+can be preserved during the overwrite.</p>
+<h3 id="format-string-vulnerabilities">Format String
+Vulnerabilities</h3>
+<p>Format string bugs occur when user-controlled input is passed
+directly to functions like <code>printf</code>, <code>sprintf</code>, or
+<code>snprintf</code> without a format specifier. An adversary can
+provide specifiers such as <code>%p</code> or <code>%lx</code> to
+traverse and print values stored on the stack.</p>
+<p>By calculating the offset between the format string argument and the
+saved stack canary, an attacker can directly leak the canary using
+positional arguments (for example, <code>%11$p</code> on an x86_64
+system). Because the canary value remains static throughout a function's
+execution—and often across the entire thread or process life cycle—the
+adversary extracts this value and re-inserts it precisely into their
+subsequent buffer overflow payload.</p>
+<h3 id="null-byte-overwrite-and-string-leakage">Null-Byte Overwrite and
+String Leakage</h3>
+<p>In standard implementations (such as GCC's
+<code>-fstack-protector</code>), the least significant byte of a stack
+canary is deliberately set to a null byte (<code>\x00</code> on
+little-endian architectures). This design choice terminates
+string-handling operations (like <code>strcpy</code> or
+<code>printf("%s")</code>) before the rest of the canary bytes can be
+read.</p>
+<p>Adversaries overcome this defense using targeted memory leaks that
+overwrite just the terminating null byte:</p>
+<ol type="1">
+<li><strong>Adjacent Buffer Filling:</strong> If an input buffer
+directly precedes the canary, an adversary inputs non-null bytes to fill
+the buffer completely and overwrite the canary’s initial
+<code>\x00</code> byte.</li>
+<li><strong>Sequential Printing:</strong> When the binary subsequently
+outputs the buffer using string-printing routines, the function does not
+stop at the edge of the user buffer. Instead, it continues reading
+through the remaining bytes of the canary until it hits the next
+naturally occurring null byte.</li>
+<li><strong>Canary Reconstruction:</strong> The adversary captures the
+output, appends the known <code>\x00</code> byte back to the beginning,
+and reconstructs the full 32-bit or 64-bit canary.</li>
+</ol>
+<h3 id="out-of-bounds-oob-stack-reads">Out-of-Bounds (OOB) Stack
+Reads</h3>
+<p>Out-of-bounds read vulnerabilities occur when an application reads an
+array or structured buffer using an uncontrolled or unvalidated index.
+If the array is allocated on the stack, an adversary can provide a
+positive or negative index that addresses the memory slot reserved for
+the canary.</p>
+<p>Unlike format strings, which rely on formatting parsers, OOB reads
+can extract the canary directly through routine application logic (e.g.,
+retrieving an item from a list). This bypasses any string-termination
+issues, as the value is treated as raw data rather than a
+null-terminated string.</p>
+<h3 id="thread-local-storage-tls-master-canary-leaks">Thread Local
+Storage (TLS) Master Canary Leaks</h3>
+<p>On modern operating systems, the canary value used for comparison is
+periodically loaded from the Thread Local Storage (TLS)—specifically
+from the Thread Control Block (such as <code>fs:0x28</code> on x86_64
+Linux).</p>
+<p>If an adversary identifies an arbitrary memory read bug that cannot
+reach the current stack frame, they can instead target the TLS memory
+segment. Leaking the master canary directly from the TLS allows the
+attacker to bypass canary checks across any function running within that
+thread, as every canary generated within that context references this
+single master value.</p>
+<h3 id="payload-construction-and-execution">Payload Construction and
+Execution</h3>
+<p>Once the canary value is obtained via any of these memory leak
+vectors, the adversary constructs a multi-stage payload:</p>
+<ol type="1">
+<li>Padding to fill the target buffer up to the canary location.</li>
+<li>The exact leaked canary value (preserving the stack integrity
+check).</li>
+<li>Padding to cover the saved base pointer (if applicable).</li>
+<li>The overwritten return address pointing to shellcode, a
+Return-Oriented Programming (ROP) chain, or an alternative execution
+path.</li>
+</ol>
+<p>When the function finishes execution, the epilogue compares the stack
+value against the reference canary. Because the leaked value matches the
+reference, the check succeeds, control flow does not divert to
+<code>__stack_chk_fail</code>, and the hijacked return address executes
+normally.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

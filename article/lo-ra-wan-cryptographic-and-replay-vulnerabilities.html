@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoRaWAN Cryptographic and Replay Vulnerabilities - hacking</title>
+    <meta name="description" content="LoRaWAN is a foundational protocol for long-range, low-power Internet of Things (IoT) deployments, yet implementation oversights and architectural trade-offs expose it to severe cryptographic weaknesses and replay attacks. While the standard mandates AES">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/lo-ra-wan-cryptographic-and-replay-vulnerabilities">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="LoRaWAN Cryptographic and Replay Vulnerabilities - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/lo-ra-wan-cryptographic-and-replay-vulnerabilities" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="LoRaWAN is a foundational protocol for long-range, low-power Internet of Things (IoT) deployments, yet implementation oversights and architectural trade-offs expose it to severe cryptographic weaknesses and replay attacks. While the standard mandates AES" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="lorawan-cryptographic-and-replay-vulnerabilities">LoRaWAN
+Cryptographic and Replay Vulnerabilities</h1>
+<p>LoRaWAN is a foundational protocol for long-range, low-power Internet
+of Things (IoT) deployments, yet implementation oversights and
+architectural trade-offs expose it to severe cryptographic weaknesses
+and replay attacks. While the standard mandates AES-128 encryption,
+vulnerabilities frequently arise from improper key management,
+non-volatile memory handling, weak random number generation, and flawed
+frame counter mechanics. This article examines the core cryptographic
+and replay vulnerabilities inherent to LoRaWAN deployments, detailing
+how threat actors exploit them during IoT security assessments and the
+mechanics necessary to prevent exploitation.</p>
+<h3 id="cryptographic-vulnerabilities-in-lorawan">Cryptographic
+Vulnerabilities in LoRaWAN</h3>
+<p>LoRaWAN relies on AES-128 symmetric encryption to ensure
+confidentiality, integrity, and authenticity across the radio layer.
+Cryptographic attacks against the protocol rarely target the AES
+algorithm itself; instead, they target implementation flaws, key
+derivation mechanics, and key storage.</p>
+<h4 id="1-insecure-root-key-storage-and-hardcoding">1. Insecure Root Key
+Storage and Hardcoding</h4>
+<p>In Over-The-Air Activation (OTAA), devices utilize a pre-shared root
+key (<code>AppKey</code> in LoRaWAN 1.0; <code>AppKey</code> and
+<code>NwkKey</code> in LoRaWAN 1.1) to derive operational session keys
+(<code>NwkSKey</code> and <code>AppSKey</code>).</p>
+<ul>
+<li><strong>Firmware Extraction:</strong> Hardware hackers frequently
+extract unencrypted firmware via debugging interfaces (JTAG, SWD) or
+direct SPI flash dumping to recover static <code>AppKey</code>
+values.</li>
+<li><strong>Mass Key Reuse:</strong> Manufacturers often hardcode the
+same default root key across entire batches of devices. Compromising a
+single node allows an attacker to decrypt traffic, forge packets, and
+hijack sessions across all co-manufactured devices in that network.</li>
+</ul>
+<h4 id="2-aes-ctr-keystream-reuse">2. AES-CTR Keystream Reuse</h4>
+<p>LoRaWAN encrypts payload data using AES in Counter (CTR) mode.
+AES-CTR security relies entirely on never reusing the same key and
+initialization vector (IV) combination.</p>
+<ul>
+<li>If a device reuses a Frame Counter (<code>FCnt</code>) value with
+the same session key (<code>AppSKey</code>), the keystream repeats.</li>
+<li>An attacker capturing two ciphertexts generated with identical
+counter values can perform a standard XOR operation (<span
+class="math inline">\(C_1 \oplus C_2 = P_1 \oplus P_2\)</span>) to
+remove the keystream, allowing cleartext recovery via frequency analysis
+or known-plaintext attacks.</li>
+</ul>
+<h4 id="3-weak-pseudo-random-number-generators-prng">3. Weak
+Pseudo-Random Number Generators (PRNG)</h4>
+<p>During the OTAA handshake, the device sends a <code>DevNonce</code>
+(a pseudo-random or incrementing value) to prevent replay of the join
+procedure:</p>
+<ul>
+<li>Many microcontrollers run on low-power architectures lacking
+hardware-based True Random Number Generators (TRNGs).</li>
+<li>Predictable or repeated <code>DevNonce</code> generation allows an
+attacker to predict session keys or force the Network Server to drop
+legitimate join attempts, causing permanent denial-of-service
+(DoS).</li>
+</ul>
+<h4 id="4-activation-by-personalization-abp-insecurities">4. Activation
+By Personalization (ABP) Insecurities</h4>
+<p>Devices configured with ABP bypass the join handshake entirely; their
+session keys (<code>NwkSKey</code>, <code>AppSKey</code>) and device
+address (<code>DevAddr</code>) are statically programmed:</p>
+<ul>
+<li>ABP keys are rarely rotated and often remain active for the
+operational lifetime of the device (often 5 to 10 years).</li>
+<li>Because keys are immutable across power cycles, any exposure of
+physical memory yields permanent access to all historical and future
+network traffic.</li>
+</ul>
+<hr />
+<h3 id="replay-vulnerabilities-and-message-manipulation">Replay
+Vulnerabilities and Message Manipulation</h3>
+<p>Replay attacks involve intercepting valid LoRaWAN radio transmissions
+and retransmitting them at a later time to trigger unintended actions or
+desynchronize security state machines.</p>
+<h4 id="1-frame-counter-fcnt-reset-attacks">1. Frame Counter (FCnt)
+Reset Attacks</h4>
+<p>LoRaWAN uses two dedicated frame counters for uplink
+(<code>FCntUp</code>) and downlink (<code>FCntDown</code>) to defeat
+replay attacks. The receiving entity discards any frame whose counter is
+equal to or lower than the last successfully verified counter.</p>
+<ul>
+<li><strong>The Volatile Memory Flaw:</strong> Low-cost IoT
+microcontrollers frequently store <code>FCntUp</code> only in volatile
+RAM to preserve flash/EEPROM write cycles. When power cycles or a
+brownout occurs, <code>FCntUp</code> resets to zero.</li>
+<li><strong>Replay Exploitation:</strong> If the Network Server permits
+counter resets without a new OTAA exchange (a common configuration to
+maintain connectivity with malfunctioning nodes), an attacker can
+capture previous valid transmissions (e.g., "valve opened", "door
+unlocked") and replay them after the target reboots.</li>
+<li><strong>Counter Desynchronization (DoS):</strong> An attacker can
+capture and hold a valid high-counter frame, wait until the device lags
+behind, and inject the advanced counter frame. Once the Network Server
+accepts the higher counter, it will drop all subsequent legitimate
+frames from the node until the node's internal counter catches up.</li>
+</ul>
+<h4 id="2-join-request-replay-and-relay-attacks">2. Join-Request Replay
+and Relay Attacks</h4>
+<p>In LoRaWAN 1.0.x implementations, Join-Request frames lack
+session-bound context:</p>
+<ul>
+<li><strong>Join-Request Flooding:</strong> An attacker can capture a
+transmitted Join-Request and replay it to the Network Server. If the
+<code>DevNonce</code> handling implementation does not maintain an
+exhaustive lookup table, the server may process the request,
+invalidating the node's current active session keys and disconnecting it
+from the network.</li>
+<li><strong>Eavesdropping on Join-Accept:</strong> Because Join-Accept
+frames are encrypted with the static root key, attackers executing a
+man-in-the-middle (MitM) relay can delay or manipulate the exchange,
+preventing the legitimate device from establishing functional uplink
+channels.</li>
+</ul>
+<h4 id="3-downlink-ack-and-command-spoofing">3. Downlink ACK and Command
+Spoofing</h4>
+<p>While uplinks are cryptographically authenticated using a Message
+Integrity Code (MIC) calculated with the <code>NwkSKey</code>, poorly
+configured networks fail to enforce downlink MIC verification on the
+device side:</p>
+<ul>
+<li>Attackers can replay captured downlink acknowledgments
+(<code>ACK</code>) or MAC-layer commands to force target devices into
+lower data rates, excessive transmission power, or incorrect channel
+usage, rapidly depleting node batteries or silencing alarms.</li>
+</ul>
+<hr />
+<h3 id="lorawan-10-vs-lorawan-11-cryptographic-comparison">LoRaWAN 1.0
+vs. LoRaWAN 1.1 Cryptographic Comparison</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Security Feature</th>
+<th style="text-align: left;">LoRaWAN 1.0.x</th>
+<th style="text-align: left;">LoRaWAN 1.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Root Keys</strong></td>
+<td style="text-align: left;">Single <code>AppKey</code> for all session
+derivations.</td>
+<td style="text-align: left;">Separated <code>AppKey</code>
+(application) and <code>NwkKey</code> (network).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Session Keys</strong></td>
+<td style="text-align: left;">Single <code>NwkSKey</code> handles both
+MAC commands and integrity.</td>
+<td style="text-align: left;">Split into <code>FNwkSIntKey</code>,
+<code>SNwkSIntKey</code>, and <code>NwkSEncKey</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>DevNonce Handling</strong></td>
+<td style="text-align: left;">Pseudo-random; history tracking often
+truncated.</td>
+<td style="text-align: left;">Strictly incrementing counter; replayed
+nonces systematically rejected.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Downlink Counters</strong></td>
+<td style="text-align: left;">Single counter shared for application and
+network frames.</td>
+<td style="text-align: left;">Split counters for network downlinks and
+application downlinks.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Replay Defense</strong></td>
+<td style="text-align: left;">Prone to ABP power-cycle replay and Join
+desynchronization.</td>
+<td style="text-align: left;">Hardened against replay and relay across
+all join procedures.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="hardening-against-exploitation">Hardening Against
+Exploitation</h3>
+<p>Mitigating these vulnerabilities requires enforcing rigorous
+cryptographic lifecycle practices during both firmware development and
+network configuration:</p>
+<ol type="1">
+<li><strong>Migrate to LoRaWAN 1.1:</strong> Decouple application
+confidentiality from network integrity by utilizing separate root and
+session keys, which prevents network operators from viewing end-user
+payload data and prevents cross-layer cryptographic reuse.</li>
+<li><strong>Implement Secure Elements:</strong> Store root keys inside
+hardware-hardened cryptographic coprocessors (e.g., ATECC608A) with
+physical tamper resistance to prevent firmware-extraction attacks.</li>
+<li><strong>Persist Frame Counters:</strong> Use non-volatile memory
+(such as high-endurance FRAM or dedicated EEPROM wear-leveling
+algorithms) to ensure <code>FCntUp</code> values survive reboots without
+requiring full session resets.</li>
+<li><strong>Enforce OTAA Exclusively:</strong> Deprecate ABP mode in
+production environments. Ensure the network server strictly validates
+monotonic <code>DevNonce</code> progressions and enforces session key
+termination upon each re-association.</li>
+</ol></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

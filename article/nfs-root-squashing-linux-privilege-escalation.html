@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFS Root Squashing Linux Privilege Escalation - hacking</title>
+    <meta name="description" content="Network File System (NFS) misconfigurations represent a common and dangerous vector for local privilege escalation in Linux environments. This article examines how the norootsquash directive bypasses standard access controls, allows an attacker with root">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/nfs-root-squashing-linux-privilege-escalation">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="NFS Root Squashing Linux Privilege Escalation - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/nfs-root-squashing-linux-privilege-escalation" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Network File System (NFS) misconfigurations represent a common and dangerous vector for local privilege escalation in Linux environments. This article examines how the norootsquash directive bypasses standard access controls, allows an attacker with root" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="nfs-root-squashing-linux-privilege-escalation">NFS Root
+Squashing Linux Privilege Escalation</h1>
+<p>Network File System (NFS) misconfigurations represent a common and
+dangerous vector for local privilege escalation in Linux environments.
+This article examines how the <code>no_root_squash</code> directive
+bypasses standard access controls, allows an attacker with root access
+on a remote machine to create setuid (SUID) binaries on a shared network
+drive, and ultimately grants full root execution rights on the target
+host.</p>
+<h2 id="understanding-root-squashing">Understanding Root Squashing</h2>
+<p>By default, NFS implements an access control mechanism known as root
+squashing (<code>root_squash</code>). When a client connects to an NFS
+export as the <code>root</code> user (UID 0) and attempts to write or
+modify files, the NFS server automatically maps (squashes) the request
+to an unprivileged account, typically <code>nobody</code> or
+<code>nfsnobody</code> (UID 65534). This design ensures that even if an
+attacker gains root privileges on a client machine, they cannot make
+root-level modifications to the files hosted on the central NFS
+server.</p>
+<p>The vulnerability arises when an administrator explicitly disables
+this protection in <code>/etc/exports</code> by defining the
+<code>no_root_squash</code> option:</p>
+<pre class="text"><code>/shared/folder *(rw,sync,no_root_squash)</code></pre>
+<p>With <code>no_root_squash</code> enabled, any client connecting with
+UID 0 retains full root authority over files created on the share,
+meaning files written by the remote root user are stored on the server
+as belonging to UID 0.</p>
+<h2 id="the-exploitation-process">The Exploitation Process</h2>
+<p>Exploiting this misconfiguration requires low-privilege access on the
+target machine and the ability to mount the target's NFS share from an
+external system where the attacker controls the root account (such as an
+attacker-controlled laptop or VM).</p>
+<h3 id="1-identifying-the-vulnerability">1. Identifying the
+Vulnerability</h3>
+<p>On the target system, an attacker inspects <code>/etc/exports</code>
+or uses the <code>showmount</code> utility to identify exported
+directories:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">showmount</span> <span class="at">-e</span> <span class="op">&lt;</span>target_ip<span class="op">&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /etc/exports</span></code></pre></div>
+<p>If an export displays the <code>no_root_squash</code> flag alongside
+read-write permissions (<code>rw</code>), the configuration is
+vulnerable.</p>
+<h3 id="2-mounting-the-export-remotely">2. Mounting the Export
+Remotely</h3>
+<p>From their own machine, where they possess full root access, the
+attacker mounts the vulnerable NFS share:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkdir /mnt/nfs_exploit</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-t</span> nfs <span class="op">&lt;</span>target_ip<span class="op">&gt;</span>:/shared/folder /mnt/nfs_exploit</span></code></pre></div>
+<h3 id="3-creating-a-suid-binary">3. Creating a SUID Binary</h3>
+<p>Because <code>no_root_squash</code> is enabled, any file the attacker
+writes to <code>/mnt/nfs_exploit</code> as root maintains root ownership
+on the remote NFS server.</p>
+<p>The attacker can compile a simple C wrapper or copy
+<code>/bin/bash</code> directly into the mounted directory and set the
+SUID (Set Owner User ID up on execution) permission bit:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> /bin/bash /mnt/nfs_exploit/rootbash</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +xs /mnt/nfs_exploit/rootbash</span></code></pre></div>
+<p>The <code>+s</code> flag ensures that whenever <code>rootbash</code>
+executes, it runs with the permissions of the file owner (which is UID 0
+/ root).</p>
+<h3 id="4-executing-the-binary-on-the-target">4. Executing the Binary on
+the Target</h3>
+<p>The attacker returns to their low-privileged session on the target
+machine, navigates to the shared folder, and runs the binary:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /shared/folder</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./rootbash</span> <span class="at">-p</span></span></code></pre></div>
+<p>The <code>-p</code> flag instructs bash to retain inherited SUID root
+permissions rather than dropping them. The resulting shell provides
+effective root privileges (<code>euid=0</code>), completing the
+privilege escalation.</p>
+<h2 id="remediation">Remediation</h2>
+<p>To eliminate this vulnerability, administrators should apply the
+following configurations:</p>
+<ul>
+<li><strong>Enforce <code>root_squash</code></strong>: Ensure all NFS
+shares in <code>/etc/exports</code> use <code>root_squash</code> (or
+omit the directive, as it is the default setting).</li>
+<li><strong>Restrict Mount Options</strong>: On systems mounting NFS
+shares, add the <code>nosuid</code> option to <code>/etc/fstab</code>.
+This prevents binaries stored on the NFS mount from executing with
+elevated SUID privileges.</li>
+<li><strong>Restrict Network Access</strong>: Limit NFS access to
+specific, trusted IP addresses instead of using wildcards
+(<code>*</code>) in <code>/etc/exports</code>.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

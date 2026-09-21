@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XPath Injection Attacks on Backend XML Databases - hacking</title>
+    <meta name="description" content="XPath injection occurs when an application incorporates untrusted user input directly into an XML Path Language (XPath) query, enabling attackers to alter the query's logic and structure. Unlike traditional relational database attacks that rely on SQL sy">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/x-path-injection-attacks-on-backend-xml-databases">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="XPath Injection Attacks on Backend XML Databases - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/x-path-injection-attacks-on-backend-xml-databases" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="XPath injection occurs when an application incorporates untrusted user input directly into an XML Path Language (XPath) query, enabling attackers to alter the query's logic and structure. Unlike traditional relational database attacks that rely on SQL sy" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="xpath-injection-attacks-on-backend-xml-databases">XPath
+Injection Attacks on Backend XML Databases</h1>
+<p>XPath injection occurs when an application incorporates untrusted
+user input directly into an XML Path Language (XPath) query, enabling
+attackers to alter the query's logic and structure. Unlike traditional
+relational database attacks that rely on SQL syntax, XPath injection
+targets XML databases and documents to bypass authentication, expose
+sensitive data, or traverse hierarchical document trees. This article
+breaks down how XPath injection operates independently of SQL, the
+methods attackers use to manipulate XML queries, and standard mitigation
+practices to secure backend XML stores.</p>
+<h3 id="understanding-xpath-and-xml-databases">Understanding XPath and
+XML Databases</h3>
+<p>XML databases store structured data in hierarchically organized XML
+documents rather than relational tables. To search, navigate, and
+retrieve specific elements or attributes from these documents,
+applications use XPath, a syntax for addressing parts of an XML
+document.</p>
+<p>When an application builds an XPath query dynamically via string
+concatenation using unvalidated user input, it introduces a
+vulnerability analogous to SQL injection. However, because the
+underlying engine parses XML nodes rather than relational tables, the
+attack syntax, logic, and impact rely purely on XML structures.</p>
+<h3 id="the-mechanics-of-an-xpath-injection-attack">The Mechanics of an
+XPath Injection Attack</h3>
+<p>An application typically uses XPath to locate a specific node. For
+example, a user login query might look like this:</p>
+<pre class="xpath"><code>//Users/User[Username/text()=&#39;USER_INPUT&#39; and Password/text()=&#39;USER_INPUT&#39;]</code></pre>
+<p>In standard execution, the query checks whether an element exists
+with matching username and password nodes. If an attacker inputs
+<code>' or '1'='1</code> into the username field, the query resolves
+to:</p>
+<pre class="xpath"><code>//Users/User[Username/text()=&#39;&#39; or &#39;1&#39;=&#39;1&#39; and Password/text()=&#39;...&#39;]</code></pre>
+<p>Because <code>'1'='1'</code> evaluates to true, the condition
+succeeds regardless of the password provided, returning the first
+matching user node (often an administrator) and granting unauthorized
+access.</p>
+<h3 id="extracting-backend-data-without-sql">Extracting Backend Data
+Without SQL</h3>
+<p>Because XML lacks SQL-specific commands like
+<code>UNION SELECT</code> or <code>DROP TABLE</code>, attackers rely on
+XPath operators and functions to extract information:</p>
+<ol type="1">
+<li><strong>Hierarchy Traversal</strong>: By injecting wildcard
+characters and step operators, attackers can navigate outside the
+intended node. An input such as <code>'] | //* | //node['</code> can
+force the query to return all nodes in the entire XML document rather
+than just a specific record.</li>
+<li><strong>Blind XPath Extraction</strong>: When queries do not display
+data directly on the screen, attackers use boolean-based inference. By
+combining logical operators with XPath functions like
+<code>string-length()</code> and <code>substring()</code>, an attacker
+can extract data character by character:
+<pre class="xpath"><code>&#39; or substring(//User[1]/Password, 1, 1) = &#39;a&#39; and &#39;1&#39;=&#39;1</code></pre>
+If the application responds positively (e.g., "User exists"), the
+attacker confirms the first character of the password is "a".</li>
+<li><strong>Exposing Document Schemas</strong>: Attackers can use
+functions like <code>name()</code> to reconstruct node names and uncover
+the underlying schema of the XML store:
+<pre class="xpath"><code>&#39; or substring(name(/*[1]), 1, 1) = &#39;U&#39; and &#39;1&#39;=&#39;1</code></pre></li>
+</ol>
+<h3 id="key-differences-between-xpath-and-sql-injection">Key Differences
+Between XPath and SQL Injection</h3>
+<ul>
+<li><strong>No Comment Operators</strong>: Standard XPath 1.0 does not
+support comment syntax (such as <code>--</code> or <code>/* */</code>
+found in SQL). Attackers must craft their payloads so that the resulting
+expression remains syntactically balanced and valid from start to
+finish.</li>
+<li><strong>No Out-of-the-Box Privilege Separation</strong>: In SQL
+databases, permissions can often be set at the column or table level. In
+XML databases, permissions are often binary (access to the document or
+not). If an attacker injects into a query reading an XML document, they
+frequently gain visibility into all data within that file.</li>
+<li><strong>Lack of Direct Command Execution</strong>: SQL engines
+sometimes provide functions for command execution (such as
+<code>xp_cmdshell</code>). Standard XPath engines are strictly query
+tools, restricting damage primarily to information disclosure,
+authentication bypass, and denial of service via CPU-heavy recursive
+queries.</li>
+</ul>
+<h3 id="securing-applications-against-xpath-injection">Securing
+Applications Against XPath Injection</h3>
+<ul>
+<li><strong>Use Parameterized Queries</strong>: Where supported, use
+precompiled queries or parameterized XQuery variables to ensure that
+user inputs are treated strictly as literal values rather than
+executable code.</li>
+<li><strong>Input Validation</strong>: Implement strict allowlisting for
+any input incorporated into XML queries, restricting characters to
+expected sets (e.g., alphanumeric only).</li>
+<li><strong>Escape Input Strings</strong>: If parameterization is
+unavailable, escape critical characters such as single quotes
+(<code>'</code>), double quotes (<code>"</code>), slashes
+(<code>/</code>), brackets (<code>[]</code>), and operators before
+passing data to the XPath interpreter.</li>
+<li><strong>Principle of Least Privilege</strong>: Partition XML data
+across separate files so that sensitive records (e.g., credentials) are
+not stored in the same documents as publicly queried data.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

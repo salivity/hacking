@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux OverlayFS Vulnerabilities and Container Breakouts - hacking</title>
+    <meta name="description" content="Linux OverlayFS is a union mount filesystem widely used by container runtimes to combine read-only base images with a writable upper layer. While efficient, structural oversights in how OverlayFS handles file capabilities, extended attributes, and user n">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/linux-overlay-fs-vulnerabilities-and-container-breakouts">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Linux OverlayFS Vulnerabilities and Container Breakouts - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/linux-overlay-fs-vulnerabilities-and-container-breakouts" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Linux OverlayFS is a union mount filesystem widely used by container runtimes to combine read-only base images with a writable upper layer. While efficient, structural oversights in how OverlayFS handles file capabilities, extended attributes, and user n" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="linux-overlayfs-vulnerabilities-and-container-breakouts">Linux
+OverlayFS Vulnerabilities and Container Breakouts</h1>
+<p>Linux OverlayFS is a union mount filesystem widely used by container
+runtimes to combine read-only base images with a writable upper layer.
+While efficient, structural oversights in how OverlayFS handles file
+capabilities, extended attributes, and user namespace boundaries have
+repeatedly introduced severe local privilege escalation (LPE)
+vulnerabilities. Attackers inside a container can exploit these
+oversights to manipulate lower-layer files, bypass normal capability
+restrictions, and ultimately execute arbitrary code on the underlying
+host kernel.</p>
+<h3 id="the-architecture-of-overlayfs-in-containers">The Architecture of
+OverlayFS in Containers</h3>
+<p>OverlayFS presents multiple directory trees as a single merged view.
+In standard container engines like Docker and Podman:</p>
+<ul>
+<li><strong>Lower Directory (<code>lowerdir</code>):</strong> The
+immutable, read-only base layers of the container image.</li>
+<li><strong>Upper Directory (<code>upperdir</code>):</strong> The
+writable layer where runtime file changes, additions, and deletions are
+recorded.</li>
+<li><strong>Work Directory (<code>workdir</code>):</strong> An internal
+staging area used for atomic file operations.</li>
+<li><strong>Merged View:</strong> The unified filesystem presented
+inside the container environment.</li>
+</ul>
+<p>When an existing file from the <code>lowerdir</code> is modified,
+OverlayFS performs a "copy-up" operation, duplicating the file into the
+<code>upperdir</code> before applying changes.</p>
+<h3 id="primary-security-oversights-allowing-breakouts">Primary Security
+Oversights Allowing Breakouts</h3>
+<p>Local breakouts involving OverlayFS typically stem from the
+intersection of filesystem operations and Linux user namespaces
+(<code>userns</code>). The primary technical oversights include:</p>
+<h4
+id="1-flawed-copy-up-handling-of-extended-attributes-and-capabilities">1.
+Flawed Copy-Up Handling of Extended Attributes and Capabilities</h4>
+<p>Under normal Linux security models, unprivileged users cannot write
+arbitrary file capabilities (such as <code>CAP_SETUID</code> via the
+<code>security.capability</code> extended attribute) to files on the
+host filesystem. However, several vulnerabilities (such as CVE-2021-3493
+and CVE-2023-0386) occurred because OverlayFS failed to sanitize or
+validate extended attributes during copy-up routines.</p>
+<p>When an unprivileged user inside a user namespace mounts OverlayFS,
+they have root-equivalent access (<code>CAP_SYS_ADMIN</code>) within
+that confined namespace. When OverlayFS copies up a file from a shared
+or unprivileged mount, it historically relied on the kernel's core
+execution context rather than the caller's restricted namespace context.
+This allowed attackers to attach host-actionable SUID bits or
+<code>security.capability</code> flags to a binary in the writable
+layer.</p>
+<h4 id="2-misaligned-vfs-and-inode-permission-checks">2. Misaligned VFS
+and Inode Permission Checks</h4>
+<p>OverlayFS acts as a shim over the underlying filesystems (such as
+ext4 or XFS). A recurring design challenge in the Linux Virtual
+Filesystem (VFS) layer is determining which inode's credentials to
+evaluate: the overlay inode or the backing lower/upper filesystem's real
+inode.</p>
+<p>In vulnerabilities such as CVE-2023-2640 (dubbed "GameOver(lay)"),
+Ubuntu-specific modifications to OverlayFS bypassed checks that stripped
+capabilities when transferring files across mount namespaces. The kernel
+evaluated permissions against the overlay wrapper rather than the real
+inode, tricking the host kernel into recognizing untrusted file
+capabilities as valid.</p>
+<h4 id="3-insecure-mount-privilege-grants-in-user-namespaces">3.
+Insecure Mount Privilege Grants in User Namespaces</h4>
+<p>Linux allows unprivileged users to create user namespaces and
+subsequently mount certain filesystems. While OverlayFS originally
+required global <code>CAP_SYS_ADMIN</code> privileges to be mounted,
+various distributions patched their kernels to allow unprivileged user
+namespaces to mount OverlayFS to support rootless containers.</p>
+<p>This exposure allowed untrusted local users inside a container to
+construct arbitrary OverlayFS mounts. By configuring overlapping mounts
+between low-privilege container directories and accessible host-shared
+paths, attackers could trick OverlayFS into treating attacker-controlled
+files as legitimate system libraries or binaries.</p>
+<h3 id="the-container-breakout-execution-path">The Container Breakout
+Execution Path</h3>
+<p>An attacker typically chains these oversights through the following
+sequence:</p>
+<ol type="1">
+<li><strong>Namespace Establishment:</strong> The attacker gains
+execution inside a container. If running as a non-root user, they
+unshare a new user and mount namespace, granting themselves
+namespace-level root privileges.</li>
+<li><strong>Mount Manipulation:</strong> The attacker creates an
+OverlayFS mount, pointing the <code>lowerdir</code> to a base filesystem
+containing a target executable and the <code>upperdir</code> to an
+attacker-controlled writable directory.</li>
+<li><strong>Capability Injection:</strong> The attacker triggers a
+copy-up event while injecting elevated capability metadata (such as
+<code>setuid</code> or full capability masks) into the file via raw
+extended attribute manipulation.</li>
+<li><strong>Host Execution:</strong> Because the upper directory is
+written directly to the host's underlying storage backing the container,
+the crafted binary now resides on disk with real, valid host
+privileges.</li>
+<li><strong>Privilege Attainment:</strong> The attacker executes the
+modified binary outside the user namespace boundary—either through an
+existing shared volume, by triggering a host daemon, or via direct
+execution if runtime boundaries allow—spawning a root shell directly on
+the host.</li>
+</ol>
+<h3 id="mitigations">Mitigations</h3>
+<p>Mitigating OverlayFS-based breakouts requires layered defensive
+controls:</p>
+<ul>
+<li><strong>Kernel Patching:</strong> Keep the host kernel updated to
+ensure fixes for OverlayFS copy-up logic and VFS attribute sanitization
+are active.</li>
+<li><strong>Restricting User Namespaces:</strong> Disable unprivileged
+user namespace creation by setting
+<code>sysctl -w kernel.unprivileged_userns_clone=0</code> or
+<code>user.max_user_namespaces=0</code> where rootless containerization
+is not strictly required.</li>
+<li><strong>Mount Flags:</strong> Ensure container storage partitions
+are mounted with the <code>nosuid</code> and <code>nodev</code> flags,
+preventing the execution of SUID binaries even if an attacker
+successfully crafts them in an <code>upperdir</code>.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>
