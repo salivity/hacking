@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless Persistence: Backdoors in AWS Lambda - hacking</title>
+    <meta name="description" content="Serverless architectures like AWS Lambda are designed to be ephemeral, stateless, and short-lived, presenting unique challenges for traditional cyber persistence techniques. However, adversaries exploit specific cloud configurations, execution lifecycles">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/serverless-persistence-backdoors-in-aws-lambda">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Serverless Persistence: Backdoors in AWS Lambda - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/serverless-persistence-backdoors-in-aws-lambda" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Serverless architectures like AWS Lambda are designed to be ephemeral, stateless, and short-lived, presenting unique challenges for traditional cyber persistence techniques. However, adversaries exploit specific cloud configurations, execution lifecycles" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="serverless-persistence-backdoors-in-aws-lambda">Serverless
+Persistence: Backdoors in AWS Lambda</h1>
+<p>Serverless architectures like AWS Lambda are designed to be
+ephemeral, stateless, and short-lived, presenting unique challenges for
+traditional cyber persistence techniques. However, adversaries exploit
+specific cloud configurations, execution lifecycles, and deployment
+pipelines to establish long-term, stealthy footholds. This article
+examines the primary vectors attackers use to achieve persistence within
+serverless environments and how security teams can identify and mitigate
+these architectural risks.</p>
+<h2 id="understanding-serverless-ephemerality">Understanding Serverless
+Ephemerality</h2>
+<p>AWS Lambda executes functions within transient micro-virtual
+machines. While an execution environment terminates after periods of
+inactivity, the underlying infrastructure relies on persistent
+configurations, layers, and automation triggers. Attackers shift their
+focus from maintaining continuous shell access to exploiting
+control-plane configurations, pipeline dependencies, and execution state
+reuse.</p>
+<h2 id="primary-persistence-vectors">Primary Persistence Vectors</h2>
+<h3 id="1-lambda-layer-tampering">1. Lambda Layer Tampering</h3>
+<p>Lambda Layers allow functions to share code, libraries, and custom
+runtimes across multiple accounts or functions.</p>
+<ul>
+<li><strong>Mechanism:</strong> If an attacker obtains administrative
+access or compromises credentials with
+<code>lambda:UpdateFunctionConfiguration</code> permissions, they can
+attach a rogue Lambda layer.</li>
+<li><strong>Impact:</strong> The code within the layer runs
+automatically whenever the function is invoked. This permits traffic
+redirection, credential interception, or out-of-band data exfiltration
+on every invocation without modifying the core function code
+directly.</li>
+</ul>
+<h3 id="2-runtime-wrapper-scripts-aws_lambda_exec_wrapper">2. Runtime
+Wrapper Scripts (<code>AWS_LAMBDA_EXEC_WRAPPER</code>)</h3>
+<p>AWS Lambda supports the <code>AWS_LAMBDA_EXEC_WRAPPER</code>
+environment variable, which enables developers to inject wrappers around
+the standard runtime initialization.</p>
+<ul>
+<li><strong>Mechanism:</strong> An adversary modifying environment
+variables can point this variable to an arbitrary script stored in
+<code>/opt</code> (via a layer) or <code>/tmp</code>.</li>
+<li><strong>Impact:</strong> The custom wrapper executes before the
+standard function handler runs, allowing arbitrary execution control,
+environment variable dumping, or runtime hooking every time the
+container initializes.</li>
+</ul>
+<h3 id="3-cicd-and-container-registry-poisoning">3. CI/CD and Container
+Registry Poisoning</h3>
+<p>Modern Lambda functions frequently deploy directly from Amazon
+Elastic Container Registry (ECR) images or source repositories.</p>
+<ul>
+<li><strong>Mechanism:</strong> Adversaries targeting the build pipeline
+can inject backdoors into base Docker images or dependency trees (e.g.,
+malicious npm or Python packages).</li>
+<li><strong>Impact:</strong> Every subsequent deployment pulls the
+compromised container image or code package, automatically reinstating
+the backdoor even if the active function instances are destroyed.</li>
+</ul>
+<h3 id="4-exploiting-warm-container-state-reuse">4. Exploiting "Warm"
+Container State Reuse</h3>
+<p>While Lambda containers are ephemeral, they often persist across
+multiple invocations to minimize "cold start" latency.</p>
+<ul>
+<li><strong>Mechanism:</strong> Code running outside the main event
+handler (in the global initialization scope) or files written to the
+<code>/tmp</code> directory remain accessible between invocations on the
+same instance.</li>
+<li><strong>Impact:</strong> Attackers who achieve code execution during
+one request can leave payloads in memory or <code>/tmp</code>, modifying
+behavior for subsequent invocations processed by the same container
+until AWS reaps the instance.</li>
+</ul>
+<h3 id="5-event-driven-trigger-hijacking">5. Event-Driven Trigger
+Hijacking</h3>
+<p>Adversaries can ensure recurring execution by binding functions to
+high-frequency cloud events.</p>
+<ul>
+<li><strong>Mechanism:</strong> By creating or altering Amazon
+EventBridge rules, Amazon S3 bucket notifications, or DynamoDB Streams,
+attackers link the backdoored function to routine operational
+workflows.</li>
+<li><strong>Impact:</strong> The function runs autonomously on a
+predictable schedule, continually executing background tasks, collecting
+refreshed IAM session tokens, or pinging external endpoints.</li>
+</ul>
+<h2 id="defensive-strategies-and-mitigations">Defensive Strategies and
+Mitigations</h2>
+<ul>
+<li><strong>Code and Layer Integrity:</strong> Implement AWS Signer to
+enforce code signing for Lambda functions, ensuring functions only
+execute verified packages and approved layers.</li>
+<li><strong>Strict Least Privilege:</strong> Restrict permissions such
+as <code>lambda:UpdateFunctionConfiguration</code>,
+<code>lambda:UpdateFunctionCode</code>, and
+<code>lambda:PublishLayerVersion</code> via IAM policies and Service
+Control Policies (SCPs).</li>
+<li><strong>Immutable Infrastructure:</strong> Monitor and alert on
+manual changes to function configurations or environment variables via
+AWS CloudTrail, enforcing all updates strictly through automated,
+audited Infrastructure as Code (IaC).</li>
+<li><strong>Pipeline Security:</strong> Conduct automated static
+analysis, software composition analysis (SCA), and container image
+scanning within the CI/CD pipeline to catch unauthorized dependencies
+before deployment.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

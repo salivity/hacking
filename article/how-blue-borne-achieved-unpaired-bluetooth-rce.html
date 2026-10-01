@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How BlueBorne Achieved Unpaired Bluetooth RCE - hacking</title>
+    <meta name="description" content="This article details how the BlueBorne vulnerability suite bypassed traditional security boundaries to achieve zero-click Remote Code Execution (RCE) over unpaired Bluetooth connections. Discovered in 2017, BlueBorne exposed fundamental architectural fla">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-blue-borne-achieved-unpaired-bluetooth-rce">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How BlueBorne Achieved Unpaired Bluetooth RCE - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-blue-borne-achieved-unpaired-bluetooth-rce" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article details how the BlueBorne vulnerability suite bypassed traditional security boundaries to achieve zero-click Remote Code Execution (RCE) over unpaired Bluetooth connections. Discovered in 2017, BlueBorne exposed fundamental architectural fla" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-blueborne-achieved-unpaired-bluetooth-rce">How BlueBorne
+Achieved Unpaired Bluetooth RCE</h1>
+<p>This article details how the BlueBorne vulnerability suite bypassed
+traditional security boundaries to achieve zero-click Remote Code
+Execution (RCE) over unpaired Bluetooth connections. Discovered in 2017,
+BlueBorne exposed fundamental architectural flaws in major Bluetooth
+implementations across Android, Linux, Windows, and iOS. By abusing
+pre-authentication protocols such as SDP, L2CAP, and BNEP, attackers
+could inject malicious payloads and gain control of targeted devices
+without requiring user interaction, prior pairing, or discoverable mode
+settings.</p>
+<p>Bluetooth protocol stacks are divided into distinct layers, where
+fundamental connection negotiation must occur before any cryptographic
+pairing, authentication, or user authorization takes place. Operating
+systems listen for link-level requests to establish basic communication
+channels. BlueBorne exploited bugs residing within these early,
+unauthenticated layers, meaning that an attacker only needed the target
+device's Bluetooth to be active and within radio range (approximately 10
+meters) to execute an attack.</p>
+<p>The core mechanism for achieving RCE in Android centered on chaining
+an information leak with a memory corruption vulnerability. Attackers
+first exploited CVE-2017-0785, an information disclosure flaw in the
+Service Discovery Protocol (SDP). By sending crafted SDP requests
+containing malformed size attributes, the SDP server returned memory
+buffers beyond the intended data. This allowed the attacker to leak
+pointers, determine the layout of the device’s memory, and successfully
+defeat Address Space Layout Randomization (ASLR).</p>
+<p>With ASLR bypassed, the attacker leveraged CVE-2017-0781 or
+CVE-2017-0782, vulnerabilities residing in the Bluetooth Network
+Encapsulation Protocol (BNEP). BNEP provides networking capabilities
+over Bluetooth, handling packet forwarding similarly to Ethernet. Due to
+improper input validation and missing bounds checks when parsing control
+messages, an attacker could trigger a heap-based buffer overflow. By
+sending oversized or maliciously structured BNEP packets, the attacker
+overwrote function pointers in the heap memory of the
+<code>com.android.bluetooth</code> process, steering the instruction
+pointer toward their injected shellcode.</p>
+<p>On Linux systems, a similar vector targeted the Linux kernel's
+implementation of the Logical Link Control and Adaptation Protocol
+(L2CAP) via CVE-2017-1000251. The BlueZ stack failed to properly handle
+internal configuration buffers when processing L2CAP configuration
+responses. An attacker could transmit an unexpected, malformed
+configuration request that caused a stack-based buffer overflow directly
+within the kernel space, leading directly to arbitrary kernel-level code
+execution.</p>
+<p>Because the vulnerable services executed within high-privilege system
+daemons or directly inside the OS kernel, successful exploitation
+granted full control over the device. Attackers gained access to system
+resources, filesystem data, network interfaces, and connected
+peripherals—all accomplished silently over the air without prompting a
+pairing request, alerting the user, or leaving traditional network log
+traces.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

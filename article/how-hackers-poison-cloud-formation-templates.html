@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Hackers Poison CloudFormation Templates - hacking</title>
+    <meta name="description" content="Poisoning AWS CloudFormation templates is a high-impact technique where attackers manipulate Infrastructure as Code (IaC) files to deploy persistent backdoors, elevate privileges, and weaken cloud security postures. By compromising source repositories, C">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-hackers-poison-cloud-formation-templates">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Hackers Poison CloudFormation Templates - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-hackers-poison-cloud-formation-templates" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Poisoning AWS CloudFormation templates is a high-impact technique where attackers manipulate Infrastructure as Code (IaC) files to deploy persistent backdoors, elevate privileges, and weaken cloud security postures. By compromising source repositories, C" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-hackers-poison-cloudformation-templates">How Hackers Poison
+CloudFormation Templates</h1>
+<p>Poisoning AWS CloudFormation templates is a high-impact technique
+where attackers manipulate Infrastructure as Code (IaC) files to deploy
+persistent backdoors, elevate privileges, and weaken cloud security
+postures. By compromising source repositories, CI/CD pipelines, or S3
+template stores, adversaries modify the declarative blueprints that
+build an organization's environment. This article outlines the primary
+methods attackers use to weaponize CloudFormation templates to establish
+covert access and compromise cloud deployments.</p>
+<h3
+id="injecting-hidden-iam-privileges-and-cross-account-trusts">Injecting
+Hidden IAM Privileges and Cross-Account Trusts</h3>
+<p>The most common objective of template poisoning is gaining persistent
+administrative control through AWS Identity and Access Management (IAM).
+Attackers modify <code>AWS::IAM::Role</code>,
+<code>AWS::IAM::Policy</code>, or <code>AWS::IAM::User</code>
+definitions within the template:</p>
+<ul>
+<li><strong>Rogue Administrator Roles:</strong> Attackers define new,
+benign-looking IAM roles with overly permissive policies, such as
+attaching the managed <code>AdministratorAccess</code> policy.</li>
+<li><strong>External Trust Relationships:</strong> Attackers configure
+an <code>AssumeRolePolicyDocument</code> that allows an
+attacker-controlled external AWS account to assume an internal role,
+effectively bypassing local authentication mechanisms.</li>
+<li><strong>Shadow Permissions on Existing Roles:</strong> Attackers
+silently append sensitive actions (such as <code>sts:AssumeRole</code>,
+<code>iam:CreateAccessKey</code>, or <code>lambda:InvokeFunction</code>)
+to operational roles used by production services.</li>
+</ul>
+<h3 id="weaponizing-cloudformation-custom-resources">Weaponizing
+CloudFormation Custom Resources</h3>
+<p>Attackers frequently abuse
+<code>AWS::CloudFormation::CustomResource</code> or
+<code>Custom::*</code> types to execute arbitrary code during stack
+creation, update, or deletion:</p>
+<ul>
+<li><strong>Embedded Malicious Lambda Code:</strong> The template
+defines an inline AWS Lambda function associated with a custom resource.
+When the CloudFormation engine runs, it invokes the Lambda function with
+CloudFormation’s deployment-level permissions.</li>
+<li><strong>Out-of-Band Command Execution:</strong> The Lambda function
+can contact an external command-and-control (C2) server, exfiltrate
+deployment environment variables (which often contain API tokens and
+secrets), or create unauthorized persistence hooks outside the scope of
+the managed stack.</li>
+<li><strong>Evasion of Static Scanners:</strong> Because custom resource
+handlers can pull dynamic payloads from external URLs at runtime, static
+template linters may fail to flag the embedded code as malicious.</li>
+</ul>
+<h3 id="modifying-ec2-userdata-and-launch-templates">Modifying EC2
+UserData and Launch Templates</h3>
+<p>When virtual compute resources are defined, attackers manipulate
+instance bootstrapping to inject backdoors directly into operating
+systems:</p>
+<ul>
+<li><strong>Reverse Shells and Rootkits:</strong> Attackers append shell
+commands or PowerShell scripts into the <code>UserData</code> property
+of <code>AWS::EC2::Instance</code> or
+<code>AWS::EC2::LaunchTemplate</code> resources. These scripts execute
+with root/administrator privileges upon instance launch.</li>
+<li><strong>SSH Key Injection:</strong> Attackers inject their own
+public SSH keys into the <code>authorized_keys</code> file of instances
+to guarantee direct, interactive remote access.</li>
+<li><strong>Disabling Security Agents:</strong> UserData scripts can be
+modified to terminate or uninstall host-based endpoint detection and
+response (EDR) agents or cloud logging agents before they
+initialize.</li>
+</ul>
+<h3 id="loosening-security-group-and-network-controls">Loosening
+Security Group and Network Controls</h3>
+<p>Attackers alter network topology definitions to expose private
+services directly to the public internet:</p>
+<ul>
+<li><strong>Ingress Rule Poisoning:</strong> Modifying
+<code>AWS::EC2::SecurityGroup</code> resources to open ports like 22
+(SSH), 3389 (RDP), or database ports (3306, 5432) to
+<code>0.0.0.0/0</code>.</li>
+<li><strong>VPC Route Table Modification:</strong> Altering route tables
+or internet gateway attachments to route traffic from isolated private
+subnets out through a public gateway or compromised transit
+gateway.</li>
+</ul>
+<h3
+id="compromising-nested-stacks-and-external-module-references">Compromising
+Nested Stacks and External Module References</h3>
+<p>Modern enterprise deployments often rely on modular architectures
+using <code>AWS::CloudFormation::Stack</code> to call external
+templates:</p>
+<ul>
+<li><strong>S3 Template Hijacking:</strong> Nested stacks pull templates
+from Amazon S3 buckets. If an attacker gains write permissions to the
+hosting bucket, they can overwrite the referenced child template without
+altering the primary code repository.</li>
+<li><strong>Dependency Manipulation:</strong> Pointing template URLs to
+attacker-controlled S3 buckets or rogue endpoints, forcing the master
+deployment pipeline to fetch and execute untrusted definitions.</li>
+</ul>
+<h3 id="abusing-deletion-policies-for-persistence">Abusing Deletion
+Policies for Persistence</h3>
+<p>To ensure backdoors survive remediation or stack teardowns, attackers
+apply CloudFormation operational attributes:</p>
+<ul>
+<li><strong><code>DeletionPolicy: Retain</code> Manipulation:</strong>
+By appending this attribute to malicious resources (such as rogue IAM
+roles, S3 buckets, or EC2 instances), attackers guarantee that the
+backdoored resources remain active in the AWS account even if an
+administrator attempts to delete or roll back the compromised
+CloudFormation stack.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

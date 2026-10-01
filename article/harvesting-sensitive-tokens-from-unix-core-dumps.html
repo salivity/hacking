@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harvesting Sensitive Tokens from Unix Core Dumps - hacking</title>
+    <meta name="description" content="Harvesting sensitive tokens from core dump files allows an attacker with local access to extract plaintext secrets—such as API keys, cryptographic tokens, and passwords—directly from the preserved memory space of crashed or terminated processes. Beca">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/harvesting-sensitive-tokens-from-unix-core-dumps">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Harvesting Sensitive Tokens from Unix Core Dumps - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/harvesting-sensitive-tokens-from-unix-core-dumps" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Harvesting sensitive tokens from core dump files allows an attacker with local access to extract plaintext secrets—such as API keys, cryptographic tokens, and passwords—directly from the preserved memory space of crashed or terminated processes. Beca" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="harvesting-sensitive-tokens-from-unix-core-dumps">Harvesting
+Sensitive Tokens from Unix Core Dumps</h1>
+<p>Harvesting sensitive tokens from core dump files allows an attacker
+with local access to extract plaintext secrets—such as API keys,
+cryptographic tokens, and passwords—directly from the preserved memory
+space of crashed or terminated processes. Because core dumps capture the
+entire runtime memory state of an application, unencrypted credentials
+that were active in memory become accessible on the filesystem.
+Understanding how this exposure occurs is critical for system
+administrators and developers seeking to harden Unix-like environments
+against local credential discovery and privilege escalation.</p>
+<h3 id="the-mechanics-of-core-dump-generation">The Mechanics of Core
+Dump Generation</h3>
+<p>A core dump is a snapshot of an application's volatile memory (RAM),
+created by the operating system kernel when a process terminates
+unexpectedly due to signals like <code>SIGSEGV</code> (segmentation
+fault) or <code>SIGABRT</code> (abort). The resulting file contains the
+complete state of the process at the exact moment of failure,
+including:</p>
+<ul>
+<li><strong>The Call Stack:</strong> Active function calls, local
+variables, and return addresses.</li>
+<li><strong>The Heap:</strong> Dynamically allocated memory where
+applications often manipulate configuration data, user sessions, and
+network responses.</li>
+<li><strong>Process Environment Variables:</strong> Configurations
+passed at runtime, which frequently contain secrets in cloud-native or
+containerized environments.</li>
+<li><strong>Registers and Memory-Mapped Files:</strong> Ephemeral
+processor states and pointers to system resources.</li>
+</ul>
+<p>If an application handles authentication tokens in plaintext while
+running, those secrets remain present in the process memory space unless
+explicitly scrubbed.</p>
+<h3 id="how-token-harvesting-facilitates-credential-discovery">How Token
+Harvesting Facilitates Credential Discovery</h3>
+<p>When an adversary gains low-privilege access to a Unix host, their
+objective often shifts to credential discovery to enable privilege
+escalation or lateral movement. Core dumps significantly facilitate this
+phase through several mechanisms:</p>
+<h4 id="1-bypassing-encryption-in-transit-and-at-rest">1. Bypassing
+Encryption in Transit and at Rest</h4>
+<p>Modern systems typically enforce strong encryption for data in
+transit (TLS) and data at rest (disk encryption). However, data in use
+must be decrypted in system memory to be processed. Core dumps capture
+this "data in use" state. Once decrypted, credentials persist in memory
+buffers, allowing unauthorized users with read access to the dump to
+bypass protective cryptographic controls entirely.</p>
+<h4 id="2-discovery-of-long-lived-tokens">2. Discovery of Long-Lived
+Tokens</h4>
+<p>Applications frequently cache tokens—such as OAuth bearer tokens,
+database connection strings, SSH private keys, and cloud metadata
+credentials—for the duration of their execution. If a core dump occurs
+while these tokens are cached, the credentials can be extracted and
+reused against other infrastructure components, providing persistent
+access independent of the original compromised process.</p>
+<h4 id="3-low-complexity-extraction">3. Low-Complexity Extraction</h4>
+<p>Extracting tokens from a core file requires minimal operational
+overhead. Attackers can analyze core files offline or locally by
+inspecting the raw binary data. Text patterns, high-entropy strings, and
+known token structures (such as JWTs or vendor-specific API prefixes)
+can be located quickly within the heap or environment variable segments
+without the need for active process manipulation or continuous memory
+monitoring.</p>
+<h4 id="4-shared-or-permissive-storage-locations">4. Shared or
+Permissive Storage Locations</h4>
+<p>Default Unix configurations often place core dumps in standard,
+accessible locations (such as <code>/var/crash</code>,
+<code>/tmp</code>, or the current working directory) with permissions
+inherited from the process umask. If permissions are set permissively,
+users outside the application’s own security group may read the
+resulting core files, leading to an immediate vertical or horizontal
+information disclosure.</p>
+<h3 id="defensive-countermeasures">Defensive Countermeasures</h3>
+<p>Preventing credential harvesting from memory dumps requires controls
+at both the operating system and application layers:</p>
+<ul>
+<li><strong>Disable Unnecessary Core Dumps:</strong> System
+administrators can disable core dump generation globally by setting core
+file limits to zero (<code>ulimit -c 0</code> in shell profiles or
+<code>* hard core 0</code> in
+<code>/etc/security/limits.conf</code>).</li>
+<li><strong>Restricted Kernel Handling:</strong> Modern Linux systems
+allow administrators to restrict core dumps through sysctl parameters,
+such as setting <code>fs.suid_dumpable = 0</code> to prevent setuid
+programs from dumping memory, and configuring strict permissions via
+<code>systemd-coredump</code>.</li>
+<li><strong>Zeroing Sensitive Memory:</strong> Developers should
+overwrite memory buffers containing secrets immediately after use using
+functions designed to prevent compiler optimization, such as
+<code>explicit_bzero()</code> or <code>memset_s()</code>.</li>
+<li><strong>Disabling Dumps Programmatically:</strong> High-security
+applications can programmatically prevent memory dumping on Linux via
+<code>prctl(PR_SET_DUMPABLE, 0)</code> or by marking sensitive memory
+regions with <code>madvise(..., MADV_DONTDUMP)</code>.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

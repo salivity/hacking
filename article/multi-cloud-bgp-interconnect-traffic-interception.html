@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Cloud BGP Interconnect Traffic Interception - hacking</title>
+    <meta name="description" content="Modern enterprise architectures increasingly rely on multi-cloud fabrics linked by Border Gateway Protocol (BGP) routing over direct interconnects like AWS Direct Connect, Azure ExpressRoute, and Google Cloud Interconnect. When attackers gain unauthorize">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/multi-cloud-bgp-interconnect-traffic-interception">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Multi-Cloud BGP Interconnect Traffic Interception - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/multi-cloud-bgp-interconnect-traffic-interception" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Modern enterprise architectures increasingly rely on multi-cloud fabrics linked by Border Gateway Protocol (BGP) routing over direct interconnects like AWS Direct Connect, Azure ExpressRoute, and Google Cloud Interconnect. When attackers gain unauthorize" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="multi-cloud-bgp-interconnect-traffic-interception">Multi-Cloud
+BGP Interconnect Traffic Interception</h1>
+<p>Modern enterprise architectures increasingly rely on multi-cloud
+fabrics linked by Border Gateway Protocol (BGP) routing over direct
+interconnects like AWS Direct Connect, Azure ExpressRoute, and Google
+Cloud Interconnect. When attackers gain unauthorized access to an
+adjacent routing domain, cloud edge router, or partner network, they can
+exploit the inherent trust models of BGP to redirect and intercept
+sensitive inter-cloud data flows. This article examines the primary
+techniques adversaries use to manipulate BGP interconnects across
+multi-cloud environments to achieve man-in-the-middle interception and
+exfiltration.</p>
+<h3
+id="more-specific-prefix-injection-sub-prefix-hijacking">More-Specific
+Prefix Injection (Sub-Prefix Hijacking)</h3>
+<p>The most common method to divert inter-cloud traffic is injecting
+more-specific route announcements. BGP uses the longest-prefix match
+rule to determine the optimal forwarding path. If an enterprise
+advertises a <code>/24</code> network across its multi-cloud backbone,
+an attacker with access to a peering exchange point, partner router, or
+compromised cloud virtual network can advertise two <code>/25</code>
+prefixes covering the identical address space.</p>
+<p>Because <code>/25</code> is more specific than <code>/24</code>, the
+multi-cloud transit gateways and virtual routers will prefer the
+attacker’s route. This pulls cross-cloud workloads through an
+unauthorized transit point where the adversary can sniff or modify
+packets before forwarding them to their genuine destination to prevent
+service interruption.</p>
+<h3 id="bgp-community-attribute-manipulation">BGP Community Attribute
+Manipulation</h3>
+<p>Cloud Service Providers (CSPs) rely heavily on BGP community
+strings—custom metadata attached to route updates—to automate traffic
+engineering, define geographic routing scope, and set local preferences.
+Attackers who compromise edge routers or injection points can
+systematically append or alter these community values.</p>
+<p>By manipulating community tags, adversaries can:</p>
+<ul>
+<li>Prevent legitimate routes from propagating to specific cloud
+regions.</li>
+<li>Elevate the local preference (<code>LOCAL_PREF</code>) of malicious
+routes inside a CSP's internal routing domain.</li>
+<li>Force private interconnect traffic to unexpectedly exit through
+public peering exchanges or third-party colocation data centers where
+lawful or unlawful tapping is easier to execute.</li>
+</ul>
+<h3 id="as-path-prepending-stripping-and-false-path-injection">AS-Path
+Prepending Stripping and False Path Injection</h3>
+<p>BGP natively prefers paths with fewer Autonomous System (AS) hops. In
+legitimate multi-cloud engineering, organizations frequently use AS-path
+prepending to designate one cloud interconnect as primary and another as
+passive/backup.</p>
+<p>An attacker positioned within an interconnect exchange or a
+compromised tenant environment can manipulate the <code>AS_PATH</code>
+attribute by removing prepended AS numbers or injecting false paths. By
+making an unauthorized route appear shorter than the legitimate private
+interconnect route, the attacker forces multi-cloud routers to direct
+high-bandwidth traffic through compromised infrastructure without
+triggering an outright link-down alert.</p>
+<h3
+id="exploitation-of-route-leaks-in-multi-cloud-exchange-fabrics">Exploitation
+of Route Leaks in Multi-Cloud Exchange Fabrics</h3>
+<p>Many organizations interconnect clouds using third-party
+Software-Defined Cloud Interconnect (SDCI) platforms or cloud exchange
+providers (such as Megaport or Equinix Fabric). These exchange fabrics
+frequently aggregate multiple routing domains with complex export and
+import policies.</p>
+<p>Attackers exploit misconfigurations or lack of route-filtering
+hygiene (such as missing <code>max-prefix</code> limits and absent
+import/export route maps) to cause route leaks. By advertising routes
+learned from Cloud Provider A back into Cloud Provider B through an
+unauthorized virtual circuit, the adversary creates an asymmetrical
+transit path. This turns what should have been isolated cloud-to-cloud
+traffic into an exposed path transiting an intermediary autonomous
+system controlled or monitored by the attacker.</p>
+<h3 id="bgp-session-reset-and-failover-exploitation">BGP Session Reset
+and Failover Exploitation</h3>
+<p>If direct route poisoning is blocked by strict filters, attackers can
+execute targeted denial-of-service (DoS) attacks against primary BGP
+peering sessions. Techniques include sending unauthorized TCP RST
+packets to BGP port 179 or exhausting the interface capacity of the
+primary cloud gateway.</p>
+<p>When the primary interconnect session times out (via BGP hold-timer
+expiration), multi-cloud transit gateways automatically fail over to
+secondary or tertiary routes. If the attacker has established a rogue
+peering session or controls the transit path of the backup connection
+(such as an unencrypted public VPN backup), they successfully force
+high-value workloads onto an insecure, easily monitored vector.</p>
+<h3 id="bypassing-incomplete-rpki-validation">Bypassing Incomplete RPKI
+Validation</h3>
+<p>While Resource Public Key Infrastructure (RPKI) and Route Origin
+Authorizations (ROAs) are increasingly deployed across the public
+internet, they are frequently neglected on private cloud interconnects
+and cross-cloud private autonomous systems (e.g., using private ASNs
+from 64512 to 65534).</p>
+<p>Because organizations assume private links are inherently trusted,
+route origin validation is rarely enforced between interconnected
+virtual private clouds (VPCs) or virtual networks (VNets). Attackers
+capitalize on this blind spot by freely originating prefixes belonging
+to internal cloud subnets, knowing that internal BGP speakers will
+accept the forged origin without validating cryptographic
+certificates.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

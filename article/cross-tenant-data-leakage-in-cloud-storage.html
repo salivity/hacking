@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Tenant Data Leakage in Cloud Storage - hacking</title>
+    <meta name="description" content="Multi-tenant cloud architectures rely on logical isolation to separate data belonging to different customers hosted on shared infrastructure. When isolation mechanisms fail, malicious actors can exploit underlying design flaws, configuration errors, and">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/cross-tenant-data-leakage-in-cloud-storage">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cross-Tenant Data Leakage in Cloud Storage - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/cross-tenant-data-leakage-in-cloud-storage" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Multi-tenant cloud architectures rely on logical isolation to separate data belonging to different customers hosted on shared infrastructure. When isolation mechanisms fail, malicious actors can exploit underlying design flaws, configuration errors, and" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="cross-tenant-data-leakage-in-cloud-storage">Cross-Tenant Data
+Leakage in Cloud Storage</h1>
+<p>Multi-tenant cloud architectures rely on logical isolation to
+separate data belonging to different customers hosted on shared
+infrastructure. When isolation mechanisms fail, malicious actors can
+exploit underlying design flaws, configuration errors, and API
+vulnerabilities to cross these virtual boundaries and access
+unauthorized tenant environments. This article examines the primary
+technical vectors through which attackers induce cross-tenant data
+leakage in poorly isolated cloud storage systems.</p>
+<h3
+id="insecure-direct-object-references-idor-and-broken-authorization">Insecure
+Direct Object References (IDOR) and Broken Authorization</h3>
+<p>The most prevalent attack vector involves application-level
+authorization failures. In many multi-tenant storage systems, objects
+are stored in shared buckets or centralized databases where tenant
+segregation relies on an application-level filter rather than native
+storage-level isolation.</p>
+<p>Attackers manipulate identifiers such as tenant IDs, user IDs, or
+direct resource URIs within API requests. If the API endpoint validates
+user authentication but fails to verify that the requesting user's
+tenant matches the resource's assigned tenant, the system returns
+another tenant's objects. This allows a legitimate user of Tenant A to
+enumerate and extract records belonging to Tenant B simply by sequential
+parameter tampering.</p>
+<h3
+id="exploitation-of-shared-identity-and-access-management-iam-roles">Exploitation
+of Shared Identity and Access Management (IAM) Roles</h3>
+<p>In poorly designed architectures, cloud services often rely on a
+shared, overly permissive IAM role or service principal across all
+tenant instances instead of dynamically generated, scoped
+credentials.</p>
+<p>If an attacker achieves remote code execution (RCE) or leverages
+Server-Side Request Forgery (SSRF) within their own tenant environment,
+they can query the cloud instance metadata service (such as AWS IMDS or
+equivalent services in Azure and GCP). If the exposed credentials lack
+fine-grained, tenant-specific policy constraints (such as ABAC or
+dynamic session policies), the attacker inherits blanket read
+permissions over the entire underlying storage bucket or volume,
+exposing all co-located tenant data.</p>
+<h3 id="bypassing-row-level-security-rls-via-injection">Bypassing
+Row-Level Security (RLS) via Injection</h3>
+<p>When multi-tenant architectures utilize a shared database schema,
+tenant segregation is typically enforced via a <code>tenant_id</code>
+column appended to every query or handled by database-native Row-Level
+Security (RLS).</p>
+<p>Attackers exploit SQL or NoSQL injection vulnerabilities to break out
+of these constraints:</p>
+<ul>
+<li><strong>SQL Injection:</strong> By injecting boolean payloads (e.g.,
+<code>' OR '1'='1</code>), an attacker can nullify the
+<code>WHERE tenant_id = ?</code> clause, forcing the query to return
+unfiltered results across all tenants.</li>
+<li><strong>RLS Configuration Flaws:</strong> Flawed database views,
+functions declared with <code>SECURITY DEFINER</code> instead of
+<code>SECURITY INVOKER</code>, or improper handling of superuser roles
+can bypass RLS entirely, allowing queries to bleed into adjacent tenant
+partitions.</li>
+</ul>
+<h3 id="json-web-token-jwt-manipulation-and-context-bleed">JSON Web
+Token (JWT) Manipulation and Context Bleed</h3>
+<p>Cloud APIs frequently use JWTs to carry tenant claims across
+microservices. If validation logic is flawed, attackers can manipulate
+these claims:</p>
+<ul>
+<li><strong>Tenant Claim Tampering:</strong> If a service verifies the
+signature using a globally shared public/private key pair but does not
+validate that the user identity belongs to the specific
+<code>tenant_id</code> contained within the payload, an attacker can
+modify their tenant claim to target another organization.</li>
+<li><strong>Context Bleed in Async Tasks:</strong> In high-concurrency
+microservice architectures, worker nodes and shared connection pools may
+reuse thread contexts or database connections without explicitly
+resetting tenant context variables, causing one tenant's request to read
+or write using the residual authorization state of a previous
+tenant.</li>
+</ul>
+<h3
+id="side-channel-attacks-and-hypervisorcontainer-escapes">Side-Channel
+Attacks and Hypervisor/Container Escapes</h3>
+<p>In architectures where physical storage, memory, or processing nodes
+are tightly coupled, attackers can exploit low-level infrastructure
+weaknesses:</p>
+<ul>
+<li><strong>Container and Sandbox Breakouts:</strong> If an attacker
+compromises a multi-tenant compute layer through a container escape
+vulnerability, they gain root access to the host node. From there, they
+can intercept storage volumes mounted locally or extract ambient cloud
+credentials from memory.</li>
+<li><strong>Cache Poisoning and Shared Memory Leaks:</strong> Flaws in
+shared caching tiers (such as shared Redis or Memcached clusters) can
+lead to key collision vulnerabilities or unauthenticated cache
+poisoning, allowing an attacker to overwrite or read cached data
+structures across tenant partitions.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

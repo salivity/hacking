@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCIe DMA Attacks: Bypassing OS Locks Explained - hacking</title>
+    <meta name="description" content="Direct Memory Access (DMA) attacks using malicious Peripheral Component Interconnect Express (PCIe) expansion cards allow adversaries to completely bypass operating system lock screens by reading and writing to physical memory independently of the centra">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/pc-ie-dma-attacks-bypassing-os-locks-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PCIe DMA Attacks: Bypassing OS Locks Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/pc-ie-dma-attacks-bypassing-os-locks-explained" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Direct Memory Access (DMA) attacks using malicious Peripheral Component Interconnect Express (PCIe) expansion cards allow adversaries to completely bypass operating system lock screens by reading and writing to physical memory independently of the centra" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="pcie-dma-attacks-bypassing-os-locks-explained">PCIe DMA Attacks:
+Bypassing OS Locks Explained</h1>
+<p>Direct Memory Access (DMA) attacks using malicious Peripheral
+Component Interconnect Express (PCIe) expansion cards allow adversaries
+to completely bypass operating system lock screens by reading and
+writing to physical memory independently of the central processing unit
+(CPU). Because the PCIe architecture grants peripherals high-speed
+access directly to system RAM to maximize efficiency, malicious hardware
+can alter kernel memory, patch authentication logic in real time, and
+gain administrative privileges without software intervention. This
+article examines the hardware mechanics of PCIe DMA attacks, how they
+disable operating system locks, and the countermeasures designed to stop
+them.</p>
+<h3 id="the-role-of-pcie-and-direct-memory-access">The Role of PCIe and
+Direct Memory Access</h3>
+<p>In standard computing architectures, PCIe expansion cards—such as
+network adapters, dedicated graphics processing units (GPUs), and
+high-speed storage controllers—require low-latency communication with
+system memory. DMA facilitates this by allowing devices to read and
+write physical RAM without routing requests through the CPU or relying
+on the operating system’s kernel scheduler.</p>
+<p>While this design optimizes data throughput, it historically lacked
+security boundaries. If a peripheral can address physical memory
+directly, it operates beneath the software stack. Hardware hackers
+exploit this architectural trust by using custom-programmed
+field-programmable gate arrays (FPGAs) or compromised commercial cards
+disguised as standard PCIe devices.</p>
+<h3 id="how-malicious-pcie-cards-bypass-the-lock-screen">How Malicious
+PCIe Cards Bypass the Lock Screen</h3>
+<p>When an operating system displays a lock screen, user session data
+remains loaded in system memory, guarded by kernel-level access controls
+and user-mode authentication processes. A software-based bypass must
+overcome these privilege rings (such as Ring 0 for the kernel and Ring 3
+for user applications). A DMA attack sidesteps these barriers through
+the following process:</p>
+<ol type="1">
+<li><strong>Physical Insertion and Enumeration:</strong> The attacker
+inserts a malicious PCIe device directly into an internal slot or
+connects via an external PCIe-capable interface like Thunderbolt. The
+host motherboard enumerates the device, assigning it bus mastering
+capabilities necessary for DMA.</li>
+<li><strong>Scanning Physical Memory:</strong> Using an FPGA flashed
+with custom firmware (often running open-source frameworks like
+PCILeech), the card issues raw read requests across the PCIe bus to scan
+physical memory addresses.</li>
+<li><strong>Locating Authentication Routines:</strong> The attack tool
+searches for known byte sequences (signatures) associated with
+authentication subsystems, such as the Windows Local Security Authority
+Subsystem Service (<code>lsass.exe</code>), the credential verification
+functions in <code>msv1_0.dll</code>, or PAM authentication structures
+on Linux.</li>
+<li><strong>Patching Memory in Place:</strong> Once the target
+instruction or memory flag is located, the PCIe card issues a direct
+write transaction. It modifies the memory location holding the password
+verification logic—such as changing a conditional jump instruction
+(<code>JNE</code> to <code>JE</code>) or zeroing out the status flag
+that tracks failed login attempts.</li>
+<li><strong>Unlocking the Interface:</strong> The attacker presses Enter
+or enters any arbitrary character at the physical lock screen. The
+operating system executes the patched routine, reads the modified
+memory, interprets the check as a successful authentication, and
+immediately unlocks the desktop with full user privileges.</li>
+</ol>
+<h3 id="why-operating-system-defenses-fail">Why Operating System
+Defenses Fail</h3>
+<p>Standard operating system protections fail against basic DMA attacks
+because software cannot defend memory against an entity capable of
+altering memory at the hardware bus layer. Memory encryption solutions
+like ASLR (Address Space Layout Randomization) only obscure the
+locations of functions in virtual memory; an attacker with arbitrary
+physical memory read access can traverse the page tables to locate
+whatever signatures they require.</p>
+<h3
+id="mitigations-the-input-output-memory-management-unit-iommu">Mitigations:
+The Input-Output Memory Management Unit (IOMMU)</h3>
+<p>Modern architectures defend against malicious PCIe expansion cards
+through hardware-enforced isolation via an Input-Output Memory
+Management Unit (known as Intel VT-d or AMD-Vi).</p>
+<p>The IOMMU acts as a gatekeeper between PCIe devices and system RAM.
+Rather than granting peripherals universal access to physical memory
+addresses, the IOMMU remaps device memory requests through translation
+tables managed strictly by the operating system kernel. If a PCIe device
+attempts to read or write to an unauthorized memory block—such as memory
+allocated to authentication services—the IOMMU drops the transaction and
+raises a hardware fault.</p>
+<p>Operating systems utilize the IOMMU through features such as Kernel
+DMA Protection. However, if the IOMMU is disabled in the system
+UEFI/BIOS, or if an attacker compromises a host that executes legacy
+code before IOMMU tables are locked down during the boot cycle,
+malicious PCIe cards remain capable of full memory takeover.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Cgroup Flaws Enable Linux Container Escapes - hacking</title>
+    <meta name="description" content="Linux control groups (cgroups) are a core kernel feature designed to allocate, meter, and isolate system resources like CPU, memory, and I/O among processes. While often conflated with security boundaries, cgroups were engineered primarily for resource a">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-cgroup-flaws-enable-linux-container-escapes">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Cgroup Flaws Enable Linux Container Escapes - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-cgroup-flaws-enable-linux-container-escapes" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Linux control groups (cgroups) are a core kernel feature designed to allocate, meter, and isolate system resources like CPU, memory, and I/O among processes. While often conflated with security boundaries, cgroups were engineered primarily for resource a" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-cgroup-flaws-enable-linux-container-escapes">How Cgroup
+Flaws Enable Linux Container Escapes</h1>
+<p>Linux control groups (cgroups) are a core kernel feature designed to
+allocate, meter, and isolate system resources like CPU, memory, and I/O
+among processes. While often conflated with security boundaries, cgroups
+were engineered primarily for resource accounting rather than
+containment. When misconfigurations, dangerous kernel capabilities, or
+implementation bugs are present, attackers can manipulate cgroup
+mechanisms to execute commands in the host kernel's context, access
+root-owned host directories, and completely escape container
+isolation.</p>
+<h3 id="exploitation-of-the-release_agent-feature">Exploitation of the
+<code>release_agent</code> Feature</h3>
+<p>The most prevalent attack vector leveraging cgroups involves the
+<code>notify_on_release</code> and <code>release_agent</code> mechanism
+found in cgroups version 1 (cgroups v1). When enabled,
+<code>notify_on_release</code> signals the kernel to execute a
+user-specified binary (the <code>release_agent</code>) whenever the last
+task inside a control group terminates.</p>
+<p>In standard architectures, this script runs with full root privileges
+directly on the host, outside of any container namespaces. If an
+attacker gains access to a container that has root privileges (UID 0)
+and the <code>CAP_SYS_ADMIN</code> capability without strict AppArmor or
+SELinux confinement, they can exploit this behavior:</p>
+<ol type="1">
+<li><strong>Mounting the cgroup filesystem:</strong> The attacker mounts
+a <code>cgroup</code> hierarchy (such as the RDMA or memory subsystem)
+to an arbitrary directory inside the container.</li>
+<li><strong>Configuring the trigger:</strong> The attacker enables
+<code>notify_on_release</code> by writing <code>1</code> to the
+subsystem's root <code>notify_on_release</code> file.</li>
+<li><strong>Locating container files on the host:</strong> By inspecting
+<code>/etc/mtab</code> or <code>/proc/self/mountinfo</code>, the
+attacker identifies the underlying host path of the container's root
+filesystem (such as the overlayfs merged directory).</li>
+<li><strong>Setting the payload:</strong> The attacker writes the path
+of a malicious script within the host's directory structure into the
+<code>release_agent</code> file.</li>
+<li><strong>Triggering execution:</strong> The attacker creates a child
+cgroup, spawns a short-lived process within it, and allows it to
+terminate. Once empty, the host kernel triggers the payload specified in
+<code>release_agent</code> with full host-level root permissions.</li>
+</ol>
+<p>This flaw was formally acknowledged in vulnerabilities like
+CVE-2022-0492, which demonstrated that unprivileged containers could
+manipulate <code>release_agent</code> if the kernel failed to verify
+whether the process setting the path had administrative authority within
+the initial user namespace.</p>
+<h3 id="absence-of-cgroup-namespaces">Absence of Cgroup Namespaces</h3>
+<p>Early container implementations lacked dedicated cgroup namespacing.
+Before the introduction of cgroup namespaces
+(<code>CLONE_NEWCGROUP</code>), containers shared the global cgroup
+hierarchy view with the host system.</p>
+<p>Without cgroup virtualization, a process inside a container can read
+and traverse the complete host cgroup structure through
+<code>/sys/fs/cgroup</code>. This leaks information regarding host
+resource usage, neighboring containers, and process hierarchies. In
+setups where cgroup directories are mounted read-write without proper
+masking, an attacker can modify resource limits of sibling containers,
+launch denial-of-service attacks by choking host resources, or remount
+hierarchies to manipulate subsystem parameters directly.</p>
+<h3 id="the-attack-surface-of-cgroups-v1-vs-cgroups-v2">The Attack
+Surface of cgroups v1 vs. cgroups v2</h3>
+<p>The fragmented architecture of cgroups v1 creates significant
+security friction compared to the unified hierarchy in cgroups v2:</p>
+<ul>
+<li><strong>Multiple Hierarchies:</strong> cgroups v1 permits distinct
+subsystems (CPU, memory, devices) to be mounted independently,
+multiplying the attack surface across various virtual filesystems. An
+attacker blocked from modifying one subsystem might find another mounted
+with permissive write privileges.</li>
+<li><strong>Device Whitelist Bypass:</strong> The cgroups v1
+<code>devices</code> controller allows administrators to whitelist
+character and block devices. However, if a container retains
+<code>CAP_MKNOD</code> and the cgroup device filter is incorrectly
+configured or manipulated via exposed hierarchy paths, an attacker can
+recreate blocked device nodes (such as <code>/dev/sda</code> or
+<code>/dev/kmem</code>) to access underlying storage drives
+directly.</li>
+<li><strong>cgroups v2 Improvements:</strong> cgroups v2 eliminates the
+insecure <code>release_agent</code> mechanism entirely, replacing it
+with an in-kernel notification system via <code>cgroup.events</code>
+file descriptors. It also introduces strict delegation rules, ensuring
+that non-root processes inside isolated environments cannot modify
+parameters that affect the parent slice.</li>
+</ul>
+<h3 id="insecure-capability-delegation">Insecure Capability
+Delegation</h3>
+<p>Cgroup-based container escapes rarely occur in isolation; they
+typically rely on the over-allocation of Linux capabilities. The
+<code>CAP_SYS_ADMIN</code> capability grants the process the ability to
+call the <code>mount()</code> syscall, which is required to mount
+arbitrary cgroup hierarchies.</p>
+<p>Similarly, running containers with the <code>--privileged</code> flag
+bypasses default security profiles entirely, exposes host
+<code>/sys</code> and <code>/dev</code> directories, leaves cgroup
+hierarchies read-write, and retains all Linux capabilities, making
+cgroup breakout techniques straightforward.</p>
+<h3 id="mitigating-cgroup-based-escapes">Mitigating Cgroup-Based
+Escapes</h3>
+<p>Hardening Linux environments against cgroup escapes requires
+defense-in-depth:</p>
+<ul>
+<li><strong>Adopt cgroups v2:</strong> Migrate workloads to use the
+unified cgroups v2 hierarchy, eliminating legacy vectors such as
+<code>release_agent</code>.</li>
+<li><strong>Use User Namespaces:</strong> Enabling user namespaces
+(<code>userns-remap</code>) maps UID 0 in the container to a non-zero,
+unprivileged UID on the host, preventing host kernel-level execution
+even if cgroup boundaries are crossed.</li>
+<li><strong>Drop Unnecessary Capabilities:</strong> Ensure containers
+run without <code>CAP_SYS_ADMIN</code> and <code>CAP_MKNOD</code>.</li>
+<li><strong>Enforce Read-Only Mounts:</strong> Mount
+<code>/sys/fs/cgroup</code> strictly as read-only inside container
+runtimes and mask sensitive kernel filesystem paths using AppArmor or
+SELinux.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

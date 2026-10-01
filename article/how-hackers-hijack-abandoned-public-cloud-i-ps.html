@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Hackers Hijack Abandoned Public Cloud IPs - hacking</title>
+    <meta name="description" content="Cloud IP hijacking occurs when an organization releases a public cloud IP address but fails to remove references to it across its ecosystem, allowing malicious actors to claim that same IP from the provider's pool and intercept inbound traffic. This vuln">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-hackers-hijack-abandoned-public-cloud-i-ps">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Hackers Hijack Abandoned Public Cloud IPs - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-hackers-hijack-abandoned-public-cloud-i-ps" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Cloud IP hijacking occurs when an organization releases a public cloud IP address but fails to remove references to it across its ecosystem, allowing malicious actors to claim that same IP from the provider's pool and intercept inbound traffic. This vuln" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-hackers-hijack-abandoned-public-cloud-ips">How Hackers
+Hijack Abandoned Public Cloud IPs</h1>
+<p>Cloud IP hijacking occurs when an organization releases a public
+cloud IP address but fails to remove references to it across its
+ecosystem, allowing malicious actors to claim that same IP from the
+provider's pool and intercept inbound traffic. This vulnerability, often
+referred to as a "dangling IP" exploit, exposes organizations to
+credential theft, sensitive data leaks, and man-in-the-middle attacks.
+Understanding the technical conditions that make this exploitation
+possible is essential for securing modern cloud environments.</p>
+<h2 id="dangling-dns-records">Dangling DNS Records</h2>
+<p>The fundamental prerequisite for cloud IP hijacking is a dangling DNS
+record. When organizations decommission cloud instances—such as Amazon
+EC2, Azure VMs, or Google Compute Engine instances—the associated
+dynamic or elastic public IP address is released back to the provider.
+If the system administrators fail to delete the corresponding DNS
+<code>A</code> or <code>AAAA</code> records, external users and systems
+continue resolving the domain to that newly unassigned IP address.</p>
+<h2 id="shared-and-recycled-public-ip-pools">Shared and Recycled Public
+IP Pools</h2>
+<p>Public cloud providers manage limited pools of IPv4 addresses. When a
+tenant deallocates an address, it is immediately returned to a regional
+pool and made available to any other tenant operating within the same
+cloud region. Cloud platforms do not retain ownership memory; an IP
+address is granted strictly on a first-come, first-served basis without
+evaluating whether external internet traffic is still directed toward
+it.</p>
+<h2 id="ip-churning-and-reallocation-capabilities">IP Churning and
+Reallocation Capabilities</h2>
+<p>Attackers actively search for vulnerable dangling DNS records using
+passive DNS logs and internet-wide scanning tools. Once an abandoned IP
+is identified, attackers leverage cloud APIs to rapidly allocate and
+release public IPs in that specific cloud region—a process known as IP
+churning. Because cloud pools are finite, an automated script can cycle
+through available addresses until the cloud provider assigns the exact
+target IP to the attacker's account.</p>
+<h2 id="lack-of-domain-verification-on-reallocation">Lack of Domain
+Verification on Reallocation</h2>
+<p>Cloud providers do not verify whether a tenant requesting a public IP
+holds authorization for the domains pointing to it. As long as an
+attacker maintains a valid account with the cloud platform, they are
+treated as the legitimate custodian of the newly assigned IP address,
+inheriting all incoming network traffic bound for that address.</p>
+<h2 id="automated-tlsssl-certificate-issuance">Automated TLS/SSL
+Certificate Issuance</h2>
+<p>Interception of encrypted HTTPS traffic requires a valid SSL/TLS
+certificate. Modern certificate authorities utilize automated protocols,
+such as ACME (Automated Certificate Management Environment) via Let's
+Encrypt, which often validate domain ownership through HTTP-01
+challenges. Because the victim’s dangling DNS record points directly to
+the attacker-controlled IP address, the attacker can easily pass the
+validation check, generate a valid TLS certificate for the victim's
+domain, and transparently decrypt inbound traffic.</p>
+<h2 id="hardcoded-configurations-and-integrations">Hardcoded
+Configurations and Integrations</h2>
+<p>The vulnerability extends beyond public DNS records. Many enterprise
+architectures contain hardcoded IP addresses inside third-party APIs,
+webhooks, mobile application configurations, and external partner
+firewalls. When an IP is abandoned without notifying external
+integration partners, those systems continue transmitting sensitive
+payloads, authentication tokens, and proprietary data straight to the
+newly claimed address.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

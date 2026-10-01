@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Process Hollowing Memory Operations - hacking</title>
+    <meta name="description" content="Process hollowing is a code injection technique where an adversary creates a legitimate process in a suspended state, unmaps its executable memory, and replaces it with a malicious payload before resuming execution. This article examines the sequence of">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-process-hollowing-memory-operations">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding Process Hollowing Memory Operations - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-process-hollowing-memory-operations" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Process hollowing is a code injection technique where an adversary creates a legitimate process in a suspended state, unmaps its executable memory, and replaces it with a malicious payload before resuming execution. This article examines the sequence of" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="understanding-process-hollowing-memory-operations">Understanding
+Process Hollowing Memory Operations</h1>
+<p>Process hollowing is a code injection technique where an adversary
+creates a legitimate process in a suspended state, unmaps its executable
+memory, and replaces it with a malicious payload before resuming
+execution. This article examines the sequence of low-level memory
+operations that take place during this technique, detailing the relevant
+operating system APIs, virtual memory state transitions, and forensic
+artifacts left behind in system memory.</p>
+<h3 id="1-creation-of-the-suspended-host-process">1. Creation of the
+Suspended Host Process</h3>
+<p>The technique begins with the creation of a benign target process,
+often a trusted system utility such as <code>svchost.exe</code> or
+<code>explorer.exe</code>. This is initiated via standard process
+creation interfaces, such as the Win32 <code>CreateProcess</code> API,
+using the <code>CREATE_SUSPENDED</code> flag.</p>
+<p>At the operating system level, this operation:</p>
+<ul>
+<li>Allocates an initial Virtual Address Space (VAS) for the new
+process.</li>
+<li>Loads the primary image and associated subsystem dependencies (such
+as <code>ntdll.dll</code>).</li>
+<li>Maps the initial thread execution structures, including the Process
+Environment Block (PEB) and the Thread Execution Block (TEB).</li>
+<li>Suspends the primary thread before it reaches the entry point,
+preventing the legitimate code from executing while maintaining a valid
+process handle for the injector.</li>
+</ul>
+<h3 id="2-memory-unmapping-hollowing">2. Memory Unmapping
+(Hollowing)</h3>
+<p>Once the handle to the suspended process is acquired, the injector
+deallocates or unmaps the legitimate executable code from the target's
+address space. This is typically achieved using the native system
+routine <code>NtUnmapViewOfSection</code> or
+<code>ZwUnmapViewOfSection</code>.</p>
+<p>Key memory changes during this stage include:</p>
+<ul>
+<li>The base address where the original executable image was loaded
+(often referenced via the PEB's <code>ImageBaseAddress</code>) is
+cleared.</li>
+<li>The Virtual Memory Manager (VMM) marks the associated virtual pages
+as free or invalid.</li>
+<li>The thread context remains intact, but the instruction pointer
+points to an entry point that no longer contains valid executable
+code.</li>
+</ul>
+<h3 id="3-memory-allocation-and-protection-setup">3. Memory Allocation
+and Protection Setup</h3>
+<p>The injecting process must allocate a new region of virtual memory
+within the target process to host the malicious Portable Executable
+(PE). This is performed using <code>VirtualAllocEx</code>.</p>
+<p>Low-level operations involved:</p>
+<ul>
+<li><strong>Reservation and Commitment:</strong> The injector requests a
+contiguous memory block of sufficient size to accommodate the payload's
+headers and sections (<code>MEM_COMMIT | MEM_RESERVE</code>).</li>
+<li><strong>Base Address Selection:</strong> If possible, the memory is
+allocated at the payload's preferred base address. If that address is
+unavailable, dynamic relocation entries within the payload must be
+processed.</li>
+<li><strong>Page Permissions:</strong> Initially, the memory is often
+allocated with <code>PAGE_EXECUTE_READWRITE</code> (RWX) permissions to
+allow both writing the payload and subsequent execution, or configured
+with discrete permissions (<code>PAGE_READWRITE</code> followed by
+<code>PAGE_EXECUTE_READ</code>) to avoid triggering behavioral
+heuristics.</li>
+</ul>
+<h3 id="4-writing-headers-and-sections">4. Writing Headers and
+Sections</h3>
+<p>The payload is written into the hollowed process using
+<code>WriteProcessMemory</code>. Rather than a simple file copy, the PE
+structure must be manually mapped as an OS loader would:</p>
+<ul>
+<li><strong>PE Headers:</strong> The DOS header, PE signature, file
+header, and optional header are written to the allocated base
+address.</li>
+<li><strong>Section Alignment:</strong> Each section (such as
+<code>.text</code>, <code>.data</code>, and <code>.rdata</code>) is
+copied according to its relative virtual address (RVA) and virtual size,
+rather than raw disk offsets.</li>
+<li><strong>Relocation and Import Resolution:</strong> If the allocated
+base address differs from the payload's preferred base, relocation
+tables are applied to adjust internal memory addresses.</li>
+</ul>
+<h3 id="5-thread-context-modification">5. Thread Context
+Modification</h3>
+<p>To divert execution to the injected code, the primary thread's
+execution context must be updated. This is handled via
+<code>GetThreadContext</code> and <code>SetThreadContext</code>.</p>
+<ul>
+<li>The injector retrieves the current register states contained within
+the <code>CONTEXT</code> structure.</li>
+<li>On x86 architectures, the <code>EAX</code> register is updated to
+point to the entry point of the new payload. On x64 architectures, the
+<code>RCX</code> or <code>RIP</code> register is updated.</li>
+<li>If the image base has moved, the PEB's <code>ImageBaseAddress</code>
+field within the target process is updated via
+<code>WriteProcessMemory</code> so that APIs querying the process image
+location reflect the new address.</li>
+</ul>
+<h3 id="6-thread-resumption">6. Thread Resumption</h3>
+<p>Execution is triggered by calling <code>ResumeThread</code>. The OS
+kernel decrements the thread's suspend count to zero, placing the
+primary thread into the scheduler queue. The CPU restores register
+values from the modified <code>CONTEXT</code> structure, and execution
+begins directly at the new payload's entry point inside what appears to
+be a legitimate host process.</p>
+<h3 id="detection-and-behavioral-indicators">Detection and Behavioral
+Indicators</h3>
+<p>Process hollowing introduces specific low-level anomalies that
+monitoring systems and memory analysis tools detect:</p>
+<ul>
+<li><strong>Memory-Disk Mismatches:</strong> Discrepancies between the
+executable mapped in memory and the file on disk referenced by the
+process path.</li>
+<li><strong>Unusual Page Permissions:</strong> Executable regions mapped
+as private memory (<code>MEM_PRIVATE</code>) rather than mapped image
+memory (<code>MEM_IMAGE</code>).</li>
+<li><strong>PEB Discrepancies:</strong> Inconsistencies between the path
+in the PEB loader data table (<code>Ldr</code>) and the actual loaded
+modules.</li>
+<li><strong>API Call Sequences:</strong> Suspicious chains of
+cross-process memory modification calls
+(<code>NtUnmapViewOfSection</code>, <code>VirtualAllocEx</code>,
+<code>WriteProcessMemory</code>, <code>SetThreadContext</code>)
+originating from unrelated parent processes.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>
