@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COM Hijacking Registry Keys for Persistence - hacking</title>
+    <meta name="description" content="Component Object Model (COM) hijacking is a technique where legitimate COM object references are subverted to execute arbitrary code instead of the intended binary. Because the Windows operating system searches user-specific registry hives before machine">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/com-hijacking-registry-keys-for-persistence">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="COM Hijacking Registry Keys for Persistence - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/com-hijacking-registry-keys-for-persistence" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Component Object Model (COM) hijacking is a technique where legitimate COM object references are subverted to execute arbitrary code instead of the intended binary. Because the Windows operating system searches user-specific registry hives before machine" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="com-hijacking-registry-keys-for-persistence">COM Hijacking
+Registry Keys for Persistence</h1>
+<p>Component Object Model (COM) hijacking is a technique where
+legitimate COM object references are subverted to execute arbitrary code
+instead of the intended binary. Because the Windows operating system
+searches user-specific registry hives before machine-wide
+configurations, modifying specific COM keys allows code to persist
+across system reboots without requiring elevated administrative
+privileges. This article covers the primary registry paths targeted
+during COM hijacking, the mechanics of key redirection, and how these
+alterations function within the Windows environment.</p>
+<h2 id="primary-registry-locations-for-com-objects">Primary Registry
+Locations for COM Objects</h2>
+<p>Windows maintains a database of COM class identifiers (CLSIDs) in the
+system registry. COM components are registered under two main trees,
+which merge into a unified view under <code>HKEY_CLASSES_ROOT</code>
+(HKCR):</p>
+<ul>
+<li><strong>Machine-Wide Configurations:</strong><br />
+<code>HKEY_LOCAL_MACHINE\Software\Classes\CLSID</code><br />
+This path contains system-wide registrations created during system
+installation or software setup, typically requiring administrative
+privileges to modify.</li>
+<li><strong>User-Specific Configurations:</strong><br />
+<code>HKEY_CURRENT_USER\Software\Classes\CLSID</code><br />
+This path contains user-level overrides and custom registrations. It can
+be modified by non-elevated user accounts.</li>
+</ul>
+<p>When a program requests a COM object via its CLSID, the operating
+system queries <code>HKCU\Software\Classes\CLSID</code> first. If a
+matching key is found, it takes precedence over the corresponding key in
+<code>HKLM\Software\Classes\CLSID</code>.</p>
+<h2 id="key-subkeys-targeted-in-hijacking">Key Subkeys Targeted in
+Hijacking</h2>
+<p>Within a given CLSID path (<code>{GUID}</code>), specific subkeys
+define how the code is loaded and executed:</p>
+<h3 id="inprocserver32">InprocServer32</h3>
+<p>The <code>InprocServer32</code> subkey specifies the absolute or
+relative file path to a dynamic-link library (DLL) that runs within the
+calling process's memory space.</p>
+<ul>
+<li><strong>Registry Path:</strong>
+<code>HKCU\Software\Classes\CLSID\{GUID}\InprocServer32</code></li>
+<li><strong>Mechanism:</strong> Setting the <code>(Default)</code> value
+to the path of an arbitrary DLL causes that DLL to load whenever the
+associated CLSID is instantiated.</li>
+<li><strong>ThreadingModel:</strong> Often populated with values such as
+<code>Apartment</code>, <code>Free</code>, or <code>Both</code> to match
+the expected threading model of the target application.</li>
+</ul>
+<h3 id="localserver32">LocalServer32</h3>
+<p>The <code>LocalServer32</code> subkey points to an executable
+(<code>.exe</code>) that runs out-of-process.</p>
+<ul>
+<li><strong>Registry Path:</strong>
+<code>HKCU\Software\Classes\CLSID\{GUID}\LocalServer32</code></li>
+<li><strong>Mechanism:</strong> When the COM object is instantiated, the
+system launches the specified executable in its own independent process
+rather than loading a DLL into the host process.</li>
+</ul>
+<h3 id="treatas">TreatAs</h3>
+<p>The <code>TreatAs</code> subkey establishes a redirection from one
+CLSID to another.</p>
+<ul>
+<li><strong>Registry Path:</strong>
+<code>HKCU\Software\Classes\CLSID\{Original-GUID}\TreatAs</code></li>
+<li><strong>Mechanism:</strong> Setting the <code>(Default)</code> value
+to another CLSID causes Windows to redirect queries for the original
+object to the substitute object, allowing the redirection of established
+system interfaces.</li>
+</ul>
+<h2 id="hijacking-mechanisms-for-reboot-persistence">Hijacking
+Mechanisms for Reboot Persistence</h2>
+<p>To achieve persistence across reboots, COM targets are selected based
+on whether they are invoked automatically by the operating system during
+startup or regular usage.</p>
+<ol type="1">
+<li><strong>Scheduled Tasks and System Events:</strong> Many Windows
+tasks execute via COM handlers rather than direct binary paths. If a
+task queries a CLSID that only exists in <code>HKLM</code>, creating a
+corresponding key in <code>HKCU\Software\Classes\CLSID</code> causes the
+task to invoke the user-defined binary during scheduled execution or
+user logon.</li>
+<li><strong>Missing COM Keys (COM Abandonment):</strong> Applications
+often query CLSIDs that are either non-existent or remnants of
+uninstalled software. Creating the missing CLSID structure in
+<code>HKCU</code> satisfies the query, executing the target file without
+disrupting existing functionality.</li>
+<li><strong>Shell Extensions:</strong> Explorer-related CLSIDs (such as
+context menu handlers or overlay identifiers) are executed automatically
+whenever <code>explorer.exe</code> initializes or navigates
+directories.</li>
+</ol>
+<h2 id="detection-and-defensive-considerations">Detection and Defensive
+Considerations</h2>
+<ul>
+<li><strong>Registry Monitoring:</strong> Auditing creation and
+modification events for the <code>HKCU\Software\Classes\CLSID</code>
+tree, specifically targeting <code>InprocServer32</code> and
+<code>LocalServer32</code> keys that point to atypical paths (such as
+user-writable directories like <code>AppData</code> or
+<code>Temp</code>).</li>
+<li><strong>Autoruns Inspection:</strong> Tools like Sysinternals
+Autoruns identify COM entries registered in user space that shadow
+machine-wide counterparts.</li>
+<li><strong>Application Control:</strong> Windows Defender Application
+Control (WDAC) or AppLocker policies can restrict unauthorized DLLs and
+executables from running, even if the registry entry points to
+them.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding MPLS Label Forging and Security - hacking</title>
+    <meta name="description" content="This article examines how Multi-Protocol Label Switching (MPLS) headers can be manipulated to traverse network security boundaries within telecommunications and enterprise environments. It explores the architectural assumptions underlying MPLS networks,">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-mpls-label-forging-and-security">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding MPLS Label Forging and Security - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-mpls-label-forging-and-security" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines how Multi-Protocol Label Switching (MPLS) headers can be manipulated to traverse network security boundaries within telecommunications and enterprise environments. It explores the architectural assumptions underlying MPLS networks," />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="understanding-mpls-label-forging-and-security">Understanding
+MPLS Label Forging and Security</h1>
+<p>This article examines how Multi-Protocol Label Switching (MPLS)
+headers can be manipulated to traverse network security boundaries
+within telecommunications and enterprise environments. It explores the
+architectural assumptions underlying MPLS networks, the theoretical
+mechanics of label spoofing and cross-VRF hopping, and the essential
+defensive controls required to enforce boundary isolation and protect
+the carrier core.</p>
+<h3 id="mpls-architecture-and-trust-boundaries">MPLS Architecture and
+Trust Boundaries</h3>
+<p>Multi-Protocol Label Switching is a packet-forwarding technology that
+uses numerical labels rather than network-layer addresses to make
+routing decisions. In a typical MPLS network, routers are categorized by
+their placement and role:</p>
+<ul>
+<li><strong>Customer Edge (CE):</strong> The device at the customer
+premises, communicating with the service provider using standard IP
+packets.</li>
+<li><strong>Provider Edge (PE):</strong> The ingress/egress router that
+interfaces directly with customer networks. The PE assigns MPLS labels
+to incoming IP packets and strips labels from outgoing packets.</li>
+<li><strong>Provider (P) Routers:</strong> The core transit routers that
+switch packets purely based on the top MPLS label (Label Switched Paths,
+or LSPs) without examining the underlying IP payload.</li>
+</ul>
+<p>The fundamental security model of MPLS assumes a strict boundary: the
+core (P routers) is isolated and trusted, while the periphery (CE
+routers) is untrusted. Packets arriving at the PE router from an
+untrusted interface should be plain IP traffic, not pre-labeled
+packets.</p>
+<h3 id="the-mechanism-of-mpls-label-forging">The Mechanism of MPLS Label
+Forging</h3>
+<p>Label forging occurs when an attacker crafts an Ethernet frame
+containing an unauthorized MPLS shim header directly on a connection to
+a service provider.</p>
+<p>In a standard deployment, an MPLS header is a 32-bit field
+containing:</p>
+<ul>
+<li><strong>Label (20 bits):</strong> The forwarding identifier.</li>
+<li><strong>Traffic Class / Experimental (3 bits):</strong> Used for
+Quality of Service (QoS).</li>
+<li><strong>Bottom of Stack (S-bit, 1 bit):</strong> Indicates whether
+this is the last label in the stack.</li>
+<li><strong>Time to Live (TTL, 8 bits):</strong> Decremented at each hop
+to prevent routing loops.</li>
+</ul>
+<p>An attacker seeking to cross network boundaries attempts to exploit
+misconfigurations where a PE router accepts pre-labeled packets from an
+untrusted CE interface:</p>
+<ol type="1">
+<li><strong>Premature Label Insertion:</strong> An attacker generates a
+packet with a forged MPLS label stack inserted between the Layer 2
+header and the Layer 3 IP packet.</li>
+<li><strong>Acceptance on Untrusted Interfaces:</strong> If the PE
+router's interface connected to the CE is misconfigured to process MPLS
+rather than enforce plain IP encapsulation, the router parses the forged
+label instead of classifying the packet based on its assigned Virtual
+Routing and Forwarding (VRF) table.</li>
+<li><strong>VRF Hopping and Route Target Confusion:</strong> By guessing
+or enumerating the inner label assigned to a different customer’s VPN
+(or to an administrative routing instance), the attacker attempts to
+route traffic into an unintended destination VRF. Because the core
+routers switch based on labels rather than source IP validation,
+correctly labeled packets are delivered directly into the targeted
+private network.</li>
+</ol>
+<h3 id="boundary-crossing-and-attack-vectors">Boundary Crossing and
+Attack Vectors</h3>
+<p>When label validation fails at the ingress edge, several
+boundary-crossing risks emerge:</p>
+<ul>
+<li><strong>Inter-Tenant Data Injection:</strong> Attackers can inject
+arbitrary IP packets into another customer's private IP-VPN, potentially
+reaching unprotected internal assets, bypassing perimeter firewalls
+configured only for external public traffic.</li>
+<li><strong>Denial of Service (DoS) via Core Disruption:</strong>
+Forging reserved MPLS labels (such as Label 0 for IPv4 Explicit NULL,
+Label 1 for Router Alert, or Label 3 for Implicit NULL) can force P
+routers to process packets via their control plane (CPU) rather than the
+forwarding plane (ASIC), degrading transit performance.</li>
+<li><strong>Bypassing Ingress Access Control Lists (ACLs):</strong> If
+the edge router applies security policies exclusively to the IP header,
+the presence of an unexpected MPLS shim header can cause older or
+misconfigured packet parsers to fail inspection, passing the packet
+unfiltered.</li>
+</ul>
+<h3 id="mitigation-and-hardening-guidelines">Mitigation and Hardening
+Guidelines</h3>
+<p>Securing MPLS networks against header manipulation requires rigorous
+boundary enforcement defined by industry standards such as RFC 4381 and
+RFC 5920:</p>
+<ul>
+<li><strong>Disable MPLS on Untrusted Interfaces:</strong> Ensure that
+MPLS processing is disabled on all customer-facing interfaces
+(<code>no mpls ip</code> in common network operating systems). A PE
+router must only accept plain IP packets from CE devices.</li>
+<li><strong>Ingress Packet Validation:</strong> Implement strict ingress
+filtering at the edge to drop any packet containing an MPLS ethertype
+(<code>0x8847</code> for unicast, <code>0x8848</code> for multicast)
+arriving from an untrusted connection.</li>
+<li><strong>Control Plane Protection:</strong> Secure signaling
+protocols such as LDP (Label Distribution Protocol) and MP-BGP
+(Multiprotocol BGP) using MD5 authentication or TCP Authentication
+Option (TCP-AO) to prevent rogue label mappings from being
+negotiated.</li>
+<li><strong>Infrastructure Separation:</strong> Ensure management
+interfaces and carrier control planes are isolated from the customer
+data plane, preventing labeled packets from addressing carrier
+infrastructure directly.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

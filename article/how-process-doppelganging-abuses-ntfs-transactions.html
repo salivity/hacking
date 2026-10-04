@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Process Doppelganging Abuses NTFS Transactions - hacking</title>
+    <meta name="description" content="Process Doppelganging is an advanced code injection and evasion technique that allows adversaries to execute malicious code within the context of a legitimate process without committing malicious binaries to disk. By exploiting the transactional model of">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-process-doppelganging-abuses-ntfs-transactions">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Process Doppelganging Abuses NTFS Transactions - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-process-doppelganging-abuses-ntfs-transactions" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Process Doppelganging is an advanced code injection and evasion technique that allows adversaries to execute malicious code within the context of a legitimate process without committing malicious binaries to disk. By exploiting the transactional model of" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-process-doppelganging-abuses-ntfs-transactions">How Process
+Doppelganging Abuses NTFS Transactions</h1>
+<p>Process Doppelganging is an advanced code injection and evasion
+technique that allows adversaries to execute malicious code within the
+context of a legitimate process without committing malicious binaries to
+disk. By exploiting the transactional model of the NTFS file system
+(Transactional NTFS or TxF) alongside native Windows process-loading
+APIs, this mechanism loads a modified, weaponized binary into memory and
+immediately rolls back file changes. As a result, disk-based security
+solutions and conventional antivirus scanners inspect an unaltered,
+legitimate file on the storage drive, allowing the payload to execute
+entirely undetected.</p>
+<h3 id="the-role-of-transactional-ntfs-txf">The Role of Transactional
+NTFS (TxF)</h3>
+<p>Transactional NTFS is a Windows feature designed to bring ACID
+(Atomicity, Consistency, Isolation, Durability) guarantees to file
+system operations. TxF allows developers to perform a sequence of file
+modifications within an isolated transaction. Changes made during a
+transaction are visible exclusively to the handles participating in that
+transaction. If the transaction is committed, changes become permanent
+on the disk; if it is rolled back, all changes are discarded, leaving
+the original file completely intact.</p>
+<p>Process Doppelganging abuses this isolation boundary by utilizing the
+transaction as a transient staging area for malicious code rather than a
+mechanism for data integrity.</p>
+<h3 id="step-by-step-execution-flow">Step-by-Step Execution Flow</h3>
+<ol type="1">
+<li><p><strong>Creating the Transaction:</strong><br />
+The execution begins by calling the kernel API
+<code>CreateTransaction</code> (via <code>ktmw32.dll</code>) to
+establish an isolated TxF context.</p></li>
+<li><p><strong>Writing the Payload to a Transacted File:</strong><br />
+Using <code>CreateFileTransacted</code>, the threat actor opens a
+legitimate, signed Windows executable (such as <code>svchost.exe</code>
+or <code>explorer.exe</code>). The actor then writes the malicious
+payload directly into this transacted file handle using
+<code>WriteFile</code>. Because the operation occurs inside an
+uncommitted transaction, the malicious data exists only in an isolated
+staging state. Other processes, kernel drivers, and security agents
+inspecting the file system through standard I/O paths only see the
+original, unmodified, signed binary.</p></li>
+<li><p><strong>Creating an Image Section:</strong><br />
+Next, the technique invokes the low-level native API
+<code>NtCreateSection</code> with the <code>SEC_IMAGE</code> flag,
+passing the handle of the modified transacted file. The Windows kernel
+maps the PE (Portable Executable) format of the malicious file into
+memory, performing relocations and mapping headers and sections as if it
+were a standard executable loading from disk.</p></li>
+<li><p><strong>Rolling Back the Transaction:</strong><br />
+Once the section handle is safely created in memory, the actor calls
+<code>RollbackTransaction</code>. This action cancels the file
+transaction entirely. The file on disk instantly reverts to its clean,
+original state. Crucially, the kernel memory section created in the
+previous step remains mapped in memory despite the transaction being
+aborted.</p></li>
+<li><p><strong>Instantiating the Process:</strong><br />
+With the malicious image section residing in memory, the actor creates a
+new process object using <code>NtCreateProcessEx</code>, passing the
+section handle. Because this function can create a process object
+directly from an existing section handle rather than an active file
+path, the kernel instantiates a process executing the malicious
+code.</p></li>
+<li><p><strong>Fixing Process Parameters and Thread
+Creation:</strong><br />
+Because <code>NtCreateProcessEx</code> creates a bare process structure
+without setting up user-mode initialization data, the actor manually
+prepares the target's virtual address space. Using
+<code>VirtualAllocEx</code> and <code>WriteProcessMemory</code>, the
+actor writes the Process Environment Block (PEB) and standard parameters
+(<code>RTL_USER_PROCESS_PARAMETERS</code>), effectively spoofing
+legitimate command-line arguments and file paths. Finally, the actor
+calls <code>NtCreateThreadEx</code> to point execution to the payload's
+entry point.</p></li>
+</ol>
+<h3 id="why-security-mechanisms-are-bypassed">Why Security Mechanisms
+Are Bypassed</h3>
+<p>Traditional antivirus, file integrity monitors, and Endpoint
+Detection and Response (EDR) agents rely on file system filter drivers
+(such as <code>minifilters</code>) to intercept file creation and
+modification events. When an executable launches, security tools
+typically scan the underlying file path registered with the file
+system.</p>
+<p>Under Process Doppelganging, security scanners face two major blind
+spots:</p>
+<ul>
+<li><strong>Disk Discrepancy:</strong> The scanning engine reads the
+file on disk during or after process creation, but it only sees the
+clean, original binary because the transaction was discarded before
+committing.</li>
+<li><strong>Callback Blindness:</strong> Kernel routines such as
+<code>PsSetCreateProcessNotifyRoutine</code> provide process metadata to
+security software, including the executable's image path. Because the
+process was derived from a legitimate system path before rollback, the
+system reports a legitimate executable path, effectively masquerading
+the process identity and bypassing signature-based inspection.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRE Tunnel Abuse for Firewall Evasion Explained - hacking</title>
+    <meta name="description" content="Generic Routing Encapsulation (GRE) is an encapsulation protocol that wraps a wide variety of network-layer protocols inside standard point-to-point IP connections. While originally designed to connect disparate networks and route traffic over intermedia">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/gre-tunnel-abuse-for-firewall-evasion-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="GRE Tunnel Abuse for Firewall Evasion Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/gre-tunnel-abuse-for-firewall-evasion-explained" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Generic Routing Encapsulation (GRE) is an encapsulation protocol that wraps a wide variety of network-layer protocols inside standard point-to-point IP connections. While originally designed to connect disparate networks and route traffic over intermedia" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="gre-tunnel-abuse-for-firewall-evasion-explained">GRE Tunnel
+Abuse for Firewall Evasion Explained</h1>
+<p>Generic Routing Encapsulation (GRE) is an encapsulation protocol that
+wraps a wide variety of network-layer protocols inside standard
+point-to-point IP connections. While originally designed to connect
+disparate networks and route traffic over intermediate transit networks,
+attackers can exploit GRE to bypass perimeter security controls. This
+article examines the mechanics of GRE tunnel abuse, explaining why
+certain firewalls fail to detect encapsulated traffic, the attack
+vectors involved, and the controls required to identify and block
+unauthorized encapsulation.</p>
+<h3 id="understanding-the-gre-protocol">Understanding the GRE
+Protocol</h3>
+<p>Defined by RFC 2784, Generic Routing Encapsulation operates directly
+on top of the Internet Protocol (IP) using IP Protocol Number 47. Unlike
+TCP (Protocol 6) or UDP (Protocol 17), GRE establishes a stateless
+carrier mechanism. A standard GRE packet consists of:</p>
+<ul>
+<li><strong>Delivery Header:</strong> An outer IP header used by
+intermediate routers to route the packet to the tunnel endpoint.</li>
+<li><strong>GRE Header:</strong> A 4-byte to 16-byte header specifying
+the protocol type of the payload and optional features like sequence
+numbers, checksums, or routing keys.</li>
+<li><strong>Payload Packet:</strong> The inner, encapsulated data packet
+(often a complete IP packet including its own headers and payload).</li>
+</ul>
+<p>Because the internal packet is fully encapsulated, perimeter systems
+evaluate only the outer IP and GRE headers unless specifically
+configured for deep packet inspection.</p>
+<h3 id="mechanisms-of-firewall-evasion">Mechanisms of Firewall
+Evasion</h3>
+<p>Perimeter firewalls and security gateways rely on rules that examine
+packet attributes such as source/destination IP addresses, transport
+protocols, and port numbers. Attackers exploit structural limitations in
+firewall architectures through several specific techniques:</p>
+<h4 id="1-incomplete-protocol-47-inspection">1. Incomplete Protocol 47
+Inspection</h4>
+<p>Many corporate firewalls are optimized for standard TCP/UDP
+inspection. Firewalls that operate at Layer 3/4 may inspect the outer
+delivery header, verify that the outer IP addresses are acceptable (or
+allow outbound connections generally), and permit the packet without
+parsing the encapsulated Layer 3/4 information inside the GRE
+payload.</p>
+<h4 id="2-stateless-handling-of-non-tcpudp-traffic">2. Stateless
+Handling of Non-TCP/UDP Traffic</h4>
+<p>Because GRE does not utilize standard three-way handshakes, state
+tables handle GRE differently than TCP connections. If an outbound
+firewall rule permits generic outbound traffic without strict
+protocol-specific state verification, the return traffic from the
+external tunnel endpoint may be permitted back through the perimeter,
+enabling bidirectional communication.</p>
+<h4
+id="3-obfuscation-of-internal-data-deep-packet-inspection-blind-spots">3.
+Obfuscation of Internal Data (Deep Packet Inspection Blind Spots)</h4>
+<p>Intrusion Detection and Prevention Systems (IDS/IPS) that fail to
+de-encapsulate GRE traffic in real-time will evaluate the payload as raw
+data rather than as a nested protocol. Signatures targeting malicious
+command-and-control (C2) protocols, data exfiltration patterns, or
+unauthorized ports (such as RDP or SSH) become blind if the inspection
+engine does not unpack the outer GRE envelope before scanning.</p>
+<h4 id="4-asymmetric-routing-and-perimeter-traversals">4. Asymmetric
+Routing and Perimeter Traversals</h4>
+<p>In complex enterprise topologies, encapsulated packets may enter
+through one interface and exit through another. An internal host
+compromised by an attacker can configure a virtual tunnel interface
+directed toward an external endpoint controlled by the threat actor.
+Corporate perimeter firewalls often permit outbound traffic broadly,
+allowing the internal host to initiate the GRE tunnel outward to
+circumvent proxy-based web filters and content gateways.</p>
+<h3 id="common-security-risks">Common Security Risks</h3>
+<p>When unauthorized GRE tunnels are established through corporate
+firewalls, several major risks emerge:</p>
+<ul>
+<li><strong>Bypassing Secure Web Gateways (SWG):</strong> Web traffic
+wrapped in a GRE tunnel bypasses HTTP/HTTPS proxy controls, content
+filtering, and malware scanning.</li>
+<li><strong>Data Exfiltration:</strong> Internal sensitive data can be
+routed through the tunnel as standard encapsulated traffic, avoiding
+standard Data Loss Prevention (DLP) monitors.</li>
+<li><strong>Direct Command-and-Control:</strong> Attackers can route
+interactive terminal sessions or native protocols directly to internal
+targets, effectively extending their external network into the internal
+subnet.</li>
+</ul>
+<h3 id="detection-and-mitigation-strategies">Detection and Mitigation
+Strategies</h3>
+<p>Securing a network against unauthorized GRE encapsulation requires
+rigorous ingress/egress filtering and protocol-level visibility.</p>
+<h4 id="egress-and-ingress-filtering">Egress and Ingress Filtering</h4>
+<p>Unless an organization explicitly uses GRE for site-to-site
+connectivity or cloud connectivity, outbound and inbound IP Protocol 47
+traffic should be explicitly blocked at the perimeter edge. Default-deny
+policies should enforce explicit protocol allowances rather than broad
+IP-range passes.</p>
+<h4 id="next-generation-firewall-ngfw-de-encapsulation">Next-Generation
+Firewall (NGFW) De-encapsulation</h4>
+<p>Modern firewalls must be configured to parse and inspect encapsulated
+traffic. If an allowed GRE tunnel terminates within the organization,
+security controls must strip the GRE header and apply full threat
+prevention, application identification, and DLP to the internal
+packet.</p>
+<h4 id="netflow-and-protocol-anomaly-detection">NetFlow and Protocol
+Anomaly Detection</h4>
+<p>Network telemetry and NetFlow records should be monitored for sudden
+surges in IP Protocol 47 traffic originating from client subnets or
+non-routing endpoints. Legitimate GRE tunnels typically operate between
+designated network appliances, making tunnel traffic originating from
+standard workstations a high-fidelity indicator of compromise.</p>
+<h4 id="host-based-protections">Host-Based Protections</h4>
+<p>Endpoint controls should restrict user privileges to prevent the
+creation of virtual network interfaces or the installation of custom
+network drivers, preventing compromised endpoints from configuring
+tunnel interfaces directly.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

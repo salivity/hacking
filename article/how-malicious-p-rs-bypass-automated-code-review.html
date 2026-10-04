@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Malicious PRs Bypass Automated Code Review - hacking</title>
+    <meta name="description" content="Modern software supply chains rely heavily on automated CI/CD pipelines, static analysis (SAST), and linters to catch vulnerabilities before code merges into production. However, sophisticated attackers can craft pull requests (PRs) that intentionally in">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-malicious-p-rs-bypass-automated-code-review">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Malicious PRs Bypass Automated Code Review - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-malicious-p-rs-bypass-automated-code-review" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Modern software supply chains rely heavily on automated CI/CD pipelines, static analysis (SAST), and linters to catch vulnerabilities before code merges into production. However, sophisticated attackers can craft pull requests (PRs) that intentionally in" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-malicious-prs-bypass-automated-code-review">How Malicious
+PRs Bypass Automated Code Review</h1>
+<p>Modern software supply chains rely heavily on automated CI/CD
+pipelines, static analysis (SAST), and linters to catch vulnerabilities
+before code merges into production. However, sophisticated attackers can
+craft pull requests (PRs) that intentionally introduce security flaws
+while appearing benign or greenlighting automated checks. This article
+examines the primary techniques used to evade automated code reviews and
+the architectural countermeasures organizations can deploy to mitigate
+software supply chain risks.</p>
+<h3 id="1-logic-and-semantic-concealment">1. Logic and Semantic
+Concealment</h3>
+<p>Static analysis tools are designed to identify known patterns,
+dangerous functions, or unvalidated inputs. Attackers frequently bypass
+these checks by introducing semantic flaws that do not trigger
+pattern-matching rules.</p>
+<ul>
+<li><strong>Subtle Edge-Case Invalidation:</strong> An attacker might
+submit a pull request framed as a performance optimization or bug fix.
+The change subtly alters boundary checks (such as an off-by-one
+comparison or inverted boolean condition), creating an exploitable
+condition under specific inputs without introducing flagged
+functions.</li>
+<li><strong>Typo-Correction and Distraction:</strong> A large PR
+containing hundreds of formatting changes or documentation fixes can be
+used to bury a two-line logic change. Automated tools evaluate syntax
+correctness and run passing unit tests, missing the behavioral flaw
+hidden within the bulk diff.</li>
+</ul>
+<h3 id="2-test-suite-and-ci-manipulation">2. Test Suite and CI
+Manipulation</h3>
+<p>Automated code review systems rely on test results to evaluate PR
+safety. Attackers can manipulate testing environments to ensure tests
+pass despite regressions or new vulnerabilities.</p>
+<ul>
+<li><strong>Silencing Tests:</strong> PRs may subtly alter test
+assertions, mocking logic, or boundary values in the test suite so that
+the newly introduced flaw is ignored during regression runs.</li>
+<li><strong>Conditional Execution:</strong> Malicious code can be
+structured to behave normally within CI environments (detecting common
+environment variables like <code>CI=true</code> or runner hostnames)
+while activating alternate, flawed logic in actual production or
+distribution environments.</li>
+<li><strong>Lockfile Tampering:</strong> In package ecosystems that
+utilize lockfiles (such as <code>package-lock.json</code> or
+<code>poetry.lock</code>), PRs may introduce or upgrade transitive
+dependencies containing known vulnerabilities while keeping the
+top-level manifest unchanged. Reviewers and basic linters often skip
+inspecting thousands of lines of lockfile diffs.</li>
+</ul>
+<h3 id="3-unicode-and-syntax-exploitation">3. Unicode and Syntax
+Exploitation</h3>
+<p>Attackers can exploit how compilers and source code visualizers
+interpret text differently.</p>
+<ul>
+<li><strong>Bidirectional Text (Trojan Source):</strong> Using invisible
+Unicode control characters (such as Right-to-Left Override), the visual
+display of the source code in code review interfaces can differ from the
+logical execution order interpreted by the compiler. Automated linters
+that do not enforce strict character encoding validation will parse the
+code as valid.</li>
+<li><strong>Homoglyph Attacks:</strong> Substituting visually identical
+characters from different alphabets within variable names or internal
+functions can redirect program flow or create shadow variables, avoiding
+static analysis warnings while breaking the intended control logic.</li>
+</ul>
+<h3 id="4-cicd-workflow-hijacking">4. CI/CD Workflow Hijacking</h3>
+<p>If an open-source project runs CI workflows on external pull
+requests, attackers can leverage the workflow configurations
+themselves:</p>
+<ul>
+<li><strong>Workflow Tampering:</strong> Modifying configuration files
+(such as GitHub Actions YAML files) to bypass status checks, exfiltrate
+repository secrets, or alter build artifacts prior to release.</li>
+<li><strong>Cache Poisoning:</strong> Exploiting shared build caches
+across PR runs to insert compromised intermediate artifacts that
+subsequent validation steps do not re-verify.</li>
+</ul>
+<hr />
+<h3 id="mitigations-against-pr-based-supply-chain-attacks">Mitigations
+Against PR-Based Supply Chain Attacks</h3>
+<p>To defend against malicious pull requests evading automated
+review:</p>
+<ul>
+<li><strong>Enforce Strict Branch Protections:</strong> Require
+mandatory multi-party approvals from designated code owners
+(<code>CODEOWNERS</code>) for critical paths, independent of automated
+status checks.</li>
+<li><strong>Implement Semantic and AST Analysis:</strong> Augment basic
+regex-based linters with semantic analysis tools that track data flow,
+taint analysis, and Abstract Syntax Tree (AST) mutations.</li>
+<li><strong>Flag Unicode Anomalies:</strong> Configure linters to reject
+any source code containing non-ASCII directional formatting characters
+or unescaped homoglyphs.</li>
+<li><strong>Protect CI/CD Workflows:</strong> Restrict workflows
+triggered by forks or external contributors from accessing repository
+secrets or write permissions, and prevent PRs from modifying workflow
+files without privileged administrative review.</li>
+<li><strong>Review Lockfile Diffs:</strong> Use automated dependency
+security analyzers (such as Dependabot, Renovate, or Socket) to audit
+dependencies and lockfile changes rather than treating them as automated
+changes.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

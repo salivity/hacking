@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lock Bumping Techniques in Physical Pen Testing - hacking</title>
+    <meta name="description" content="Lock bumping is a rapid, non-destructive bypass method frequently employed by physical security penetration testers to assess the resilience of commercial and industrial facilities. This article examines how mechanical pin-tumbler locks function, the phy">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/lock-bumping-techniques-in-physical-pen-testing">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Lock Bumping Techniques in Physical Pen Testing - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/lock-bumping-techniques-in-physical-pen-testing" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Lock bumping is a rapid, non-destructive bypass method frequently employed by physical security penetration testers to assess the resilience of commercial and industrial facilities. This article examines how mechanical pin-tumbler locks function, the phy" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="lock-bumping-techniques-in-physical-pen-testing">Lock Bumping
+Techniques in Physical Pen Testing</h1>
+<p>Lock bumping is a rapid, non-destructive bypass method frequently
+employed by physical security penetration testers to assess the
+resilience of commercial and industrial facilities. This article
+examines how mechanical pin-tumbler locks function, the physics driving
+the lock bumping technique, the exact operational methodology used in
+the field, and the defensive countermeasures organizations can implement
+to protect their perimeters.</p>
+<h3 id="the-mechanics-of-pin-tumbler-locks">The Mechanics of Pin-Tumbler
+Locks</h3>
+<p>Standard pin-tumbler locks consist of an outer housing (the cylinder
+hull) and an inner revolving plug that contains the keyway. Cylindrical
+chambers drilled vertically through the housing into the plug contain
+pairs of pins held down by small coil springs:</p>
+<ul>
+<li><strong>Key Pins:</strong> Rest directly on the key and vary in
+length to match the key’s cuts.</li>
+<li><strong>Driver Pins:</strong> Sit between the key pins and the
+springs, typically of uniform length.</li>
+</ul>
+<p>When no key or an incorrect key is inserted, the driver pins bridge
+the boundary between the cylinder plug and the housing—known as the
+<strong>shear line</strong>—preventing the plug from turning. When the
+correct key is inserted, the contact points between the key pins and
+driver pins align perfectly with the shear line, allowing the plug to
+rotate and retract the latch.</p>
+<h3 id="the-physics-of-lock-bumping">The Physics of Lock Bumping</h3>
+<p>Lock bumping relies on the principle of conservation of momentum,
+functioning identically to a Newton’s cradle. When a kinetic impact
+strikes an object, the energy transfers through stationary intermediary
+masses directly into the end object, launching it forward while leaving
+the intermediate objects in place.</p>
+<p>In lock bumping:</p>
+<ol type="1">
+<li>An impact strikes the key.</li>
+<li>The key transfers this kinetic energy into the key pins.</li>
+<li>The key pins remain largely stationary within the plug.</li>
+<li>The kinetic energy launches the driver pins upward into the housing
+chambers against their spring tension.</li>
+<li>For a fraction of a second, a gap forms between the key pins and
+driver pins right across the shear line.</li>
+</ol>
+<h3 id="tools-used-in-lock-bumping">Tools Used in Lock Bumping</h3>
+<p>Physical penetration testers use minimal equipment to execute this
+bypass:</p>
+<ul>
+<li><strong>Bump Key:</strong> A standard blank corresponding to the
+target keyway (e.g., Schlage SC1, Kwikset KW1) with all pin positions
+cut to the absolute maximum depth—often referred to as a "999 key." The
+shoulder or tip of the key is slightly filed down to allow it to be
+pushed inward beyond its standard resting position.</li>
+<li><strong>Dampeners:</strong> Rubber O-rings or washers placed at the
+shoulder of the key to act as springs, automatically springing the key
+back one pin position after an impact.</li>
+<li><strong>Bump Hammer:</strong> A lightweight, flexible hammer made of
+plastic, hard rubber, or wood, designed to impart a sharp, elastic blow
+without bending the key or breaking the lock face.</li>
+</ul>
+<h3 id="the-penetration-testing-workflow">The Penetration Testing
+Workflow</h3>
+<p>During an engagement, an operative bypasses a pin-tumbler lock using
+a four-step sequence:</p>
+<ol type="1">
+<li><strong>Keyway Identification:</strong> The tester inspects the lock
+face to identify the brand and keyway profile (such as Schlage, Yale, or
+Master Lock) and selects the matching pre-cut bump key.</li>
+<li><strong>Key Insertion:</strong> The bump key is inserted fully into
+the keyway and then pulled back by one pin notch (or rested against an
+O-ring dampener), ensuring that the high points of the key cuts rest
+just in front of the key pins.</li>
+<li><strong>Applying Rotational Tension:</strong> The tester applies
+light, rotational torque to the key in the direction of unlocking. This
+tension must be subtle; excessive torque creates binding friction that
+prevents the driver pins from jumping freely above the shear line.</li>
+<li><strong>Striking and Turning:</strong> The tester taps the head of
+the bump key sharply with the bump hammer. The impact drives the key
+cuts against the key pins, launching the driver pins into the housing.
+As the gap crosses the shear line, the pre-applied torque instantly
+turns the plug before the springs can push the driver pins back
+down.</li>
+</ol>
+<h3 id="why-penetration-testers-use-bumping">Why Penetration Testers Use
+Bumping</h3>
+<p>Testers favor lock bumping during time-sensitive assessments
+because:</p>
+<ul>
+<li><strong>Speed:</strong> A successful bump often unlocks a door in
+under five seconds.</li>
+<li><strong>Minimal Forensics:</strong> Unlike drilling or prying,
+bumping is non-destructive. Aside from microscopic impact marks on the
+front face of the first pin or the keyway entrance, it leaves the
+mechanism functional and visually unaltered.</li>
+<li><strong>Simplicity:</strong> It circumvents the need for single-pin
+picking (SPP), which requires significantly more tactile feedback and
+time.</li>
+</ul>
+<h3 id="facility-countermeasures-and-mitigation">Facility
+Countermeasures and Mitigation</h3>
+<p>Facilities can defend against lock bumping by upgrading their
+mechanical and access control infrastructure:</p>
+<ul>
+<li><strong>Security Pins:</strong> Installing spool, mushroom, or
+serrated driver pins. These catch on the shear line when bumped under
+tension, locking the plug in place.</li>
+<li><strong>High-Security Cylinders (UL 437 Rated):</strong> Employing
+cylinders with dual-locking mechanisms, such as rotating pins, sidebars,
+or magnetic elements (e.g., Medeco, ASSA Abloy, Schlage Primus) that
+cannot be manipulated via kinetic energy alone.</li>
+<li><strong>Electronic Access Control:</strong> Transitioning perimeter
+and sensitive interior doors to smart card, biometric, or
+mobile-credentialed systems that eliminate mechanical keyways
+entirely.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

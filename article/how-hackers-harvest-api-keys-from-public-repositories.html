@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Hackers Harvest API Keys from Public Repositories - hacking</title>
+    <meta name="description" content="Automated scanning bots continuously monitor public code repositories to discover and exploit accidentally committed cloud API keys within seconds of publication. Threat actors leverage public event streams, regular expression matching, and entropy analy">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-hackers-harvest-api-keys-from-public-repositories">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Hackers Harvest API Keys from Public Repositories - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-hackers-harvest-api-keys-from-public-repositories" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Automated scanning bots continuously monitor public code repositories to discover and exploit accidentally committed cloud API keys within seconds of publication. Threat actors leverage public event streams, regular expression matching, and entropy analy" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-hackers-harvest-api-keys-from-public-repositories">How
+Hackers Harvest API Keys from Public Repositories</h1>
+<p>Automated scanning bots continuously monitor public code repositories
+to discover and exploit accidentally committed cloud API keys within
+seconds of publication. Threat actors leverage public event streams,
+regular expression matching, and entropy analysis to identify high-value
+credentials, followed by automated scripts that instantly test the
+validity of the harvested keys. Understanding this harvesting pipeline
+reveals why even a momentary leak can result in immediate infrastructure
+compromise.</p>
+<h3 id="real-time-event-stream-ingestion">Real-Time Event Stream
+Ingestion</h3>
+<p>Attackers do not rely on manual searches or periodic web scraping;
+instead, they tap into real-time public activity feeds provided by
+platforms like GitHub, GitLab, and Bitbucket. For example, GitHub
+provides a public Events API that broadcasts all platform actions,
+including push events, fork events, and public releases.</p>
+<p>Scanning bots ingest this event stream at scale via continuous
+polling or webhooks. The moment a developer pushes a commit to a public
+repository, the bot receives an event payload containing the commit
+metadata and links to the modified code chunks (diffs). This allows
+attackers to evaluate code changes within milliseconds of their
+appearance online.</p>
+<h3 id="pattern-matching-via-regular-expressions">Pattern Matching via
+Regular Expressions</h3>
+<p>Once the raw code diffs are retrieved, bots run them through
+high-speed signature engines. Many cloud service providers use
+deterministic formats for their API keys, making them trivial to
+identify using regular expressions (regex).</p>
+<p>Common targets include:</p>
+<ul>
+<li><strong>Amazon Web Services (AWS):</strong> Identifiers typically
+start with standard prefixes, such as <code>AKIA</code> for access key
+IDs, followed by 16 alphanumeric characters.</li>
+<li><strong>Google Cloud Platform (GCP):</strong> API keys frequently
+begin with the prefix <code>AIza</code> followed by 35 alphanumeric
+characters.</li>
+<li><strong>Third-Party Services:</strong> Services such as Slack,
+Stripe, Twilio, and GitHub themselves utilize structured prefixes (e.g.,
+<code>xoxb-</code>, <code>sk_live_</code>, <code>ghp_</code>) to denote
+specific token scopes.</li>
+</ul>
+<p>Regex scanning allows bots to discard irrelevant code instantly and
+isolate strings that strictly conform to known authentication token
+structures.</p>
+<h3 id="high-entropy-analysis">High-Entropy Analysis</h3>
+<p>Not all sensitive credentials conform to structured prefixes. Private
+SSH keys, database connection strings, and generic OAuth secrets often
+appear as arbitrary, pseudo-random character sequences.</p>
+<p>To catch these unstructured secrets, bots use Shannon entropy
+algorithms. High entropy indicates a high degree of randomness, a
+characteristic typical of cryptographic keys and strong passwords
+compared to standard programming syntax or natural human language. By
+scanning variable assignments for high-entropy strings, bots uncover
+secrets that evade basic regex filters.</p>
+<h3 id="deep-git-history-and-context-parsing">Deep Git History and
+Context Parsing</h3>
+<p>Amateur developers frequently attempt to fix a secret leak by making
+a subsequent commit that removes the key from the code. However, Git
+records the entire history of a project.</p>
+<p>Harvesting bots are designed to parse the complete Git commit tree,
+including past revisions, detached heads, merged branches, and pull
+request comments. Even if a sensitive key is present in a repository for
+only a few seconds before being deleted, it remains permanently
+accessible in the commit history until the repository is forcefully
+purged and rewritten.</p>
+<h3 id="automated-validation-and-immediate-exploitation">Automated
+Validation and Immediate Exploitation</h3>
+<p>Finding a matching string is only the first step; the final phase of
+the pipeline is validation. Attackers configure automated webhooks that
+pass extracted keys directly to specialized validation scripts.</p>
+<ol type="1">
+<li><strong>Fingerprinting and Privilege Checking:</strong> For an AWS
+key, the bot immediately calls non-destructive identity functions, such
+as <code>sts:GetCallerIdentity</code>, to verify if the key is active
+and determine the attached IAM policies.</li>
+<li><strong>Automated Resource Hijacking:</strong> If the key possesses
+administrative or deployment privileges, secondary automated payloads
+execute within minutes. Attackers typically deploy unauthorized cloud
+compute instances for cryptocurrency mining, establish persistence by
+creating rogue administrative users, or harvest connected databases for
+sensitive corporate data.</li>
+</ol></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

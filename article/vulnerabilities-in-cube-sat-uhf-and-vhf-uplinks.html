@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vulnerabilities in CubeSat UHF and VHF Uplinks - hacking</title>
+    <meta name="description" content="Small satellites, particularly CubeSats, increasingly handle critical scientific, commercial, and defense-related tasks, yet many rely on legacy, unencrypted Ultra High Frequency (UHF) and Very High Frequency (VHF) bands for their Telemetry, Tracking, an">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/vulnerabilities-in-cube-sat-uhf-and-vhf-uplinks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Vulnerabilities in CubeSat UHF and VHF Uplinks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/vulnerabilities-in-cube-sat-uhf-and-vhf-uplinks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Small satellites, particularly CubeSats, increasingly handle critical scientific, commercial, and defense-related tasks, yet many rely on legacy, unencrypted Ultra High Frequency (UHF) and Very High Frequency (VHF) bands for their Telemetry, Tracking, an" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="vulnerabilities-in-cubesat-uhf-and-vhf-uplinks">Vulnerabilities
+in CubeSat UHF and VHF Uplinks</h1>
+<p>Small satellites, particularly CubeSats, increasingly handle critical
+scientific, commercial, and defense-related tasks, yet many rely on
+legacy, unencrypted Ultra High Frequency (UHF) and Very High Frequency
+(VHF) bands for their Telemetry, Tracking, and Command (TT&amp;C)
+uplinks. This article examines how the absence of cryptographic
+standards, coupled with widely accessible commercial hardware, exposes
+these low-Earth-orbit spacecraft to severe security risks such as
+unauthorized command injection, replay attacks, and interception by both
+terrestrial actors and adversarial satellites.</p>
+<h3 id="the-role-of-uhf-and-vhf-in-cubesat-design">The Role of UHF and
+VHF in CubeSat Design</h3>
+<p>CubeSats operate under severe Size, Weight, and Power (SWaP)
+constraints. Historically, university teams and early commercial
+operators selected UHF (300 MHz to 3 GHz) and VHF (30 MHz to 300 MHz)
+frequencies due to the availability of inexpensive Commercial
+Off-The-Shelf (COTS) transceivers, low path loss, and forgiving antenna
+alignment tolerances. Because high-gain tracking antennas are not
+strictly required for low-data-rate UHF/VHF links, teams could build
+low-cost ground infrastructure to maintain contact with their
+spacecraft. However, this legacy architecture frequently deprioritized
+cybersecurity, omitting basic cryptographic layers to conserve
+processing cycles and development time.</p>
+<h3 id="core-uplink-vulnerabilities">Core Uplink Vulnerabilities</h3>
+<p>The fundamental vulnerability in typical CubeSat uplink systems is
+the total absence of confidentiality and integrity controls. When
+communication operates in the clear, several distinct attack vectors
+emerge:</p>
+<ul>
+<li><strong>Command Injection and Hijacking:</strong> Without
+cryptographic message authentication (such as HMAC or digital
+signatures), the satellite receiver executes any signal formatted to
+match its expected packet structure. An attacker who discovers the
+command framing can issue privileged commands, altering orbital
+parameters, discharging batteries through continuous subsystem
+operation, disabling solar arrays, or corrupting onboard storage.</li>
+<li><strong>Packet Replay Attacks:</strong> Unencrypted links that lack
+cryptographic nonces or sequential timestamps allow adversaries to
+record legitimate operator commands and transmit them at a later time.
+Replaying a valid "reset" or "payload power-down" command can
+destabilize satellite operations without needing to decipher internal
+payload mechanics.</li>
+<li><strong>Eavesdropping and Telemetry Exploitation:</strong> Because
+downlinks and uplinks often share similar open implementations (such as
+AX.25 amateur radio framing), adversaries can monitor mission commands,
+operational schedules, and orbital state vectors in real time, gathering
+intelligence necessary to time an attack precisely.</li>
+</ul>
+<h3 id="the-emergence-of-space-based-hacking">The Emergence of
+Space-Based Hacking</h3>
+<p>While terrestrial radio spoofing requires substantial transmission
+power to overpower authorized ground stations, space-based hacking
+presents an asymmetric risk profile in Low Earth Orbit (LEO):</p>
+<ul>
+<li><strong>Proximity and Free-Space Path Loss:</strong> A hostile or
+rogue satellite operating in a co-planar or intersecting orbit can close
+the physical distance to a target CubeSat to tens or hundreds of
+kilometers, compared to the thousands of kilometers separating the
+satellite from its ground station. In radio communications, signal
+strength drops with the square of the distance; therefore, an
+intercepting satellite requires only a fraction of a ground station's
+transmit power to override legitimate signals (capture effect).</li>
+<li><strong>Line-of-Sight Advantage:</strong> Ground stations have
+limited contact windows—typically 5 to 10 minutes per pass. A spaceborne
+adversary orbiting alongside a target can maintain an extended line of
+sight, allowing for persistent fuzzing of receiver firmware,
+brute-forcing of basic control logic, and sustained command injection
+without terrestrial geographic interference.</li>
+<li><strong>Accessibility via Software-Defined Radios (SDRs):</strong>
+Modern CubeSats can carry high-performance SDR payloads capable of
+dynamically scanning, intercepting, and transmitting across broad VHF
+and UHF segments. This turns relatively simple nanosatellites into
+viable electronic warfare and cyber-reconnaissance nodes.</li>
+</ul>
+<h3 id="standardized-protocols-and-lack-of-diversity">Standardized
+Protocols and Lack of Diversity</h3>
+<p>Many open-source CubeSat projects and commercial kits rely on
+standard protocols originally designed without security in mind. The
+AX.25 data link layer protocol, borrowed from the amateur radio
+community, contains no native encryption or cryptographic validation
+fields. Attackers can utilize commodity SDR platforms and open-source
+decoding libraries to capture frames, analyze operational patterns, and
+craft malicious telecommand frames with minimal technical overhead.</p>
+<h3 id="mitigating-uplink-threats">Mitigating Uplink Threats</h3>
+<p>Securing future CubeSat missions against unauthorized uplink
+interference requires adopting modern space communication standards:</p>
+<ul>
+<li><strong>Authenticated Encryption:</strong> Implementing lightweight,
+hardware-accelerated encryption standards, such as AES-GCM
+(Galois/Counter Mode), provides both confidentiality and data integrity,
+rejecting any unauthenticated frame at the physical-to-link layer
+boundary.</li>
+<li><strong>CCSDS Security Standards:</strong> Utilizing the
+Consultative Committee for Space Data Systems (CCSDS) Space Data Link
+Security (SDLS) protocol standardizes authentication, encryption, and
+anti-replay counters natively within the telemetry and telecommand
+pipeline.</li>
+<li><strong>Robust Key Management:</strong> Incorporating secure
+cryptoprocessors or trusted platform modules (TPMs) directly into
+satellite avionics ensures that cryptographic keys cannot be extracted
+via physical or supply-chain analysis prior to launch.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

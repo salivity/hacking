@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Silicon Trojans Evade IC Quality Testing - hacking</title>
+    <meta name="description" content="Silicon trojans embedded in commercial integrated circuits (ICs) pose a severe hardware security threat by stealthily altering chip functionality, leaking sensitive data, or causing premature failure. This article examines the mechanisms these malicious">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-silicon-trojans-evade-ic-quality-testing">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Silicon Trojans Evade IC Quality Testing - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-silicon-trojans-evade-ic-quality-testing" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Silicon trojans embedded in commercial integrated circuits (ICs) pose a severe hardware security threat by stealthily altering chip functionality, leaking sensitive data, or causing premature failure. This article examines the mechanisms these malicious" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-silicon-trojans-evade-ic-quality-testing">How Silicon
+Trojans Evade IC Quality Testing</h1>
+<p>Silicon trojans embedded in commercial integrated circuits (ICs) pose
+a severe hardware security threat by stealthily altering chip
+functionality, leaking sensitive data, or causing premature failure.
+This article examines the mechanisms these malicious modifications use
+to bypass automated post-manufacturing quality testing, focusing on
+rare-event triggers, test-mode awareness, minimal physical footprints,
+and parametric manipulation that evade traditional defect detection.</p>
+<h3 id="the-limitation-of-post-manufacturing-testing">The Limitation of
+Post-Manufacturing Testing</h3>
+<p>Post-manufacturing quality testing relies on Automated Test Equipment
+(ATE) to verify that an integrated circuit is free from physical
+manufacturing defects. ATE employs Automated Test Pattern Generation
+(ATPG) to test for specific fault models, such as stuck-at-0,
+stuck-at-1, and transition delay faults.</p>
+<p>Because modern commercial ICs contain billions of transistors,
+achieving 100% state coverage is computationally impossible. Standard
+quality testing is designed strictly to catch unintended manufacturing
+variances, not intentionally engineered, adversarial logic. Silicon
+trojans exploit this design philosophy through several distinct evasion
+strategies.</p>
+<h3 id="rare-event-trigger-mechanisms">Rare-Event Trigger
+Mechanisms</h3>
+<p>The primary method hardware trojans use to remain undetected during
+testing is dormancy. The trojan consists of a payload (the malicious
+function) and a trigger (the condition that activates it). To survive
+ATE:</p>
+<ul>
+<li><strong>High-Threshold Counters:</strong> Trojans often incorporate
+large digital counters that require billions of clock cycles before
+activation. Because ATE routines run for brief periods per chip to
+maintain production throughput, counter-based trojans never hit their
+activation threshold during the test phase.</li>
+<li><strong>Complex State Sequences:</strong> Triggers can be configured
+to monitor internal signals for an exceedingly rare sequence of logic
+states. ATPG algorithms prioritize patterns that maximize fault coverage
+across standard logic blocks, consistently skipping the highly
+improbable combinations required to awaken the trojan.</li>
+</ul>
+<h3 id="test-aware-deactivation">Test-Aware Deactivation</h3>
+<p>Integrated circuits utilize Design-for-Testability (DFT)
+architectures, such as internal scan chains and Built-In Self-Test
+(BIST) circuits, to expose internal states to automated testers.
+Sophisticated trojans are designed to recognize these testing
+states:</p>
+<ul>
+<li><strong>Scan-Chain Monitoring:</strong> When testing begins, the
+chip’s <code>test_mode</code> or <code>scan_enable</code> pins are
+asserted. A trojan connected to these control lines automatically
+disables its trigger and payload logic whenever test signals are
+active.</li>
+<li><strong>Signature Detection:</strong> Trojans can monitor input
+buses for deterministic, repetitive patterns typical of ATPG algorithms.
+If an automated test signature is detected, the trojan suppresses all
+anomalous behavior and maintains normal functional outputs.</li>
+</ul>
+<h3 id="parametric-and-dopant-level-manipulation">Parametric and
+Dopant-Level Manipulation</h3>
+<p>Not all trojans introduce new, identifiable digital logic gates. Some
+modifications operate below the logical abstraction layer, making them
+completely invisible to standard digital logic tests:</p>
+<ul>
+<li><strong>Dopant-Level Modifications:</strong> Attackers can alter the
+chemical doping concentration of specific transistor channels without
+changing the physical layout or wiring of the netlist. These dopant
+trojans can force specific nodes to bias toward a 0 or 1 under specific
+environmental conditions, while passing typical Boolean logic tests
+under nominal test voltages.</li>
+<li><strong>Side-Channel Exploits:</strong> Trojans can be engineered
+solely to alter thermal profiles, electromagnetic radiation, or power
+consumption to leak cryptographic keys. Because the functional logic
+remains identical to the original design specifications, logical
+verification tests flag the chip as fully compliant.</li>
+</ul>
+<h3 id="evading-current-and-delay-tests">Evading Current and Delay
+Tests</h3>
+<p>ATE often incorporates parametric checks like quiescent supply
+current (<span class="math inline">\(I_{DDQ}\)</span>) testing and
+path-delay measurements to catch physical defects that logical tests
+miss:</p>
+<ul>
+<li><strong>Minimal Gate Footprint:</strong> Modern stealthy trojans
+require as few as two to four transistors. The capacitance and leakage
+current added by such a minimal footprint fall well within the normal
+statistical noise and process variations inherent to deep sub-micron
+semiconductor manufacturing, evading <span
+class="math inline">\(I_{DDQ}\)</span> threshold triggers.</li>
+<li><strong>Path Placement Optimization:</strong> Malicious insertions
+avoid timing-critical paths. By placing the trigger taps on paths with
+significant timing slack, the additional parasitic capacitance does not
+create setup or hold time violations that would otherwise be flagged by
+delay-fault testing.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

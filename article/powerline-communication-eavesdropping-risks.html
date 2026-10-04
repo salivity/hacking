@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powerline Communication Eavesdropping Risks - hacking</title>
+    <meta name="description" content="Powerline Communication (PLC) utilizes existing electrical wiring to transmit data, making it a cost-effective networking backbone for smart grids, industrial automation, and commercial buildings. However, because power cables lack the shielding found in">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/powerline-communication-eavesdropping-risks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Powerline Communication Eavesdropping Risks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/powerline-communication-eavesdropping-risks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Powerline Communication (PLC) utilizes existing electrical wiring to transmit data, making it a cost-effective networking backbone for smart grids, industrial automation, and commercial buildings. However, because power cables lack the shielding found in" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="powerline-communication-eavesdropping-risks">Powerline
+Communication Eavesdropping Risks</h1>
+<p>Powerline Communication (PLC) utilizes existing electrical wiring to
+transmit data, making it a cost-effective networking backbone for smart
+grids, industrial automation, and commercial buildings. However, because
+power cables lack the shielding found in dedicated data cables, PLC
+systems inadvertently broadcast high-frequency signals into the
+surrounding environment. Eavesdropping on these transmissions introduces
+severe security risks, ranging from passive surveillance and corporate
+espionage to the compromise of critical industrial infrastructure.</p>
+<h3 id="the-physics-behind-the-vulnerability">The Physics Behind the
+Vulnerability</h3>
+<p>Commercial power grids and standard building electrical systems are
+designed to carry low-frequency power (typically 50 or 60 Hz), not
+high-frequency data signals. When high-frequency carrier signals are
+introduced for PLC, the unshielded electrical wiring acts as an
+unintended antenna.</p>
+<p>Attackers do not need physical access to the building's wiring or
+network jacks to intercept this data. Using Software-Defined Radios
+(SDR) and basic antennas, a threat actor can capture electromagnetic
+radiation (EMR) leaking from the powerlines from tens or even hundreds
+of meters away.</p>
+<h3 id="primary-risks-of-plc-eavesdropping">Primary Risks of PLC
+Eavesdropping</h3>
+<h4 id="1-exposure-of-sensitive-operational-and-consumer-data">1.
+Exposure of Sensitive Operational and Consumer Data</h4>
+<p>Many legacy or low-cost commercial PLC deployments transmit data in
+plaintext or rely on weak, outdated encryption standards. Eavesdropping
+on these channels can expose:</p>
+<ul>
+<li><strong>Smart Meter Data:</strong> Detailed consumption logs that
+reveal occupancy patterns, operational hours, and facility
+utilization.</li>
+<li><strong>Credentials and Authentication Tokens:</strong> Cleartext
+administrative passwords, API keys, or session tokens used to manage
+connected devices.</li>
+<li><strong>Internal Network Topology:</strong> Metadata that maps out
+connected nodes, devices, and architectures, accelerating an attacker's
+reconnaissance phase.</li>
+</ul>
+<h4 id="2-precursor-to-active-sabotage-and-command-injection">2.
+Precursor to Active Sabotage and Command Injection</h4>
+<p>Passive eavesdropping is frequently the first step in a multi-stage
+attack. By analyzing captured traffic, adversaries can reverse-engineer
+proprietary communications protocols and message formats. Once the
+protocol structure is understood, attackers can move from passive
+sniffing to active exploitation, such as:</p>
+<ul>
+<li><strong>Replay Attacks:</strong> Recording legitimate control
+signals (e.g., valve shutoffs, breaker trips) and retransmitting them to
+disrupt operations.</li>
+<li><strong>Man-in-the-Middle (MitM) and Injection:</strong> Injecting
+malicious control commands directly into supervisory control and data
+acquisition (SCADA) systems or industrial IoT devices.</li>
+</ul>
+<h4 id="3-bypassing-traditional-perimeter-defenses">3. Bypassing
+Traditional Perimeter Defenses</h4>
+<p>Most commercial cybersecurity measures focus on standard Ethernet
+ports, Wi-Fi perimeters, and gateway firewalls. PLC operates on an
+alternative physical layer that security teams often overlook.
+Eavesdropping on a PLC network grants attackers visibility into internal
+traffic without ever triggering Network Intrusion Detection Systems
+(NIDS) or crossing the corporate firewall.</p>
+<h4 id="4-critical-infrastructure-and-industrial-disruption">4. Critical
+Infrastructure and Industrial Disruption</h4>
+<p>In commercial settings like manufacturing plants, data centers, and
+utilities, PLC often connects micro-inverters, heating, ventilation, and
+air conditioning (HVAC) controllers, and emergency shutoff systems.
+Eavesdropping provides attackers with the actionable intelligence needed
+to time kinetic attacks, disable cooling in server rooms, or destabilize
+power distribution within a facility.</p>
+<h3 id="essential-mitigation-strategies">Essential Mitigation
+Strategies</h3>
+<p>Securing PLC environments against eavesdropping requires treating
+powerlines as inherently untrusted, publicly broadcast media:</p>
+<ul>
+<li><strong>End-to-End Payload Encryption:</strong> Implement robust
+encryption (such as AES-128 or AES-256) at the application layer,
+ensuring that intercepted radio emissions yield only unreadable
+ciphertext.</li>
+<li><strong>Regular Key Rotation:</strong> Prevent long-term
+eavesdropping operations by enforcing automated cryptographic key
+management and frequent key rotations across all nodes.</li>
+<li><strong>Physical Filtering and Attenuation:</strong> Install
+low-pass filters at building perimeters and power substations to prevent
+high-frequency PLC signals from escaping the designated physical
+zones.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

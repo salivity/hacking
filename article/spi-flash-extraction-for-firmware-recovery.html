@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPI Flash Extraction for Firmware Recovery - hacking</title>
+    <meta name="description" content="Physical SPI flash chip extraction is a fundamental hardware hacking technique that allows researchers and security analysts to bypass software-level protections and retrieve an embedded device’s complete firmware image. By physically isolating the Ser">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/spi-flash-extraction-for-firmware-recovery">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SPI Flash Extraction for Firmware Recovery - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/spi-flash-extraction-for-firmware-recovery" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Physical SPI flash chip extraction is a fundamental hardware hacking technique that allows researchers and security analysts to bypass software-level protections and retrieve an embedded device’s complete firmware image. By physically isolating the Ser" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="spi-flash-extraction-for-firmware-recovery">SPI Flash Extraction
+for Firmware Recovery</h1>
+<p>Physical SPI flash chip extraction is a fundamental hardware hacking
+technique that allows researchers and security analysts to bypass
+software-level protections and retrieve an embedded device’s complete
+firmware image. By physically isolating the Serial Peripheral Interface
+(SPI) memory chip from the host printed circuit board (PCB), analysts
+can eliminate interference from the main System-on-Chip (SoC) and read
+the raw binary data directly using external hardware programmers. This
+process provides an exact, unfiltered snapshot of the device's storage,
+exposing bootloaders, kernel images, filesystems, and sensitive
+configuration data for deep vulnerability analysis.</p>
+<h3 id="the-role-of-spi-flash-in-embedded-systems">The Role of SPI Flash
+in Embedded Systems</h3>
+<p>Most embedded systems—such as IoT devices, routers, automotive
+control units, and smart home appliances—rely on non-volatile SPI NOR or
+NAND flash memory to store critical software components. Because SPI
+requires a low pin count (typically consisting of Chip Select, Clock,
+Master In Slave Out, and Master Out Slave In lines), it is an
+industry-standard choice for holding the bootloader (like U-Boot),
+operating system kernels, and file systems. During a standard boot
+sequence, the primary processor reads this flash memory to initialize
+the system.</p>
+<h3 id="why-software-level-acquisition-fails">Why Software-Level
+Acquisition Fails</h3>
+<p>Hardware hackers frequently encounter devices with disabled debugging
+ports (such as UART or JTAG) and locked-down network services. Operating
+system shells may be stripped or password-protected, preventing
+conventional extraction methods like executing <code>dd</code> over an
+SSH session. Furthermore, software-based extraction only reveals data
+that the running operating system permits the user to see, potentially
+masking bootloader stages or encrypted partition headers. Physical
+extraction circumvents all runtime access controls, secure shells, and
+software barriers by treating the memory chip as a passive storage
+medium.</p>
+<h3 id="physical-extraction-vs-in-circuit-reading">Physical Extraction
+vs. In-Circuit Reading</h3>
+<p>To read an SPI chip, an analyst can either perform in-circuit reading
+or fully desolder the chip:</p>
+<ul>
+<li><strong>In-Circuit Reading:</strong> Utilizing spring-loaded test
+clips (such as SOIC-8 or SOIC-16 test clips), researchers can attach
+probes directly to the chip's pins while it remains soldered to the PCB.
+While convenient, this approach often causes bus contention, where the
+target board's SoC inadvertently wakes up, pulls lines high or low, or
+attempts to read from the flash simultaneously, causing data
+corruption.</li>
+<li><strong>Physical Desoldering (Chip-Off):</strong> Using a hot air
+rework station and flux, the SPI flash is cleanly removed from the PCB.
+Desoldering isolates the component entirely. This approach guarantees
+clean signal integrity, prevents power leakage to the rest of the target
+circuit, and ensures the memory can be read reliably without electrical
+interference.</li>
+</ul>
+<h3 id="dumping-firmware-with-external-programmers">Dumping Firmware
+with External Programmers</h3>
+<p>Once the chip is isolated, it is placed into a dedicated socket or
+adapter connected to an external hardware programmer, such as a CH341A,
+Bus Pirate, or a general-purpose microcontroller configured for SPI
+communication.</p>
+<p>The analyst uses low-level software utilities, such as
+<code>flashrom</code>, to interact with the chip. The process
+involves:</p>
+<ol type="1">
+<li><strong>Reading the JEDEC ID:</strong> The programmer queries the
+chip for its manufacturer and device ID to configure appropriate voltage
+levels, clock speeds, and read commands.</li>
+<li><strong>Executing Read Commands:</strong> The programmer pulls the
+Chip Select (CS) pin low and sends standard SPI read instructions (such
+as <code>0x03</code> for normal read or <code>0x0B</code> for fast read)
+along with memory addresses.</li>
+<li><strong>Dumping to Binary:</strong> The chip streams its contents
+sequentially back through the MISO line. To ensure integrity, the flash
+is typically dumped multiple times, and cryptographic hashes (such as
+SHA-256) of the resulting binary files are compared to verify that no
+bit flips occurred.</li>
+</ol>
+<h3 id="post-extraction-firmware-analysis">Post-Extraction Firmware
+Analysis</h3>
+<p>With the raw binary recovered, the hardware hacking process shifts to
+static analysis. Tools such as <code>binwalk</code> scan the dump for
+known signatures, unpacking compressed file systems like SquashFS,
+CramFS, or UBIFS. Analysts can then inspect the retrieved filesystem for
+hardcoded encryption keys, administrative credentials, API tokens, and
+outdated, vulnerable binaries, turning a physically protected piece of
+hardware into an entirely auditable software environment.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

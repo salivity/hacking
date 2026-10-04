@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Padding Oracle Attacks Work in Web Hacking - hacking</title>
+    <meta name="description" content="A padding oracle attack is a cryptographic exploit that allows an attacker to decrypt sensitive ciphertext without possessing the secret encryption key. By intercepting encrypted data—such as session tokens or cookies—and systematically manipulating">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-padding-oracle-attacks-work-in-web-hacking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Padding Oracle Attacks Work in Web Hacking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-padding-oracle-attacks-work-in-web-hacking" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A padding oracle attack is a cryptographic exploit that allows an attacker to decrypt sensitive ciphertext without possessing the secret encryption key. By intercepting encrypted data—such as session tokens or cookies—and systematically manipulating" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-padding-oracle-attacks-work-in-web-hacking">How Padding
+Oracle Attacks Work in Web Hacking</h1>
+<p>A padding oracle attack is a cryptographic exploit that allows an
+attacker to decrypt sensitive ciphertext without possessing the secret
+encryption key. By intercepting encrypted data—such as session tokens or
+cookies—and systematically manipulating its bytes, an attacker observes
+differences in how a web application handles cryptographic padding
+errors. This article breaks down the mechanics of the padding oracle
+attack, explaining how standard block cipher padding works, how error
+messages act as a decryption oracle, and how attackers reconstruct
+plaintext data byte by byte.</p>
+<h3 id="the-role-of-padding-in-block-ciphers">The Role of Padding in
+Block Ciphers</h3>
+<p>Symmetric block ciphers like the Advanced Encryption Standard (AES)
+encrypt data in fixed-size chunks, typically 16 bytes (128 bits).
+Because real-world messages rarely align perfectly with 16-byte
+boundaries, applications append padding to the final block before
+encryption.</p>
+<p>The most common standard is PKCS#7. In PKCS#7, the value of each
+added byte equals the total number of padding bytes:</p>
+<ul>
+<li>If 1 byte is missing, append <code>0x01</code>.</li>
+<li>If 2 bytes are missing, append <code>0x02 0x02</code>.</li>
+<li>If a block is already full, a complete dummy block of 16 padding
+bytes (<code>0x10</code> repeated 16 times) is added to ensure
+consistency.</li>
+</ul>
+<p>Upon decryption, the receiving server strips this padding. If the
+padding bytes do not follow the expected pattern, the cryptographic
+library raises a padding error.</p>
+<h3 id="the-cipher-block-chaining-cbc-vulnerability">The Cipher Block
+Chaining (CBC) Vulnerability</h3>
+<p>Padding oracle attacks primarily target ciphers running in Cipher
+Block Chaining (CBC) mode. In CBC decryption, each ciphertext block
+(<span class="math inline">\(C_n\)</span>) is first processed through
+the block cipher using the secret key to produce an intermediate value
+(<span class="math inline">\(I_n\)</span>). This intermediate value is
+then XORed with the previous ciphertext block (<span
+class="math inline">\(C_{n-1}\)</span>) to yield the final plaintext
+(<span class="math inline">\(P_n\)</span>):</p>
+<p><span class="math display">\[P_n = I_n \oplus C_{n-1}\]</span></p>
+<p>For the very first block, an Initialization Vector (IV) takes the
+place of <span class="math inline">\(C_{n-1}\)</span>.</p>
+<p>Because the attacker can modify the ciphertext sent to the server,
+they directly control <span class="math inline">\(C_{n-1}\)</span>.
+Changing a byte in <span class="math inline">\(C_{n-1}\)</span> results
+in an identical bit-flip in the resulting plaintext <span
+class="math inline">\(P_n\)</span> after the server decrypts the
+block.</p>
+<h3 id="how-the-oracle-leaks-information">How the "Oracle" Leaks
+Information</h3>
+<p>An "oracle" in cryptography refers to any system that inadvertently
+reveals whether a specific operation succeeded or failed. In web
+applications, this leak happens when the server distinguishes
+between:</p>
+<ol type="1">
+<li><strong>Invalid padding:</strong> The decryption completed, but the
+PKCS#7 padding was malformed.</li>
+<li><strong>Valid padding, invalid data:</strong> The padding was
+structurally correct, but the decrypted message content (e.g., malformed
+JSON or an invalid session ID) failed application validation.</li>
+<li><strong>Valid padding and valid data:</strong> The request processed
+normally.</li>
+</ol>
+<p>Even if the server does not return explicit error text like "Padding
+Exception," side channels such as different HTTP status codes (e.g.,
+HTTP 500 vs. HTTP 403/200) or subtle timing differences can serve as the
+oracle.</p>
+<h3 id="decrypting-plaintext-byte-by-byte">Decrypting Plaintext Byte by
+Byte</h3>
+<p>An attacker exploits the oracle by working backward through a block,
+targeting one byte at a time from right to left.</p>
+<ol type="1">
+<li><strong>Targeting the Last Byte:</strong> The attacker modifies the
+last byte of <span class="math inline">\(C_{n-1}\)</span> (let's call it
+<span class="math inline">\(C&#39;_{n-1}[15]\)</span>) and sends the
+modified ciphertext to the server. The attacker iterates through all 256
+possible byte values (<span class="math inline">\(0x00\)</span> to <span
+class="math inline">\(0xFF\)</span>).</li>
+<li><strong>Listening to the Oracle:</strong> For 255 of these attempts,
+the server will throw a padding error because the resulting plaintext
+byte <span class="math inline">\(P&#39;_n[15]\)</span> will not end in a
+valid PKCS#7 sequence. However, exactly one value will cause <span
+class="math inline">\(P&#39;_n[15]\)</span> to evaluate to
+<code>0x01</code> (a valid 1-byte pad), causing the server to accept the
+padding.</li>
+<li><strong>Calculating the Intermediate Value:</strong> Once the server
+confirms valid padding: <span class="math display">\[I_n[15] =
+C&#39;_{n-1}[15] \oplus 0x01\]</span></li>
+<li><strong>Recovering the Original Plaintext:</strong> With the
+intermediate byte <span class="math inline">\(I_n[15]\)</span> known,
+the attacker calculates the original plaintext byte (<span
+class="math inline">\(P_n[15]\)</span>) by XORing it with the
+<em>original</em> ciphertext byte (<span
+class="math inline">\(C_{n-1}[15]\)</span>): <span
+class="math display">\[P_n[15] = I_n[15] \oplus
+C_{n-1}[15]\]</span></li>
+<li><strong>Moving to Preceding Bytes:</strong> To find the next-to-last
+byte (<span class="math inline">\(P_n[14]\)</span>), the attacker sets
+<span class="math inline">\(C&#39;_{n-1}[15]\)</span> to ensure the last
+byte decrypts to <code>0x02</code>. Then, they iterate through all 256
+possibilities for <span class="math inline">\(C&#39;_{n-1}[14]\)</span>
+until the server confirms valid two-byte padding
+(<code>0x02 0x02</code>).</li>
+</ol>
+<p>By repeating this process, an attacker requires at most <span
+class="math inline">\(256 \times 16 = 4,096\)</span> requests to decrypt
+an entire 16-byte block, bypassing the mathematical strength of the
+underlying cipher entirely without ever needing the secret key. Beyond
+decryption, attackers can run this process in reverse to forge valid
+ciphertexts containing arbitrary data.</p>
+<h3 id="preventing-padding-oracle-attacks">Preventing Padding Oracle
+Attacks</h3>
+<p>Securing web applications against padding oracle attacks requires
+eliminating the side-channel leak and ensuring data integrity:</p>
+<ul>
+<li><strong>Use Authenticated Encryption:</strong> The most effective
+defense is migrating from CBC mode to modern Authenticated Encryption
+with Associated Data (AEAD) modes, such as AES-GCM (Galois/Counter
+Mode). AEAD modes verify data integrity before decryption occurs.</li>
+<li><strong>Encrypt-then-MAC:</strong> If CBC mode must be used,
+implement an "Encrypt-then-MAC" scheme. Compute a Hash-based Message
+Authentication Code (HMAC) over the ciphertext and verify it first. If
+the HMAC verification fails, terminate the request immediately without
+attempting decryption.</li>
+<li><strong>Uniform Error Handling:</strong> Ensure the application
+returns identical error codes, response bodies, and execution times for
+all cryptographic and data-validation failures.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

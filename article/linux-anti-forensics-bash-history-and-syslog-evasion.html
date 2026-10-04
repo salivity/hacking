@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Anti-Forensics: Bash History and Syslog Evasion - hacking</title>
+    <meta name="description" content="This article examines the primary techniques adversaries employ to hide their operational footprint on Linux systems by evading or erasing interactive Bash command history and disabling system logging facilities such as syslog. Understanding these anti-f">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/linux-anti-forensics-bash-history-and-syslog-evasion">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Linux Anti-Forensics: Bash History and Syslog Evasion - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/linux-anti-forensics-bash-history-and-syslog-evasion" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines the primary techniques adversaries employ to hide their operational footprint on Linux systems by evading or erasing interactive Bash command history and disabling system logging facilities such as syslog. Understanding these anti-f" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="linux-anti-forensics-bash-history-and-syslog-evasion">Linux
+Anti-Forensics: Bash History and Syslog Evasion</h1>
+<p>This article examines the primary techniques adversaries employ to
+hide their operational footprint on Linux systems by evading or erasing
+interactive Bash command history and disabling system logging facilities
+such as syslog. Understanding these anti-forensic mechanisms is critical
+for systems administrators, incident responders, and security analysts
+aiming to detect unauthorized access, preserve evidentiary integrity,
+and harden auditing mechanisms against administrative tampering.</p>
+<h3 id="manipulating-interactive-bash-history">Manipulating Interactive
+Bash History</h3>
+<p>When an interactive shell session terminates, Bash typically flushes
+commands executed during the session from memory to an on-disk history
+file (usually located at <code>~/.bash_history</code>). Intruders employ
+several runtime techniques to alter this behavior:</p>
+<ul>
+<li><strong>Modifying Environment Variables:</strong> Bash relies on
+specific variables to manage logging behavior. By unsetting the history
+file pointer (<code>unset HISTFILE</code>) or setting the history buffer
+sizes to zero (<code>export HISTSIZE=0</code> and
+<code>export HISTFILESIZE=0</code>), the shell ceases recording executed
+commands both in memory and to the persistent file.</li>
+<li><strong>Toggling Shell Options:</strong> The command
+<code>set +o history</code> disables history collection for the active
+session entirely. Conversely, <code>set -o history</code> re-enables it,
+allowing selective exclusion of sensitive activity while leaving
+innocuous commands recorded.</li>
+<li><strong>Bypassing via Space Prefixes:</strong> If the shell
+configuration utilizes <code>HISTCONTROL=ignorespace</code> or
+<code>HISTCONTROL=ignoreboth</code>, prepending a whitespace character
+to any command prevents it from being appended to the internal history
+list.</li>
+<li><strong>Targeting History Files Directly:</strong> Intruders may
+overwrite or link the history storage to discard output automatically.
+Linking the file to <code>/dev/null</code>
+(<code>ln -sf /dev/null ~/.bash_history</code>) causes subsequent writes
+to be discarded. In other cases, files are truncated using
+<code>&gt; ~/.bash_history</code> or wiped using utilities like
+<code>shred</code> before session termination.</li>
+<li><strong>Spawning Non-Logging Shells:</strong> Executing commands
+inside subshells configured without resource files (e.g.,
+<code>bash --norc</code>) or using specialized interactive wrappers
+(such as Python's <code>pty.spawn</code>) can prevent default profile
+scripts from initializing persistent history mechanisms.</li>
+</ul>
+<h3 id="disabling-and-tampering-with-syslog-facilities">Disabling and
+Tampering with Syslog Facilities</h3>
+<p>System-wide authentication, privilege escalation, and runtime events
+are typically captured by logging daemons such as <code>rsyslog</code>,
+<code>syslog-ng</code>, or <code>systemd-journald</code>. When
+administrative or root access is achieved, unauthorized users often
+target these services to suppress event generation:</p>
+<ul>
+<li><strong>Service Termination and Masking:</strong> Using service
+managers, intruders can halt logging daemons directly via commands like
+<code>systemctl stop rsyslog</code> or
+<code>service rsyslog stop</code>. To prevent automatic recovery or
+restart by watchdog processes, the services may be masked
+(<code>systemctl mask rsyslog</code>), binding the service unit to
+<code>/dev/null</code>.</li>
+<li><strong>Disabling the Linux Audit Framework:</strong> The Linux
+Auditing System (<code>auditd</code>) logs detailed operational metrics
+directly from the kernel. Threat actors with root privileges can disable
+this kernel subsystem dynamically by executing
+<code>auditctl -e 0</code>, blinding kernel-level tracking of system
+calls and file integrity monitoring.</li>
+<li><strong>Altering Logging Configurations:</strong> Rather than
+stopping daemons—which can trigger alerts in enterprise monitoring
+solutions—configurations may be subtly modified. For example, editing
+<code>/etc/rsyslog.conf</code> or configuration snippets in
+<code>/etc/rsyslog.d/</code> to filter out specific facilities (such as
+<code>auth</code> or <code>authpriv</code>) directs sensitive events to
+<code>/dev/null</code>. Similarly, configuring <code>Storage=none</code>
+in <code>/etc/systemd/journald.conf</code> stops <code>journald</code>
+from writing logs to non-volatile memory.</li>
+<li><strong>Direct Truncation of Log Files:</strong> To avoid
+file-deletion alerts triggered by log rotation or monitoring tools,
+intruders frequently truncate active files in <code>/var/log/</code>
+(e.g., <code>auth.log</code>, <code>secure</code>, <code>syslog</code>)
+using utilities such as <code>truncate -s 0 /var/log/auth.log</code> or
+shell redirection (<code>&gt; /var/log/secure</code>), setting file
+sizes to zero bytes while keeping open file descriptors intact.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

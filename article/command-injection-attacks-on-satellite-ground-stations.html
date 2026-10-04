@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command Injection Attacks on Satellite Ground Stations - hacking</title>
+    <meta name="description" content="Satellite ground control stations serve as the critical bridge between terrestrial operators and space assets, making them high-value targets for cyber adversaries seeking orbital control. Threat actors exploit software vulnerabilities within ground cont">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/command-injection-attacks-on-satellite-ground-stations">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Command Injection Attacks on Satellite Ground Stations - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/command-injection-attacks-on-satellite-ground-stations" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Satellite ground control stations serve as the critical bridge between terrestrial operators and space assets, making them high-value targets for cyber adversaries seeking orbital control. Threat actors exploit software vulnerabilities within ground cont" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="command-injection-attacks-on-satellite-ground-stations">Command
+Injection Attacks on Satellite Ground Stations</h1>
+<p>Satellite ground control stations serve as the critical bridge
+between terrestrial operators and space assets, making them high-value
+targets for cyber adversaries seeking orbital control. Threat actors
+exploit software vulnerabilities within ground control
+stations—specifically command injection—to breach telemetry, tracking,
+and control (TT&amp;C) environments. By manipulating unvalidated inputs
+within mission operations software, attackers can bridge the gap from
+terrestrial networks to RF transmission hardware, effectively forging or
+altering command packets sent to orbiting spacecraft to divert payloads,
+disrupt operations, or permanently hijack satellites.</p>
+<h3 id="the-ground-control-vulnerability-surface">The Ground Control
+Vulnerability Surface</h3>
+<p>Ground Control Stations (GCS) rely on a complex stack of mission
+planning software, hardware drivers, flight dynamics engines, and
+web-based management consoles. Many of these architectures integrate
+legacy codebases, proprietary protocols, and modern network
+interfaces.</p>
+<p>Command injection vulnerabilities primarily arise in the translation
+layer—where high-level operator commands or automated scheduling
+routines are parsed into system-level execution strings or binary
+streams destined for the radio frequency (RF) front-end. If an
+operator-facing web interface, automated script, or third-party
+telemetry ingest pipeline accepts untrusted input without strict
+sanitization, adversaries can insert arbitrary system commands.</p>
+<h3 id="execution-mechanisms-of-command-injection">Execution Mechanisms
+of Command Injection</h3>
+<p>Adversaries typically target specific ingress points within GCS
+environments to execute code:</p>
+<ol type="1">
+<li><strong>Mission Planning and Script Ingestion:</strong> Operators
+regularly upload ephemeris data (TLE files), flight plans, and tracking
+schedules. Attackers exploit parser flaws in these file-handling
+utilities by embedding shell metacharacters (e.g., <code>;</code>,
+<code>|</code>, <code>&amp;&amp;</code>) into metadata fields,
+triggering command execution on the host operating system when the file
+is processed.</li>
+<li><strong>Antenna and Hardware Control Interfaces:</strong> Tracking
+systems use automated interfaces to orient high-gain parabolic antennas.
+Malicious input directed at tracking daemons or serial-to-IP gateways
+can execute local commands with administrative privileges.</li>
+<li><strong>Telemetry Ingest Pipelines:</strong> Some attacks leverage
+spoofed or modified secondary telemetry data streams. If the GCS parses
+incoming serial data using vulnerable shell commands, an attacker
+capable of manipulating this stream can compromise the parsing
+server.</li>
+</ol>
+<h3 id="pivoting-from-system-access-to-orbital-uplink">Pivoting from
+System Access to Orbital Uplink</h3>
+<p>Achieving arbitrary command execution on a GCS server does not
+immediately grant satellite control, as space-to-ground links frequently
+employ application-layer authentication and encryption, such as CCSDS
+(Consultative Committee for Space Data Systems) Space Data Link Security
+(SDLS) protocols. To hijack the spacecraft, attackers pivot through the
+internal infrastructure:</p>
+<ul>
+<li><strong>Key Extraction and HSM Bypass:</strong> Once an attacker has
+command execution on the GCS, they target the cryptographic keys used to
+sign telecommands. Attackers extract keys stored improperly in memory,
+configuration files, or abuse local interfaces to Hardware Security
+Modules (HSMs) without needing to extract the keys directly.</li>
+<li><strong>Manipulating the Command Queue:</strong> Attackers
+manipulate the command transmission buffer. Rather than building a
+separate RF transmitter, they inject malicious CCSDS packets directly
+into the legitimate transmission queue of the baseband equipment
+(modems/transceivers).</li>
+<li><strong>Disabling Safety Rails:</strong> Ground software often
+incorporates collision avoidance and power safety rules that block
+hazardous commands. By executing low-level shell commands, adversaries
+can terminate these monitoring daemons, allowing out-of-limits
+instructions to reach the transmitter.</li>
+</ul>
+<h3 id="impact-on-orbital-equipment">Impact on Orbital Equipment</h3>
+<p>Once unauthorized commands are transmitted through the high-power
+amplifier and directional antenna of the ground station, the satellite
+executes the received telecommands:</p>
+<ul>
+<li><strong>Attitude Determination and Control System (ADCS)
+Manipulation:</strong> Adversaries can command the satellite’s reaction
+wheels or magnetorquers to point solar arrays away from the sun, causing
+battery depletion and permanent vehicle loss, or point optical sensors
+directly at the sun to destroy sensitive payloads.</li>
+<li><strong>Unauthorized Orbit Transfers:</strong> By firing onboard
+chemical or electric thrusters, attackers can de-orbit the satellite
+prematurely or alter its trajectory into hazardous orbital corridors,
+risking space debris collisions.</li>
+<li><strong>Payload Takeover or Neutralization:</strong> Attackers can
+disable transponders, eavesdrop on communications payloads, or
+completely shut down sensors to deny services to legitimate
+operators.</li>
+<li><strong>Firmware Overwrites:</strong> Attackers upload malicious
+flight software images to the satellite's onboard computer (OBC),
+establishing persistent control directly on the spacecraft and locking
+legitimate ground operators out of the system entirely.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

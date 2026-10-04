@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Runner Persistence and Security Risks - hacking</title>
+    <meta name="description" content="Self-hosted GitHub Actions runners offer organizations control over their continuous integration and continuous delivery (CI/CD) environments, but they also present significant security risks if compromised. When attackers gain execution privileges on a">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/git-hub-runner-persistence-and-security-risks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="GitHub Runner Persistence and Security Risks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/git-hub-runner-persistence-and-security-risks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Self-hosted GitHub Actions runners offer organizations control over their continuous integration and continuous delivery (CI/CD) environments, but they also present significant security risks if compromised. When attackers gain execution privileges on a" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="github-runner-persistence-and-security-risks">GitHub Runner
+Persistence and Security Risks</h1>
+<p>Self-hosted GitHub Actions runners offer organizations control over
+their continuous integration and continuous delivery (CI/CD)
+environments, but they also present significant security risks if
+compromised. When attackers gain execution privileges on a self-hosted
+runner, they can abuse its underlying trust and network positioning to
+establish persistent access into internal enterprise networks. This
+article examines the architectural weaknesses that enable runner
+persistence, the primary vectors utilized during compromise, and the
+requisite defensive mitigations.</p>
+<h3 id="architectural-risks-of-self-hosted-runners">Architectural Risks
+of Self-Hosted Runners</h3>
+<p>Unlike cloud-hosted environments that spin up temporary, isolated
+virtual machines for each job, self-hosted runners often run directly
+within an enterprise's private network. Because these nodes are trusted
+components designed to compile code, access internal artifact
+repositories, and deploy to staging or production environments, they
+often possess high network visibility and elevated permissions.</p>
+<p>If a runner is configured to be non-ephemeral (reused across multiple
+workflow runs), it retains state between jobs. This architectural design
+creates an opportunity for malicious actors who achieve code execution
+via untrusted pull requests or compromised dependencies to modify the
+host system permanently.</p>
+<h3 id="vectors-for-establishing-persistence">Vectors for Establishing
+Persistence</h3>
+<p>Attackers who gain access to a runner typically leverage standard
+administrative abuse techniques combined with CI/CD-specific
+mechanisms:</p>
+<ol type="1">
+<li><p><strong>System-Level Persistence</strong> On non-ephemeral
+runners, any code executed as part of a workflow runs with the
+permissions assigned to the runner agent. If the agent runs with
+elevated privileges (such as root or local administrator), an attacker
+can register scheduled tasks, modify <code>systemd</code> services,
+install background daemons, or add unauthorized SSH keys to
+administrative accounts. These modifications remain active even after
+the initial pipeline job completes.</p></li>
+<li><p><strong>Runner Binary and Hook Modification</strong> Self-hosted
+runner environments support pre- and post-job hooks via environment
+variables such as <code>ACTIONS_RUNNER_HOOK_JOB_STARTED</code>. An
+attacker with write access to the runner's configuration directories can
+modify these hooks or replace runner binaries with trojanized versions.
+This ensures that every subsequent job executed on that node silently
+runs malicious logic, capturing secrets and environment variables from
+other pipelines.</p></li>
+<li><p><strong>Credential Harvesting and Token Abuse</strong> Runners
+temporarily hold the <code>GITHUB_TOKEN</code> associated with the
+workflow, as well as any organizational secrets injected into the job.
+If the runner host is persistent, memory scrapers or persistent file
+monitors can harvest credentials passed to subsequent jobs. Attackers
+can also query internal cloud metadata services (such as AWS IMDS or GCP
+metadata endpoints) if the host instance profile is overly permissive,
+establishing external cloud access that outlives the runner
+itself.</p></li>
+<li><p><strong>Internal Network Bridging</strong> Once a runner host is
+modified to maintain an outbound command-and-control (C2) connection, it
+serves as a pivot point. Because outbound connections to GitHub APIs are
+explicitly allowed through firewalls, attackers often tunnel
+command-and-control traffic over standard HTTPS protocols, bypassing
+standard ingress network restrictions to reach internal enterprise
+subnets.</p></li>
+</ol>
+<h3 id="defensive-hardening-and-mitigation">Defensive Hardening and
+Mitigation</h3>
+<p>To prevent self-hosted runners from becoming long-term attack
+infrastructure, organizations must implement robust architectural
+controls:</p>
+<ul>
+<li><strong>Adopt Ephemeral Runners:</strong> Configure runners to be
+strictly ephemeral. Solutions such as Actions Runner Controller (ARC)
+run jobs inside disposable Kubernetes pods or temporary virtual machines
+that are completely destroyed after a single workflow execution,
+eliminating post-job persistence.</li>
+<li><strong>Avoid Public Repository Deployment:</strong> Never attach
+self-hosted runners to public repositories. Untrusted forks can trigger
+workflows on the runner via pull requests unless strict approval
+controls are enforced.</li>
+<li><strong>Network Segmentation:</strong> Place runners in isolated
+network segments (DMZs) with strictly limited lateral movement
+capabilities. Restrict egress access only to the necessary domains
+required for GitHub operations and package registries.</li>
+<li><strong>Least Privilege:</strong> Run the runner service under a
+dedicated, low-privilege service account without administrative or sudo
+access, and disable access to local instance metadata endpoints.</li>
+<li><strong>File Integrity Monitoring:</strong> Implement host-based
+intrusion detection systems (HIDS) and file integrity monitoring (FIM)
+to alert on modifications to system startup scripts, scheduled tasks,
+and the runner installation directory.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

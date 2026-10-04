@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Hackers Hijack Abandoned Open-Source Accounts - hacking</title>
+    <meta name="description" content="Abandoned open-source software represents a critical vulnerability in the modern software supply chain. When original maintainers cease updating their projects, threat actors actively exploit neglected accounts, orphaned domains, and stale credentials to">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-hackers-hijack-abandoned-open-source-accounts">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Hackers Hijack Abandoned Open-Source Accounts - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-hackers-hijack-abandoned-open-source-accounts" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Abandoned open-source software represents a critical vulnerability in the modern software supply chain. When original maintainers cease updating their projects, threat actors actively exploit neglected accounts, orphaned domains, and stale credentials to" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-hackers-hijack-abandoned-open-source-accounts">How Hackers
+Hijack Abandoned Open-Source Accounts</h1>
+<p>Abandoned open-source software represents a critical vulnerability in
+the modern software supply chain. When original maintainers cease
+updating their projects, threat actors actively exploit neglected
+accounts, orphaned domains, and stale credentials to seize control of
+legitimate packages. Once access is obtained, attackers deploy malicious
+updates that automatically cascade to thousands of downstream
+applications and development pipelines.</p>
+<h3 id="expired-domain-and-email-takeover">Expired Domain and Email
+Takeover</h3>
+<p>One of the most prevalent methods for hijacking dormant accounts
+relies on expired maintainer email domains. Package registries such as
+npm, PyPI, and RubyGems link account ownership and password recovery
+directly to an author's email address. Over time, developers frequently
+abandon personal domains or let company domains lapse.</p>
+<p>Attackers monitor registry metadata to identify unmaintained packages
+and cross-reference maintainer email addresses with domain availability
+databases. When an expired domain is discovered, the attacker purchases
+it, configures an active Mail Exchange (MX) record, and initiates a
+standard password reset via the package registry. This grants immediate,
+legitimate access to the account without needing to crack
+credentials.</p>
+<h3 id="credential-stuffing-and-stale-logins">Credential Stuffing and
+Stale Logins</h3>
+<p>Many dormant maintainer accounts were created before registries
+strictly enforced Multi-Factor Authentication (MFA). Attackers leverage
+public breach databases to conduct credential stuffing campaigns,
+testing previously leaked username-password combinations against package
+manager logins. Because developers frequently reused passwords across
+multiple services in past years, attackers can easily gain access to
+accounts where MFA is either disabled or bypassed.</p>
+<h3 id="social-engineering-and-helpful-maintainer-takeover">Social
+Engineering and "Helpful" Maintainer Takeover</h3>
+<p>Attackers also exploit maintainer fatigue through social engineering.
+In this scenario, an adversary creates a convincing developer persona
+and submits legitimate pull requests, bug fixes, and documentation
+improvements over several months.</p>
+<p>Once trust is established with an overwhelmed maintainer looking to
+offload project responsibilities, the attacker offers to take over
+project maintenance. Upon receiving commit access and publishing rights,
+the attacker pushes a backdoored version or adds an obfuscated payload
+in a subsequent update. This technique closely mirrors the high-profile
+XZ Utils backdoor attempt.</p>
+<h3 id="stale-github-usernames-and-repository-redirects">Stale GitHub
+Usernames and Repository Redirects</h3>
+<p>When a developer changes their GitHub username or deletes an account,
+GitHub frees the old identifier for registration by others. If a package
+manager points to a GitHub repository under the old username, an
+attacker can register that abandoned username and create a repository
+with the exact name of the original project.</p>
+<p>While GitHub implements protections to prevent repository redirect
+hijacking for popular projects, gaps remain for smaller or lesser-known
+libraries that other critical packages still depend upon.</p>
+<h3 id="exposed-api-tokens-in-public-archives">Exposed API Tokens in
+Public Archives</h3>
+<p>Developers often hardcoded registry publishing tokens (such as npm
+tokens or PyPI API keys) into repository files, <code>.npmrc</code>
+configurations, or continuous integration (CI) workflow files years ago.
+While a project may be abandoned, old commit histories, pull requests,
+and forks persist publicly. Attackers deploy automated scrapers to parse
+historical commits across neglected repositories, recovering active,
+non-expiring API tokens that permit direct package publication without
+requiring account credentials.</p>
+<h3 id="deployment-of-the-backdoor">Deployment of the Backdoor</h3>
+<p>After gaining control through any of these avenues, attackers
+typically publish a minor or patch version update (e.g., incrementing
+from <code>1.2.3</code> to <code>1.2.4</code>). Because most package
+managers default to semantic versioning ranges that permit automatic
+patch updates (such as <code>^</code> or <code>~</code> prefixes in
+<code>package.json</code>), downstream applications automatically pull
+and execute the malicious update during standard builds and
+deployments.</p>
+<p>The injected backdoors frequently include pre-install or post-install
+scripts designed to steal environment variables, exfiltrate private
+keys, deploy cryptominers, or establish persistent reverse shells in
+cloud infrastructure.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

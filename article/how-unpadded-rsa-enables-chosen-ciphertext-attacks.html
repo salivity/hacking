@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Unpadded RSA Enables Chosen-Ciphertext Attacks - hacking</title>
+    <meta name="description" content="Textbook RSA is inherently vulnerable to chosen-ciphertext attacks because it lacks cryptographic padding, which directly exposes its underlying multiplicative homomorphic property. Without padding, an attacker can mathematically manipulate an intercepte">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-unpadded-rsa-enables-chosen-ciphertext-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Unpadded RSA Enables Chosen-Ciphertext Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-unpadded-rsa-enables-chosen-ciphertext-attacks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Textbook RSA is inherently vulnerable to chosen-ciphertext attacks because it lacks cryptographic padding, which directly exposes its underlying multiplicative homomorphic property. Without padding, an attacker can mathematically manipulate an intercepte" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-unpadded-rsa-enables-chosen-ciphertext-attacks">How Unpadded
+RSA Enables Chosen-Ciphertext Attacks</h1>
+<p>Textbook RSA is inherently vulnerable to chosen-ciphertext attacks
+because it lacks cryptographic padding, which directly exposes its
+underlying multiplicative homomorphic property. Without padding, an
+attacker can mathematically manipulate an intercepted ciphertext such
+that a decryption oracle inadvertently decrypts the original message
+without ever processing the target ciphertext directly. This article
+explains the mathematical flaw in unpadded RSA, demonstrates how the
+chosen-ciphertext attack operates, and outlines how modern padding
+schemes neutralize the threat.</p>
+<h3 id="the-underlying-flaw-multiplicative-homomorphism">The Underlying
+Flaw: Multiplicative Homomorphism</h3>
+<p>Textbook RSA encrypts a plaintext message <span
+class="math inline">\(m\)</span> using a public exponent <span
+class="math inline">\(e\)</span> and modulus <span
+class="math inline">\(n\)</span> through the formula:</p>
+<p><span class="math display">\[c \equiv m^e \pmod n\]</span></p>
+<p>Decryption reverses this using the private exponent <span
+class="math inline">\(d\)</span>:</p>
+<p><span class="math display">\[m \equiv c^d \pmod n\]</span></p>
+<p>Because textbook RSA relies on pure modular exponentiation, it
+possesses a multiplicative homomorphic property. If an attacker has two
+ciphertexts, <span class="math inline">\(c_1 \equiv m_1^e \pmod
+n\)</span> and <span class="math inline">\(c_2 \equiv m_2^e \pmod
+n\)</span>, multiplying them yields:</p>
+<p><span class="math display">\[c_1 \cdot c_2 \equiv (m_1 \cdot m_2)^e
+\pmod n\]</span></p>
+<p>When decrypted, the product of the ciphertexts produces the product
+of the corresponding plaintexts. In a secure cryptosystem, altering the
+bits of a ciphertext should produce unpredictable noise upon decryption.
+In unpadded RSA, modifying the ciphertext produces mathematically
+predictable changes to the decrypted plaintext.</p>
+<h3 id="executing-the-chosen-ciphertext-attack">Executing the
+Chosen-Ciphertext Attack</h3>
+<p>In a standard chosen-ciphertext attack (CCA) scenario, an adversary
+intercepts a target ciphertext <span class="math inline">\(c\)</span>
+that they wish to decrypt. While they do not have the private key <span
+class="math inline">\(d\)</span>, they have access to a decryption
+oracle—such as an automated server, a cryptographic token, or an
+API—that will decrypt arbitrary ciphertexts, with the exception of the
+intercepted ciphertext <span class="math inline">\(c\)</span>
+itself.</p>
+<p>Because the oracle rejects requests containing the exact value <span
+class="math inline">\(c\)</span>, the attacker uses the homomorphic
+property to disguise it:</p>
+<ol type="1">
+<li><strong>Blinding the Ciphertext:</strong> The attacker selects an
+arbitrary integer <span class="math inline">\(s\)</span> such that <span
+class="math inline">\(\gcd(s, n) = 1\)</span>. They encrypt <span
+class="math inline">\(s\)</span> using the target's public key, yielding
+<span class="math inline">\(s^e \pmod n\)</span>.</li>
+<li><strong>Creating the Modified Ciphertext:</strong> The attacker
+computes a modified ciphertext <span
+class="math inline">\(c&#39;\)</span> by multiplying the intercepted
+ciphertext <span class="math inline">\(c\)</span> by the encrypted
+factor: <span class="math display">\[c&#39; \equiv c \cdot s^e \pmod
+n\]</span> Because <span class="math inline">\(c \equiv m^e \pmod
+n\)</span>, this is equivalent to: <span class="math display">\[c&#39;
+\equiv (m \cdot s)^e \pmod n\]</span></li>
+<li><strong>Querying the Oracle:</strong> The attacker submits <span
+class="math inline">\(c&#39;\)</span> to the decryption oracle. Because
+<span class="math inline">\(c&#39; \neq c\)</span>, the oracle accepts
+the input and performs the decryption: <span
+class="math display">\[m&#39; \equiv (c&#39;)^d \equiv ((m \cdot s)^e)^d
+\equiv m \cdot s \pmod n\]</span></li>
+<li><strong>Extracting the Plaintext:</strong> The oracle returns the
+blinded result <span class="math inline">\(m&#39;\)</span> to the
+attacker. To recover the original secret message <span
+class="math inline">\(m\)</span>, the attacker calculates the modular
+multiplicative inverse of their chosen factor (<span
+class="math inline">\(s^{-1} \pmod n\)</span>) and computes: <span
+class="math display">\[m \equiv m&#39; \cdot s^{-1} \pmod
+n\]</span></li>
+</ol>
+<p>Through this process, the attacker completely bypasses access
+controls and decrypts the target message using a single query to the
+decryption oracle.</p>
+<h3 id="why-padding-eliminates-the-vulnerability">Why Padding Eliminates
+the Vulnerability</h3>
+<p>The attack succeeds entirely because textbook RSA treats any number
+between <span class="math inline">\(0\)</span> and <span
+class="math inline">\(n-1\)</span> as a valid, structured plaintext. To
+prevent this, real-world implementations require randomized padding
+schemes, most notably Optimal Asymmetric Encryption Padding (OAEP).</p>
+<p>Padding schemes transform raw plaintext before modular exponentiation
+by:</p>
+<ul>
+<li><strong>Introducing High Entropy:</strong> Adding cryptographically
+secure pseudorandom bits ensures that encrypting the same message
+multiple times produces entirely different ciphertexts.</li>
+<li><strong>Enforcing Formatting Checks:</strong> OAEP uses hash
+functions and asymmetric feistel networks to structure the plaintext. If
+an attacker multiplies a valid ciphertext by <span
+class="math inline">\(s^e\)</span>, the decrypted value will not contain
+the mathematically strict formatting, fixed byte markers, or hash
+verification blocks required by the standard.</li>
+</ul>
+<p>When an oracle decrypts a manipulated ciphertext protected by OAEP,
+the integrity verification fails immediately. The system rejects the
+payload and returns an error without revealing any numerical output,
+fully mitigating chosen-ciphertext attacks.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

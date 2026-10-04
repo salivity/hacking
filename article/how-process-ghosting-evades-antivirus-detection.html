@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Process Ghosting Evades Antivirus Detection - hacking</title>
+    <meta name="description" content="Process ghosting is an advanced code injection technique that allows an attacker to execute malicious binaries by manipulating the Windows file-deletion lifecycle and memory-mapped sections. By marking a payload file for deletion before creating an execu">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-process-ghosting-evades-antivirus-detection">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Process Ghosting Evades Antivirus Detection - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-process-ghosting-evades-antivirus-detection" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Process ghosting is an advanced code injection technique that allows an attacker to execute malicious binaries by manipulating the Windows file-deletion lifecycle and memory-mapped sections. By marking a payload file for deletion before creating an execu" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-process-ghosting-evades-antivirus-detection">How Process
+Ghosting Evades Antivirus Detection</h1>
+<p>Process ghosting is an advanced code injection technique that allows
+an attacker to execute malicious binaries by manipulating the Windows
+file-deletion lifecycle and memory-mapped sections. By marking a payload
+file for deletion before creating an executable image section and
+subsequently closing the file handle, the payload is removed from disk
+prior to actual process creation. This timing gap creates a blind spot
+for security software, preventing antivirus (AV) engines and Endpoint
+Detection and Response (EDR) agents from opening or scanning the
+underlying executable on disk while the process runs entirely from
+memory.</p>
+<h3 id="the-antivirus-detection-model">The Antivirus Detection
+Model</h3>
+<p>Traditional endpoint security solutions rely on filesystem minifilter
+drivers and kernel callbacks to detect threats:</p>
+<ol type="1">
+<li><strong>Minifilter Drivers:</strong> Security tools intercept I/O
+request packets (such as <code>IRP_MJ_CREATE</code> and
+<code>IRP_MJ_CLEANUP</code>) to scan files when they are written to disk
+or closed.</li>
+<li><strong>Process Creation Callbacks:</strong> The Windows kernel
+provides the <code>PsSetCreateProcessNotifyRoutineEx</code> callback,
+notifying security solutions whenever a new process is instantiated.
+This callback delivers metadata, including the file path of the
+executable image, prompting security software to open and scan the file
+on disk before the process begins execution.</li>
+</ol>
+<p>Process ghosting disrupts this model by ensuring that the on-disk
+file no longer exists by the time
+<code>PsSetCreateProcessNotifyRoutineEx</code> is triggered.</p>
+<h3 id="mechanics-of-process-ghosting">Mechanics of Process
+Ghosting</h3>
+<p>Process ghosting relies on the behavior of the Windows Object
+Manager, the Memory Manager, and the NTFS file system. The technique
+follows a specific execution flow:</p>
+<h4 id="1-creating-the-file-in-a-delete-pending-state">1. Creating the
+File in a Delete-Pending State</h4>
+<p>The execution begins by creating a new file or opening an existing
+file with the <code>DELETE</code> access right. The handle is then
+modified using <code>SetFileInformationByHandle</code> with the
+<code>FileDispositionInformation</code> flag set to <code>TRUE</code>.
+This marks the file for deletion, meaning the operating system will
+remove the file from the filesystem as soon as all open handles to it
+are closed.</p>
+<h4 id="2-writing-the-malicious-payload">2. Writing the Malicious
+Payload</h4>
+<p>Despite being in a delete-pending state, the file can still be
+modified as long as the handle remains open. The binary content of the
+payload is written directly to the file using standard file-write
+APIs.</p>
+<h4 id="3-creating-an-executable-section">3. Creating an Executable
+Section</h4>
+<p>To execute code in Windows, the file must be mapped into memory as an
+executable image section. The system invokes
+<code>NtCreateSection</code> with the <code>SEC_IMAGE</code> flag,
+referencing the handle of the delete-pending file. The Windows Memory
+Manager allows section objects to be created from delete-pending files,
+mapping the PE (Portable Executable) headers and sections into kernel
+memory structures.</p>
+<h4 id="4-deleting-the-file-from-disk">4. Deleting the File from
+Disk</h4>
+<p>Once the section handle is established, the original file handle is
+closed via <code>NtClose</code>. Because the file was marked for
+deletion upon closure and no further file handles remain, the filesystem
+deletes the file entry immediately. However, the section handle still
+persists in memory, retaining the mapped image.</p>
+<h4 id="5-spawning-the-process">5. Spawning the Process</h4>
+<p>With the file completely removed from the filesystem, the process is
+created using low-level native APIs:</p>
+<ul>
+<li><code>NtCreateProcessEx</code> creates the process object backed by
+the detached image section.</li>
+<li>The Process Environment Block (PEB) and process parameters (such as
+command-line arguments and standard handles) are allocated and written
+to the target process memory.</li>
+<li>An initial execution thread is created using
+<code>NtCreateThreadEx</code>.</li>
+</ul>
+<h3 id="why-antivirus-filters-fail-to-intercept-it">Why Antivirus
+Filters Fail to Intercept It</h3>
+<p>Process ghosting specifically bypasses detection mechanisms through
+the following architectural flaws:</p>
+<ul>
+<li><strong>File Access Denial:</strong> When
+<code>NtCreateProcessEx</code> triggers the
+<code>PsSetCreateProcessNotifyRoutineEx</code> callback, the registered
+AV/EDR driver attempts to inspect the binary using the path provided in
+the callback. Because the file is already deleted, attempts to open the
+file handle fail with errors such as <code>STATUS_FILE_DELETED</code>,
+preventing signature matching or heuristic file scans.</li>
+<li><strong>Minifilter Evasion:</strong> Minifilter drivers typically
+defer intensive file scanning until <code>IRP_MJ_CLEANUP</code> occurs
+(when all user handles are closed). In process ghosting, closing the
+handle simultaneously removes the file, leaving nothing on disk for the
+minifilter to scan.</li>
+<li><strong>Absence of Typical Injection Artifacts:</strong> Unlike
+Process Hollowing, process ghosting does not require unmapping an
+existing legitimate section (<code>NtUnmapViewOfSection</code>) or
+writing across process boundaries (<code>WriteProcessMemory</code>) into
+an existing process, evading common behavioral telemetry rules.</li>
+<li><strong>Circumvention of Previous Mitigation:</strong> Previous
+techniques like Process Doppelgänging relied on NTFS Transactions (TxF),
+which Microsoft later heavily monitored and restricted. Process ghosting
+relies strictly on core filesystem disposition semantics and section
+mapping, functioning without the use of transactional APIs.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

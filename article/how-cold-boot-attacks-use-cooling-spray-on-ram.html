@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Cold Boot Attacks Use Cooling Spray on RAM - hacking</title>
+    <meta name="description" content="A cold boot attack is a physical side-channel exploit where an attacker extracts volatile data from a computer's Dynamic Random-Access Memory (DRAM) after powering the machine off. Under normal room-temperature conditions, DRAM loses its electrical charg">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-cold-boot-attacks-use-cooling-spray-on-ram">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Cold Boot Attacks Use Cooling Spray on RAM - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-cold-boot-attacks-use-cooling-spray-on-ram" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A cold boot attack is a physical side-channel exploit where an attacker extracts volatile data from a computer's Dynamic Random-Access Memory (DRAM) after powering the machine off. Under normal room-temperature conditions, DRAM loses its electrical charg" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-cold-boot-attacks-use-cooling-spray-on-ram">How Cold Boot
+Attacks Use Cooling Spray on RAM</h1>
+<p>A cold boot attack is a physical side-channel exploit where an
+attacker extracts volatile data from a computer's Dynamic Random-Access
+Memory (DRAM) after powering the machine off. Under normal
+room-temperature conditions, DRAM loses its electrical charge and held
+data within seconds of losing power. However, by applying physical
+cooling sprays—such as inverted canned air or liquid nitrogen—to the
+memory modules, attackers drastically slow down the decay of residual
+electrical charges. This allows the retained memory contents, which
+often include full-disk encryption keys and sensitive credentials, to be
+read and reconstructed.</p>
+<h3 id="the-mechanics-of-dram-data-retention">The Mechanics of DRAM Data
+Retention</h3>
+<p>DRAM stores individual bits of data as electrical charges inside
+millions of tiny microscopic capacitors paired with transistors. Because
+these capacitors naturally leak charge over time, standard memory
+controllers continuously refresh them thousands of times per second to
+maintain data integrity.</p>
+<p>When power is abruptly cut, these refresh cycles stop, and the
+capacitors begin discharging. Contrary to the assumption that volatile
+memory disappears instantly upon losing power, the degradation process
+takes anywhere from a few hundred milliseconds to several seconds at
+ambient room temperature. This phenomenon is known as data
+remanence.</p>
+<h3 id="how-cooling-sprays-delay-memory-decay">How Cooling Sprays Delay
+Memory Decay</h3>
+<p>The rate at which a DRAM capacitor leaks its charge is directly tied
+to temperature. At higher temperatures, electron movement is faster,
+accelerating the leakage. When the temperature drops, electron mobility
+slows significantly, causing the discharge rate of the capacitors to
+decrease exponentially.</p>
+<p>Attackers exploit this physical property using cooling agents:</p>
+<ol type="1">
+<li><strong>Physical Application:</strong> The attacker exposes the
+computer's motherboard while the machine is running or immediately after
+cutting power, and sprays the DRAM chips directly using compressed
+refrigerant spray (commonly an inverted canister of compressed gas
+duster) or liquid nitrogen.</li>
+<li><strong>Temperature Drop:</strong> An inverted aerosol duster
+dispenses liquefied propellant (such as difluoroethane), which rapidly
+boils off and drops the temperature of the chip packages down to
+approximately -50°C (-58°F). Liquid nitrogen can lower the temperature
+below -190°C.</li>
+<li><strong>Extended Retention Window:</strong> At sub-zero
+temperatures, the data remanence window expands dramatically. Instead of
+degrading in a matter of seconds, the capacitors retain their charges
+with minimal bit decay for several minutes at -50°C, and for hours or
+days when submerged in liquid nitrogen.</li>
+</ol>
+<h3 id="executing-the-memory-extraction">Executing the Memory
+Extraction</h3>
+<p>Once the memory chips are frozen, the attacker carries out one of two
+extraction methods:</p>
+<ul>
+<li><strong>In-System Reboot:</strong> The attacker performs a hard
+reset of the machine without cutting off power long enough for the
+modules to warm up. The system is then forced to boot from an external
+USB drive containing a lightweight operating system designed to read the
+contents of physical memory and write them to a storage device before
+the operating system or BIOS can overwrite them.</li>
+<li><strong>DIMM Transposition:</strong> The attacker powers off the
+machine, physically unseats the frozen RAM sticks from the victim's
+motherboard, and quickly inserts them into an adjacent machine
+controlled by the attacker. This target machine immediately dumps the
+residual memory contents to a disk image.</li>
+</ul>
+<h3 id="recovering-encrypted-data">Recovering Encrypted Data</h3>
+<p>Because the physical cooling prevents significant bit degradation,
+the resulting memory dump contains nearly intact data structures.
+Software tools are then used to scan the raw binary dump for
+cryptographic signatures.</p>
+<p>Full-disk encryption solutions—such as BitLocker, FileVault, and
+LUKS—must keep their master encryption keys in plaintext within RAM
+while the volume is mounted to allow the operating system to read and
+write files on the fly. Attackers use automated key-finding algorithms
+to locate the symmetric AES keys within the dumped image, reconstruct
+any small bit-rot errors caused by partial capacitor discharge, and
+unlock the victim's encrypted drives without ever needing the user's
+password.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

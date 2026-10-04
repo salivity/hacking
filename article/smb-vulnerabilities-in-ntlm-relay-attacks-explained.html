@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMB Vulnerabilities in NTLM Relay Attacks Explained - hacking</title>
+    <meta name="description" content="This article explores how architectural weaknesses in the Server Message Block (SMB) protocol and related Windows network mechanisms enable attackers to capture and relay NTLM hashes. By exploiting default configurations such as disabled SMB signing, fal">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/smb-vulnerabilities-in-ntlm-relay-attacks-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SMB Vulnerabilities in NTLM Relay Attacks Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/smb-vulnerabilities-in-ntlm-relay-attacks-explained" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explores how architectural weaknesses in the Server Message Block (SMB) protocol and related Windows network mechanisms enable attackers to capture and relay NTLM hashes. By exploiting default configurations such as disabled SMB signing, fal" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="smb-vulnerabilities-in-ntlm-relay-attacks-explained">SMB
+Vulnerabilities in NTLM Relay Attacks Explained</h1>
+<p>This article explores how architectural weaknesses in the Server
+Message Block (SMB) protocol and related Windows network mechanisms
+enable attackers to capture and relay NTLM hashes. By exploiting default
+configurations such as disabled SMB signing, fallback name-resolution
+mechanisms, and unauthenticated RPC interfaces, malicious actors can
+intercept authentication exchanges to crack password hashes offline or
+relay them to achieve unauthorized administrative access across a
+network.</p>
+<h2 id="the-core-vulnerability-lack-of-smb-signing">The Core
+Vulnerability: Lack of SMB Signing</h2>
+<p>The primary flaw that enables NTLM relay attacks is the absence of
+mandatory SMB message signing. SMB signing incorporates a cryptographic
+signature into each packet to verify the authenticity of the client and
+the integrity of the communication.</p>
+<ul>
+<li><strong>The Relay Mechanism:</strong> When SMB signing is disabled
+or set to optional (a historical default on Windows desktop platforms to
+reduce network overhead), a Man-in-the-Middle (MitM) attacker can
+intercept an authentication attempt. Instead of negotiating with the
+client, the attacker relays the victim's NTLM authentication challenge
+and response to a secondary target server.</li>
+<li><strong>The Outcome:</strong> The secondary target validates the
+response, believing the authentication originated from the legitimate
+client. Because the session lacks message signing, the attacker drops
+the original client's connection and assumes an authenticated session on
+the target with the privileges of the victim.</li>
+</ul>
+<h2 id="name-resolution-poisoning-and-forced-smb-authentication">Name
+Resolution Poisoning and Forced SMB Authentication</h2>
+<p>Before a hash can be relayed or cracked, an attacker must induce the
+client to authenticate to an attacker-controlled machine. Attackers
+exploit local network broadcast and multicast protocols that SMB falls
+back on when standard DNS lookups fail.</p>
+<ul>
+<li><strong>LLMNR and NBT-NS Exploitation:</strong> When a user mistypes
+a network share name or a resource is unresolvable via DNS, Windows
+broadcasts requests via Link-Local Multicast Name Resolution (LLMNR) and
+NetBIOS Name Service (NBT-NS). An attacker listening on the local subnet
+responds to these broadcasts, claiming to be the requested server.</li>
+<li><strong>Hash Interception:</strong> The victim client attempts to
+connect to the attacker's machine over SMB (port 445). The attacker's
+rogue server initiates an NTLM authentication challenge. The client
+responds with its NetNTLMv1 or NetNTLMv2 hash. The attacker logs this
+hash for offline cracking or immediately forwards it to another
+service.</li>
+</ul>
+<h2 id="remote-rpc-abuse-and-coerced-authentication">Remote RPC Abuse
+and Coerced Authentication</h2>
+<p>Attackers do not always rely on passive broadcast spoofing; specific
+SMB/RPC implementation interfaces allow attackers to force remote
+servers to authenticate outbound via NTLM.</p>
+<ul>
+<li><strong>MS-RPRN (The PrinterBug):</strong> The Print System Remote
+Protocol contains an exposed interface
+(<code>RpcRemoteFindFirstPrinterChangeNotificationEx</code>) that allows
+any authenticated domain user to trigger a remote print server—including
+Domain Controllers—to open an SMB connection back to a specified
+machine.</li>
+<li><strong>MS-EFSRPC (PetitPotam):</strong> The Encrypting File System
+Remote Protocol allows an attacker to call functions like
+<code>EfsRpcOpenFileRaw</code>, coercing a target machine to
+authenticate via NTLM over SMB to an arbitrary IP address, often without
+requiring pre-existing domain credentials.</li>
+<li><strong>Impact on Relay:</strong> When combined with unconstrained
+delegation or the absence of SMB signing on other hosts, coerced SMB
+authentications can be relayed directly to services like Active
+Directory Certificate Services (AD CS) or LDAP to compromise the entire
+domain.</li>
+</ul>
+<h2 id="protocol-downgrade-and-ntlmv1-vulnerabilities">Protocol
+Downgrade and NTLMv1 Vulnerabilities</h2>
+<p>Legacy SMB implementations still permit the negotiation of NTLMv1 if
+not explicitly restricted by Group Policy (LAN Manager Authentication
+Level).</p>
+<ul>
+<li><strong>Cryptographic Weakness:</strong> NTLMv1 relies on the
+deprecated DES algorithm and breaks the password hash into three
+separate 7-byte keys. Two of these keys can be cracked independently in
+a matter of hours using rainbow tables or specialized hardware.</li>
+<li><strong>The SMB Negotiation Flaw:</strong> During the initial SMB
+dialect negotiation (<code>SMB_COM_NEGOTIATE</code>), an attacker who
+can alter or inject traffic can manipulate the supported security
+mechanisms, forcing the client and server to settle on NTLMv1 instead of
+the more resilient NTLMv2 or Kerberos.</li>
+</ul>
+<h2 id="lack-of-extended-protection-for-authentication-epa">Lack of
+Extended Protection for Authentication (EPA)</h2>
+<p>Even when SMB targets require authentication, cross-protocol attacks
+succeed due to the absence of channel binding tokens. Extended
+Protection for Authentication (EPA) links the outer transport layer
+(such as TLS) with the inner authentication payload (NTLM). When
+services running over SMB or protocols communicating alongside it lack
+EPA, an NTLM challenge-response gathered via SMB can be replayed to
+other endpoints (such as LDAP or HTTP) without detection.</p>
+<h2 id="mitigation-strategies">Mitigation Strategies</h2>
+<p>Securing environments against SMB-based NTLM capture and relay
+attacks requires addressing the underlying protocol settings:</p>
+<ol type="1">
+<li><strong>Enforce SMB Signing:</strong> Configure Group Policies to
+require SMB signing
+(<code>Digitally sign communications (always)</code>) on all
+workstations and servers.</li>
+<li><strong>Disable Insecure Fallback Protocols:</strong> Turn off LLMNR
+and NBT-NS via Group Policy and DHCP options to prevent name-resolution
+poisoning.</li>
+<li><strong>Restrict NTLM Usage:</strong> Migrate network authentication
+exclusively to Kerberos, restricting NTLM via the
+<code>Network security: Restrict NTLM</code> policy settings.</li>
+<li><strong>Enable EPA and LDAP Signing:</strong> Mandate LDAP channel
+binding and signing on Domain Controllers to prevent cross-protocol
+relays originating from coerced SMB connections.</li>
+</ol></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

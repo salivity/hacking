@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How SS7 Flaws Enable Call Interception and Tracking - hacking</title>
+    <meta name="description" content="Signaling System 7 (SS7) is an international telecommunications backbone developed in the 1970s to coordinate call routing, billing, and roaming between cellular networks worldwide. Because the protocol was designed during an era when only a handful of s">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-ss-7-flaws-enable-call-interception-and-tracking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How SS7 Flaws Enable Call Interception and Tracking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-ss-7-flaws-enable-call-interception-and-tracking" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Signaling System 7 (SS7) is an international telecommunications backbone developed in the 1970s to coordinate call routing, billing, and roaming between cellular networks worldwide. Because the protocol was designed during an era when only a handful of s" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-ss7-flaws-enable-call-interception-and-tracking">How SS7
+Flaws Enable Call Interception and Tracking</h1>
+<p>Signaling System 7 (SS7) is an international telecommunications
+backbone developed in the 1970s to coordinate call routing, billing, and
+roaming between cellular networks worldwide. Because the protocol was
+designed during an era when only a handful of state-owned telecom
+monopolies had access to it, it operates on a model of implicit trust
+with virtually no built-in cryptographic authentication. Today,
+attackers who gain access to this legacy signaling network can exploit
+its core architecture to track physical locations, eavesdrop on phone
+calls, and intercept SMS-based two-factor authentication codes from
+anywhere in the world.</p>
+<h3 id="the-underlying-vulnerability-a-legacy-of-implicit-trust">The
+Underlying Vulnerability: A Legacy of Implicit Trust</h3>
+<p>SS7 functions as the nervous system of modern cellular
+interconnectivity, facilitating communication between different Mobile
+Network Operators (MNOs). When a subscriber travels abroad, their home
+network and the visiting network exchange SS7 packets to verify
+identity, establish routing, and maintain service continuity.</p>
+<p>The primary vulnerability of SS7 is that it treats any message
+originating from within the signaling network as inherently trustworthy.
+While acquiring access to the SS7 network once required physical access
+to carrier switches, modern access can be leased legitimately via
+third-party aggregators, purchased illicitly on underground forums, or
+gained by breaching poorly secured regional telcos. Once an attacker
+establishes an SS7 connection, they can send unauthorized requests
+disguised as legitimate roaming operations.</p>
+<h3 id="how-hackers-track-location-via-ss7">How Hackers Track Location
+via SS7</h3>
+<p>SS7 location tracking relies on querying databases that track a
+subscriber's current status and physical tower attachment: the Home
+Location Register (HLR) and the Visiting Location Register (VLR).</p>
+<ol type="1">
+<li><strong>Target Identification:</strong> The attacker begins with the
+victim's standard telephone number (MSISDN). Because SS7 relies on an
+internal network identifier called the International Mobile Subscriber
+Identity (IMSI), the attacker sends an SS7 query—often a
+<code>SendRoutingInfoForSM</code> (SRI-SM) message—to the victim's home
+carrier.</li>
+<li><strong>IMSI Resolution:</strong> The home carrier's HLR, assuming
+the request is a legitimate incoming SMS attempt, replies with the
+subscriber's IMSI and the address of the MSC (Mobile Switching Center)
+currently serving the phone.</li>
+<li><strong>Pinging the Serving Network:</strong> Armed with the IMSI,
+the attacker issues a <code>ProvideSubscriberInfo</code> (PSI) or
+<code>AnyTimeInterrogation</code> (ATI) command directly to the visiting
+MSC.</li>
+<li><strong>Extracting Tower Data:</strong> The serving MSC responds
+with operational telemetry, including the Cell Global Identity (CGI).
+The CGI identifies the precise cell tower handling the target's
+connection.</li>
+<li><strong>Geolocation Mapping:</strong> By correlating the CGI against
+public or proprietary databases of global cell tower coordinates, the
+attacker determines the user's real-time geographic location, often
+within a radius of a few hundred meters, without alerting the
+victim.</li>
+</ol>
+<h3 id="how-hackers-intercept-calls-and-sms">How Hackers Intercept Calls
+and SMS</h3>
+<p>Intercepting communications requires manipulating how calls and
+messages are directed, effectively executing a Man-in-the-Middle (MitM)
+attack over the cellular control plane.</p>
+<ol type="1">
+<li><strong>Spoofing Network Registration:</strong> An attacker sends an
+<code>UpdateLocation</code> or <code>InsertSubscriberData</code> (ISD)
+request to the target's HLR. This message falsely claims that the victim
+has roamed onto a rogue network switch controlled by the attacker.</li>
+<li><strong>Rerouting the Traffic:</strong> When an incoming call is
+placed to the victim, the HLR consults its database and routes the call
+to the attacker's switch rather than the legitimate carrier.</li>
+<li><strong>Silent Man-in-the-Middle:</strong> The attacker's system
+answers the incoming call, initiates a parallel call to the victim's
+actual phone, bridges the two audio streams together, and records the
+conversation. Neither the caller nor the recipient detects the
+divergence because the call connects normally.</li>
+<li><strong>SMS Interception:</strong> Attackers execute a similar
+redirection for text messages using spoofed SRI-SM requests. When banks
+or online services send one-time passwords (OTPs) via SMS, the signaling
+network sends the payload directly to the attacker's endpoint,
+facilitating account takeovers and financial theft.</li>
+</ol>
+<h3 id="the-challenge-of-securing-ss7">The Challenge of Securing
+SS7</h3>
+<p>Securing SS7 remains a persistent global challenge. While modern 4G
+networks utilize the Diameter protocol and 5G relies on HTTP/2-based
+Service-Based Architectures (SBA), backward compatibility forces all
+global telecom networks to maintain SS7 interconnections. Flaws in older
+generations degrade the security of newer ones, as attackers can force
+fallbacks to legacy routing protocols.</p>
+<p>Defending against SS7 abuse requires mobile network operators to
+deploy advanced signaling firewalls capable of inspecting message
+context, filtering unauthorized remote queries, and verifying whether a
+subscriber is genuinely roaming. For end users, mitigating SS7
+exploitation requires adopting end-to-end encrypted messaging
+applications (such as Signal or WhatsApp) for voice and text, as well as
+replacing SMS-based authentication with hardware security keys or
+software-based authenticators.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

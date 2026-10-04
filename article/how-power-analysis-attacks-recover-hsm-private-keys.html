@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Power Analysis Attacks Recover HSM Private Keys - hacking</title>
+    <meta name="description" content="Power analysis attacks recover private cryptographic keys from Hardware Security Modules (HSMs) by measuring and statistically analyzing the device's electrical power consumption during cryptographic operations. Even when an HSM's software interface is f">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-power-analysis-attacks-recover-hsm-private-keys">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Power Analysis Attacks Recover HSM Private Keys - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-power-analysis-attacks-recover-hsm-private-keys" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Power analysis attacks recover private cryptographic keys from Hardware Security Modules (HSMs) by measuring and statistically analyzing the device's electrical power consumption during cryptographic operations. Even when an HSM's software interface is f" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-power-analysis-attacks-recover-hsm-private-keys">How Power
+Analysis Attacks Recover HSM Private Keys</h1>
+<p>Power analysis attacks recover private cryptographic keys from
+Hardware Security Modules (HSMs) by measuring and statistically
+analyzing the device's electrical power consumption during cryptographic
+operations. Even when an HSM's software interface is fully locked down
+and the cryptographic algorithms themselves are mathematically
+unbreakable, the underlying silicon must physically draw current to
+execute operations. By capturing these minute power fluctuations with an
+oscilloscope and correlating them with known cryptographic algorithms,
+an attacker can extract secret keys bit by bit.</p>
+<h3 id="the-physical-source-of-information-leakage">The Physical Source
+of Information Leakage</h3>
+<p>HSMs rely on integrated circuits built using Complementary
+Metal-Oxide-Semiconductor (CMOS) technology. CMOS logic gates consume
+significantly more power when switching states (from 0 to 1 or from 1 to
+0) than when remaining static, due to the charging and discharging of
+internal parasitic capacitances.</p>
+<p>This behavior creates two primary data-dependent power models:</p>
+<ul>
+<li><strong>Hamming Weight:</strong> The instantaneous power consumption
+correlates directly with the number of <code>1</code> bits processed or
+held in a register at a given clock cycle.</li>
+<li><strong>Hamming Distance:</strong> The power consumption correlates
+with the number of bits transitioning from one state to another during a
+clock cycle.</li>
+</ul>
+<p>Because internal electrical activity directly reflects the specific
+binary data moving across the data bus and through the arithmetic logic
+units, an HSM physically broadcasts its internal state through its power
+supply rail.</p>
+<h3 id="gathering-the-physical-measurements">Gathering the Physical
+Measurements</h3>
+<p>To execute the attack, an adversary gains physical access to the
+target hardware. The attacker inserts a low-resistance shunt resistor in
+series with the HSM’s power supply or ground pin. By attaching a
+high-speed digital storage oscilloscope across this resistor, the
+attacker records the voltage drop over time, which directly corresponds
+to the current drawn by the cryptographic chip.</p>
+<p>The attacker synchronizes the measurements using an external
+trigger—such as an I/O signal indicating the start of an encryption
+operation. The HSM is fed hundreds, thousands, or millions of known
+plaintexts or ciphertexts, and the oscilloscope captures the
+corresponding power trace for each distinct operation.</p>
+<h3 id="attack-methodologies-spa-dpa-and-cpa">Attack Methodologies: SPA,
+DPA, and CPA</h3>
+<p>Attackers use three primary analytical methods to convert raw power
+traces into cryptographic keys:</p>
+<h4 id="1-simple-power-analysis-spa">1. Simple Power Analysis (SPA)</h4>
+<p>SPA relies on direct visual inspection of a single power trace or a
+small average of traces. It succeeds when the cryptographic algorithm’s
+execution path branches based on the value of a secret key bit.</p>
+<ul>
+<li>In traditional RSA implementations using the "square-and-multiply"
+algorithm, a square operation occurs for every bit of the private
+exponent, but a multiply operation only occurs if the key bit is
+<code>1</code>.</li>
+<li>Because multiplication and squaring display distinct, visible power
+signatures, an attacker can read the private key directly from the
+oscilloscope display by identifying the sequence of operations.</li>
+</ul>
+<h4 id="2-differential-power-analysis-dpa">2. Differential Power
+Analysis (DPA)</h4>
+<p>When algorithms are designed with constant-time execution to prevent
+SPA, attackers use DPA. DPA bypasses visual defenses by applying
+statistical analysis across thousands of power traces.</p>
+<ul>
+<li>The attacker targets an intermediate value of the
+algorithm—typically the output of the first or last round of a block
+cipher like AES (such as the output of an S-box).</li>
+<li>The attacker formulates a hypothesis for a small, manageable portion
+of the key (e.g., an 8-bit subkey, requiring only 256 guesses).</li>
+<li>Based on the known plaintext and the subkey guess, the attacker
+calculates the expected intermediate value and divides the recorded
+power traces into two distinct sets based on a single target bit (e.g.,
+set A where the bit is <code>0</code>, and set B where the bit is
+<code>1</code>).</li>
+<li>The attacker calculates the mathematical difference between the
+averages of the two sets. If the key guess is incorrect, the difference
+approaches zero due to random noise. If the key guess is correct, a
+sharp statistical spike appears at the exact moment that intermediate
+state was computed in the hardware.</li>
+</ul>
+<h4 id="3-correlation-power-analysis-cpa">3. Correlation Power Analysis
+(CPA)</h4>
+<p>CPA is an advanced refinement of DPA that models the entire byte
+(using the Hamming Weight or Hamming Distance model) rather than just a
+single bit. The attacker calculates the Pearson correlation coefficient
+between the predicted power consumption of all subkey hypotheses and the
+actual measured power traces. The correct subkey yields the highest
+correlation value, requiring significantly fewer traces than standard
+DPA to successfully break the key.</p>
+<h3 id="key-reconstruction">Key Reconstruction</h3>
+<p>Because modern cryptographic algorithms process keys in discrete
+segments (such as 8-bit bytes in AES), an attacker does not need to
+guess a full 128-bit or 256-bit key simultaneously. Instead, the
+attacker applies DPA or CPA iteratively:</p>
+<ol type="1">
+<li>Target the first byte of the key, testing only 256 possibilities to
+find the highest correlation peak.</li>
+<li>Fix the known first byte, then repeat the process for the second
+byte.</li>
+<li>Continue sequentially through each subkey until the entire key is
+recovered.</li>
+</ol>
+<p>By reducing the complexity from an intractable brute-force search
+(<span class="math inline">\(2^{128}\)</span>) to a trivial set of
+isolated subkey searches (<span class="math inline">\(16 \times
+256\)</span>), physical power analysis circumvents the mathematical
+security of the algorithm and completely extracts the private key from
+the HSM.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

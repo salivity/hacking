@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Flush+Reload Attacks Steal Cryptographic Keys - hacking</title>
+    <meta name="description" content="In multi-tenant cloud environments, co-located virtual machines frequently share the underlying physical CPU hardware, opening the door to microarchitectural side-channel exploits. Cache-timing attacks, most notably the Flush+Reload technique, exploit sh">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-flush-reload-attacks-steal-cryptographic-keys">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Flush+Reload Attacks Steal Cryptographic Keys - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-flush-reload-attacks-steal-cryptographic-keys" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="In multi-tenant cloud environments, co-located virtual machines frequently share the underlying physical CPU hardware, opening the door to microarchitectural side-channel exploits. Cache-timing attacks, most notably the Flush+Reload technique, exploit sh" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-flushreload-attacks-steal-cryptographic-keys">How
+Flush+Reload Attacks Steal Cryptographic Keys</h1>
+<p>In multi-tenant cloud environments, co-located virtual machines
+frequently share the underlying physical CPU hardware, opening the door
+to microarchitectural side-channel exploits. Cache-timing attacks, most
+notably the Flush+Reload technique, exploit shared CPU caches to infer
+sensitive operations occurring within an isolated victim machine. By
+measuring the precise time required to access shared memory lines, an
+attacker can determine whether a victim accessed specific code or data,
+allowing them to reconstruct cryptographic keys bit by bit without ever
+bypassing the hypervisor's memory isolation boundaries.</p>
+<h3 id="the-underlying-shared-architecture">The Underlying Shared
+Architecture</h3>
+<p>Virtual machines running on the same physical host share hardware
+resources, including the CPU's Last-Level Cache (LLC) and system memory.
+To optimize memory efficiency, hypervisors and operating systems often
+employ memory deduplication (such as Kernel Samepage Merging). When
+multiple virtual machines run identical operating systems or load the
+same shared cryptographic libraries (such as OpenSSL), the hypervisor
+maps those identical memory pages to the same physical memory frames.
+Even if the VMs have isolated virtual address spaces, they share the
+physical lines within the inclusive LLC.</p>
+<h3 id="the-mechanics-of-flushreload">The Mechanics of Flush+Reload</h3>
+<p>The Flush+Reload attack is a high-resolution, low-noise cache
+side-channel technique that operates in three distinct phases:</p>
+<ol type="1">
+<li><strong>Flush:</strong> The attacker executes the unprivileged
+<code>clflush</code> instruction on a specific virtual memory address
+that maps to a shared physical address. This instruction evicts the
+target memory line from all levels of the CPU cache hierarchy across all
+processor cores.</li>
+<li><strong>Wait:</strong> The attacker halts execution for a
+predetermined interval, allowing the victim virtual machine to execute
+its workload. During this time, if the victim executes a function or
+accesses data located on the flushed memory line, the CPU pulls that
+line back into the cache.</li>
+<li><strong>Reload:</strong> The attacker re-accesses (reloads) the
+target memory line while measuring the access latency using
+high-precision CPU timing instructions like <code>rdtsc</code>.</li>
+</ol>
+<p>If the reload duration is short, a cache hit occurred, proving the
+victim accessed the target line during the wait interval. If the reload
+takes significantly longer, a cache miss occurred, indicating the victim
+did not access that specific line.</p>
+<h3 id="recovering-cryptographic-keys">Recovering Cryptographic
+Keys</h3>
+<p>Cryptographic algorithms historically relied on key-dependent
+branching or memory access patterns. An attacker can correlate the
+observed cache hits and misses directly to private key operations:</p>
+<ul>
+<li><strong>Key-Dependent Control Flow:</strong> In asymmetric
+algorithms like naive RSA implementations using the square-and-multiply
+method, the algorithm executes a "multiply" function only if a specific
+bit of the private exponent is <code>1</code>. By monitoring the memory
+line containing the multiply subroutine, the attacker records a cache
+hit whenever a <code>1</code> is processed and a cache miss when a
+<code>0</code> is processed, reconstructing the key sequentially.</li>
+<li><strong>Key-Dependent Table Lookups:</strong> Symmetric ciphers like
+AES traditionally utilized precomputed lookup tables (T-tables) to
+perform byte substitutions. Because the table index depends directly on
+the secret key mixed with the plaintext, monitoring which cache lines of
+the lookup table are loaded reveals the underlying key state.</li>
+</ul>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Mitigating Flush+Reload attacks requires defenses at multiple
+levels:</p>
+<ul>
+<li><strong>Constant-Time Cryptography:</strong> Modern cryptographic
+libraries use constant-time algorithms that eliminate secret-dependent
+branches and memory lookups, ensuring that access patterns remain
+identical regardless of key values.</li>
+<li><strong>Disabling Memory Deduplication:</strong> Hypervisors can
+disable cross-VM page sharing, preventing an attacker from mapping their
+own virtual memory to the physical cache lines used by other
+tenants.</li>
+<li><strong>Hardware Partitioning:</strong> Modern processors offer
+features like Cache Allocation Technology (CAT), allowing hypervisors to
+assign isolated sections of the LLC to specific virtual machines.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

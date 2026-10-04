@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Hackers Compromise Vendor Emails for Payment Fraud - hacking</title>
+    <meta name="description" content="Vendor Email Compromise (VEC) is an advanced form of cyber fraud where attackers infiltrate the legitimate email accounts of trusted suppliers to divert pending payments into fraudulent bank accounts. Unlike basic phishing scams, this attack exploits exi">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-hackers-compromise-vendor-emails-for-payment-fraud">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Hackers Compromise Vendor Emails for Payment Fraud - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-hackers-compromise-vendor-emails-for-payment-fraud" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Vendor Email Compromise (VEC) is an advanced form of cyber fraud where attackers infiltrate the legitimate email accounts of trusted suppliers to divert pending payments into fraudulent bank accounts. Unlike basic phishing scams, this attack exploits exi" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-hackers-compromise-vendor-emails-for-payment-fraud">How
+Hackers Compromise Vendor Emails for Payment Fraud</h1>
+<p>Vendor Email Compromise (VEC) is an advanced form of cyber fraud
+where attackers infiltrate the legitimate email accounts of trusted
+suppliers to divert pending payments into fraudulent bank accounts.
+Unlike basic phishing scams, this attack exploits existing business
+relationships and authentic email threads, making it exceptionally
+difficult to detect. Cybercriminals achieve this through a sequence of
+credential theft, stealthy reconnaissance, and timely invoice
+manipulation, ultimately deceiving accounts payable teams into
+transferring legitimate funds to criminal accounts.</p>
+<h3 id="step-1-initial-account-infiltration">Step 1: Initial Account
+Infiltration</h3>
+<p>The attack begins when cybercriminals target a third-party vendor
+through credential harvesting techniques:</p>
+<ul>
+<li><strong>Targeted Phishing:</strong> Employees receive fake Microsoft
+365 or Google Workspace login prompts that capture credentials and
+bypass multi-factor authentication (MFA) via adversary-in-the-middle
+(AiTM) phishing kits.</li>
+<li><strong>Credential Stuffing:</strong> Attackers use automated tools
+to test previously leaked username and password combinations across
+corporate email portals.</li>
+<li><strong>Malware and Infostealers:</strong> Trojan horse software or
+malicious email attachments harvest stored browser credentials and
+session cookies directly from an employee's workstation.</li>
+</ul>
+<h3 id="step-2-reconnaissance-and-silent-monitoring">Step 2:
+Reconnaissance and Silent Monitoring</h3>
+<p>Once inside the vendor’s email environment, attackers avoid taking
+immediate disruptive action. Instead, they operate silently to map out
+financial workflows:</p>
+<ul>
+<li><strong>Inbox Inbox Rules:</strong> Attackers establish automated
+inbox forwarding rules. Emails containing keywords such as "invoice,"
+"wire transfer," "remittance," "ACH," or "bank details" are silently
+forwarded to an external email address controlled by the attacker or
+moved to rarely checked folders (like Archive or RSS Feeds).</li>
+<li><strong>Identifying Targets:</strong> The attacker reviews past
+correspondence, identifying which customers owe significant sums of
+money, the standard billing cycles, the writing style of the vendor’s
+billing personnel, and the visual format of authentic invoices.</li>
+</ul>
+<h3 id="step-3-interception-and-communication-hijacking">Step 3:
+Interception and Communication Hijacking</h3>
+<p>When a legitimate invoice is issued or a payment is due, the attacker
+intercepts the transaction. They execute this step using one of two
+primary methods:</p>
+<ul>
+<li><strong>Direct Mailbox Hijacking:</strong> Using the compromised
+account directly, the attacker replies to an active invoice thread. They
+claim that due to an ongoing internal audit, a change in banking
+partners, or system maintenance, the payment must be sent to updated
+bank details.</li>
+<li><strong>Lookalike Domains (Typosquatting):</strong> If the attacker
+risks losing access to the vendor’s primary mailbox, they register a
+domain nearly identical to the vendor's (e.g., swapping an "m" for an
+"rn" or adding an extra letter) and insert themselves into the
+conversation via modified "Reply-To" headers.</li>
+</ul>
+<h3 id="step-4-forged-invoices-and-verification-suppression">Step 4:
+Forged Invoices and Verification Suppression</h3>
+<p>To finalize the deception, the attacker alters the payment
+documentation:</p>
+<ul>
+<li><strong>Invoice Modification:</strong> Attackers download the
+genuine PDF invoice, use digital editing tools to replace the bank
+routing and account numbers with their own, and reattach the altered
+invoice to the email chain.</li>
+<li><strong>Blocking Confirmation:</strong> Attackers anticipate that
+the client might attempt to confirm the changes. They deliberately
+include updated contact phone numbers on the altered invoice pointing to
+the attackers, or they quickly intercept and delete confirmation emails
+sent to the vendor's compromised inbox.</li>
+</ul>
+<h3 id="step-5-fund-extraction">Step 5: Fund Extraction</h3>
+<p>Unaware of the breach, the victim's accounts payable department
+processes the payment to the updated account. The funds are routed to a
+mule account, an illicit cryptocurrency exchange, or an overseas entity.
+By the time the legitimate vendor reaches out regarding an overdue
+payment, the funds have already been dispersed through multiple
+accounts, making recovery extremely rare without immediate incident
+reporting and banking freezes.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

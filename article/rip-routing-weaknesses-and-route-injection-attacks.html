@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIP Routing Weaknesses and Route Injection Attacks - hacking</title>
+    <meta name="description" content="Legacy internal networks that continue to run the Routing Information Protocol (RIP) face significant security risks, primarily route injection attacks. Due to the protocol's age and design simplicity, threat actors with local network access can exploit">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/rip-routing-weaknesses-and-route-injection-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="RIP Routing Weaknesses and Route Injection Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/rip-routing-weaknesses-and-route-injection-attacks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Legacy internal networks that continue to run the Routing Information Protocol (RIP) face significant security risks, primarily route injection attacks. Due to the protocol's age and design simplicity, threat actors with local network access can exploit" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="rip-routing-weaknesses-and-route-injection-attacks">RIP Routing
+Weaknesses and Route Injection Attacks</h1>
+<p>Legacy internal networks that continue to run the Routing Information
+Protocol (RIP) face significant security risks, primarily route
+injection attacks. Due to the protocol's age and design simplicity,
+threat actors with local network access can exploit fundamental
+architectural weaknesses to advertise bogus routes. This overview
+details the primary vulnerabilities in RIP—ranging from insecure
+transport mechanisms to absent or weak authentication—that enable
+attackers to poison routing tables, redirect traffic, and conduct
+man-in-the-middle (MitM) attacks.</p>
+<h3 id="lack-of-authentication-in-ripv1">Lack of Authentication in
+RIPv1</h3>
+<p>The original specification of the protocol, RIPv1 (RFC 1058),
+completely lacks an authentication mechanism. Routers accept and process
+any properly formatted RIP packet received on an interface where RIP is
+enabled. An attacker on the local broadcast domain simply crafts a
+packet advertising false routes, and the receiving router updates its
+routing table without verifying the origin or integrity of the
+update.</p>
+<h3 id="weak-authentication-implementation-in-ripv2">Weak Authentication
+Implementation in RIPv2</h3>
+<p>While RIPv2 (RFC 2453) introduced authentication, legacy
+implementations often rely on plain-text authentication. Plain-text
+passwords travel unencrypted across the network inside RIP payload
+headers, allowing any network sniffer to capture the password and reuse
+it to authenticate malicious updates. Even when routers support MD5
+cryptographic authentication, legacy environments frequently disable it
+due to management overhead or performance constraints on older
+hardware.</p>
+<h3 id="connectionless-transport-and-ip-spoofing">Connectionless
+Transport and IP Spoofing</h3>
+<p>RIP operates over the User Datagram Protocol (UDP) on port 520.
+Because UDP is a connectionless transport protocol, there is no
+handshake or session state validation between participating routers.
+This architecture allows an attacker to spoof the source IP address in
+the packet header to mimic a legitimate neighbor router. The receiving
+device inspects the UDP payload and accepts the route without requiring
+an established, bi-directional communication state.</p>
+<h3 id="absence-of-neighbor-adjacencies">Absence of Neighbor
+Adjacencies</h3>
+<p>Unlike modern dynamic routing protocols such as OSPF or EIGRP, RIP
+does not establish formal neighbor relationships or stateful
+adjacencies. Instead, RIP functions on a simple broadcast (RIPv1 uses
+<code>255.255.255.255</code>) or multicast (RIPv2 uses
+<code>224.0.0.9</code>) model. Any device connected to the shared
+network segment can listen to existing route broadcasts and inject new
+ones. Because RIP routers do not track authenticated neighbors, they
+process validly formatted advertisements from any source address on the
+subnet.</p>
+<h3 id="blind-metric-trust">Blind Metric Trust</h3>
+<p>RIP determines the best path to a destination strictly based on hop
+count, ranging from 1 to 15 (with 16 representing an unreachable
+network). Routers inherently trust advertised metrics. If an attacker
+injects a route for a specific subnet or critical service with a lower
+hop count (e.g., metric 1) than the legitimate path, the receiving
+router automatically updates its forwarding table to point traffic
+toward the attacker’s machine. This mechanism makes RIP exceptionally
+prone to traffic blackholing and interception.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

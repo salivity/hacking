@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicting Linear Congruential Generators in Gaming - hacking</title>
+    <meta name="description" content="This article examines the mathematical vulnerabilities of linear congruential generators (LCGs), explaining how their internal states can be determined from observed outputs and why this predictability historically exposed non-secure gambling systems to">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/predicting-linear-congruential-generators-in-gaming">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Predicting Linear Congruential Generators in Gaming - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/predicting-linear-congruential-generators-in-gaming" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines the mathematical vulnerabilities of linear congruential generators (LCGs), explaining how their internal states can be determined from observed outputs and why this predictability historically exposed non-secure gambling systems to" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="predicting-linear-congruential-generators-in-gaming">Predicting
+Linear Congruential Generators in Gaming</h1>
+<p>This article examines the mathematical vulnerabilities of linear
+congruential generators (LCGs), explaining how their internal states can
+be determined from observed outputs and why this predictability
+historically exposed non-secure gambling systems to exploitation. By
+understanding the linear relationships underlying LCGs, one can see how
+attackers mathematically reconstruct the state to forecast future
+outcomes, and why regulated gaming environments mandate
+cryptographically secure alternatives.</p>
+<h3 id="the-mechanics-of-linear-congruential-generators">The Mechanics
+of Linear Congruential Generators</h3>
+<p>A linear congruential generator is one of the oldest and simplest
+pseudorandom number generator (PRNG) algorithms. It produces a sequence
+of numbers using a linear recurrence relation defined by the
+formula:</p>
+<p><span class="math display">\[X_{n+1} = (a \cdot X_n + c) \pmod
+m\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(X\)</span> is the sequence of
+pseudorandom values.</li>
+<li><span class="math inline">\(m\)</span> is the modulus (<span
+class="math inline">\(m &gt; 0\)</span>).</li>
+<li><span class="math inline">\(a\)</span> is the multiplier (<span
+class="math inline">\(0 &lt; a &lt; m\)</span>).</li>
+<li><span class="math inline">\(c\)</span> is the increment (<span
+class="math inline">\(0 \le c &lt; m\)</span>).</li>
+<li><span class="math inline">\(X_0\)</span> is the starting value,
+known as the seed.</li>
+</ul>
+<p>Because the formula relies entirely on modular arithmetic, the next
+state (<span class="math inline">\(X_{n+1}\)</span>) is strictly
+determined by the current state (<span
+class="math inline">\(X_n\)</span>). If the generator's state is
+exposed, all subsequent numbers in the sequence can be calculated
+instantly.</p>
+<h3 id="state-reconstruction-from-known-parameters">State Reconstruction
+from Known Parameters</h3>
+<p>In systems where the parameters (<span
+class="math inline">\(a\)</span>, <span
+class="math inline">\(c\)</span>, and <span
+class="math inline">\(m\)</span>) are standardized or extracted from
+client software or firmware, predicting the sequence is trivial.</p>
+<ol type="1">
+<li><strong>Full State Output:</strong> If the generator directly
+outputs the entire value of <span class="math inline">\(X_n\)</span>,
+observing a single output reveals the entire current state. The observer
+calculates <span class="math inline">\(X_{n+1} = (a \cdot X_n + c) \pmod
+m\)</span> to determine the exact outcome of the next roll, spin, or
+card dealt.</li>
+<li><strong>Hidden Increments:</strong> If the increment <span
+class="math inline">\(c\)</span> is unknown but <span
+class="math inline">\(a\)</span> and <span
+class="math inline">\(m\)</span> are known, observing two consecutive
+states (<span class="math inline">\(X_0, X_1\)</span>) allows an
+attacker to compute <span class="math inline">\(c\)</span> directly via
+modular subtraction: <span class="math display">\[c = (X_1 - a \cdot
+X_0) \pmod m\]</span></li>
+</ol>
+<h3 id="recovering-unknown-parameters">Recovering Unknown
+Parameters</h3>
+<p>Even if the parameters (<span class="math inline">\(a, c, m\)</span>)
+are kept secret, they can be determined through modular cryptanalysis
+using a small sequence of observed full outputs.</p>
+<p>By taking the differences between consecutive states, the additive
+constant <span class="math inline">\(c\)</span> is eliminated: <span
+class="math display">\[D_n = X_{n+1} - X_n\]</span> <span
+class="math display">\[D_{n+1} \equiv a \cdot D_n \pmod m\]</span></p>
+<p>With enough consecutive values, the multiplier <span
+class="math inline">\(a\)</span> and the modulus <span
+class="math inline">\(m\)</span> can be recovered by computing the
+greatest common divisor (GCD) of determinants derived from these
+difference equations. Once <span class="math inline">\(m\)</span> and
+<span class="math inline">\(a\)</span> are recovered, <span
+class="math inline">\(c\)</span> is calculated, completely exposing the
+generator.</p>
+<h3 id="the-truncated-lcg-problem">The Truncated LCG Problem</h3>
+<p>In practice, gambling systems rarely output the raw internal state
+<span class="math inline">\(X_n\)</span>. Instead, they scale the number
+down or discard the least significant bits—for example, using modular
+reduction to select a number between 1 and 6 for a die roll or 0 to 36
+for a roulette wheel. This is known as a truncated LCG.</p>
+<p>While truncation obscures the full state, it does not provide
+cryptographic security:</p>
+<ul>
+<li><strong>Lattice Reduction Attacks:</strong> Truncated LCGs can be
+modeled as finding a short vector in a mathematical lattice. Using the
+Lenstra–Lenstra–Lovász (LLL) lattice basis reduction algorithm, analysts
+can solve for the hidden bits of the state using only a modest sequence
+of truncated outputs.</li>
+<li><strong>Timing and Physical Correlation:</strong> In older
+electronic gaming machines that used internal timers to re-seed or
+advance weak PRNGs, attackers recorded spin sequences over time to
+synchronize an external device with the machine's clock, allowing them
+to predict the precise fraction of a second to initiate a spin for
+favorable outcomes.</li>
+</ul>
+<h3 id="defensive-standards-and-mitigation">Defensive Standards and
+Mitigation</h3>
+<p>Due to these mathematical weaknesses, general-purpose PRNGs like
+LCGs, Mersenne Twister, and simple shift-register generators are
+fundamentally unsuitable for systems where unpredictability has economic
+value. Modern regulated gaming machines and online platforms mitigate
+state prediction attacks through strict compliance requirements:</p>
+<ul>
+<li><strong>Cryptographically Secure PRNGs (CSPRNGs):</strong> Modern
+systems use algorithms designed to resist state-reconstruction attacks
+(such as AES-CTR-based DRBGs or ChaCha20), ensuring that past outputs
+cannot be used to infer future states in polynomial time.</li>
+<li><strong>Hardware Entropy (TRNGs):</strong> True Random Number
+Generators derive entropy from unpredictable physical phenomena (such as
+thermal noise or quantum fluctuations) to continuously seed and re-seed
+the generator.</li>
+<li><strong>Independent Auditing:</strong> Regulatory bodies require
+rigorous testing (e.g., NIST SP 800-22 suites and dieharder tests) to
+verify that game outcomes exhibit statistical randomness and that
+internal states cannot be reconstructed from external play.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forging Identity Assertions with Golden SAML - hacking</title>
+    <meta name="description" content="The Golden SAML attack enables adversaries who have compromised an Identity Provider's (IdP) token-signing private key to generate completely fabricated, cryptographically valid SAML assertions. By manually constructing and signing structural elements of">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/forging-identity-assertions-with-golden-saml">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Forging Identity Assertions with Golden SAML - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/forging-identity-assertions-with-golden-saml" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Golden SAML attack enables adversaries who have compromised an Identity Provider's (IdP) token-signing private key to generate completely fabricated, cryptographically valid SAML assertions. By manually constructing and signing structural elements of" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="forging-identity-assertions-with-golden-saml">Forging Identity
+Assertions with Golden SAML</h1>
+<p>The Golden SAML attack enables adversaries who have compromised an
+Identity Provider's (IdP) token-signing private key to generate
+completely fabricated, cryptographically valid SAML assertions. By
+manually constructing and signing structural elements of the SAML XML
+document, an attacker bypasses the IdP entirely, evades multi-factor
+authentication (MFA), and impersonates any user with arbitrary
+privileges across federated cloud and on-premises service providers.
+This article breaks down the primary structural identity assertions and
+metadata blocks manipulated during a Golden SAML attack to compromise
+enterprise single sign-on (SSO) architectures.</p>
+<h3 id="the-subject-and-nameid-assertion">The Subject and NameID
+Assertion</h3>
+<p>At the core of a SAML assertion is the
+<code>&lt;saml:Subject&gt;</code> element, which establishes the
+identity being authenticated. Inside this structure lies the
+<code>&lt;saml:NameID&gt;</code> element.</p>
+<p>In a Golden SAML attack, the adversary manipulates the
+<code>NameID</code> value to represent any targeted user, such as a
+cloud Global Administrator, Domain Admin, or privileged service account.
+Because the service provider trusts the IdP’s signature blindly,
+whatever identity string is inserted here—be it a User Principal Name
+(UPN), email address, or SAMAccountName—is accepted as the authenticated
+identity. This grants immediate lateral movement and vertical privilege
+escalation without the attacker needing to know the victim's actual
+password.</p>
+<h3 id="attribute-and-attributestatement-structures">Attribute and
+AttributeStatement Structures</h3>
+<p>The <code>&lt;saml:AttributeStatement&gt;</code> element contains
+multiple <code>&lt;saml:Attribute&gt;</code> tags that dictate the
+user's roles, permissions, and metadata within the target service
+provider. During an attack, adversaries forge these attributes to grant
+themselves elevated privileges:</p>
+<ul>
+<li><strong>Role and Group Memberships:</strong> In cloud environments
+like AWS or Azure, SAML attributes often map directly to access roles
+(e.g., <code>https://aws.amazon.com/SAML/Attributes/Role</code>).
+Attackers inject high-privilege Role ARNs or security group Security
+Identifiers (SIDs) into the attribute values.</li>
+<li><strong>Tenant and Directory Identifiers:</strong> For multi-tenant
+applications, attributes defining tenant membership or organization IDs
+can be altered to gain cross-tenant access.</li>
+<li><strong>Custom Application Entitlements:</strong> Enterprise
+applications often rely on custom claims (e.g.,
+<code>is_admin=true</code> or <code>cost_center</code>) to govern
+access. Attackers can inject any attribute defined in the service
+provider's SAML mapping schema.</li>
+</ul>
+<h3 id="authentication-statement-authnstatement">Authentication
+Statement (AuthnStatement)</h3>
+<p>The <code>&lt;saml:AuthnStatement&gt;</code> element declares how and
+when the identity was authenticated. Attackers modify this structure to
+deceive the service provider about the security posture of the
+session:</p>
+<ul>
+<li><strong>Bypassing Multi-Factor Authentication:</strong> The
+<code>AuthnContextClassRef</code> attribute specifies the authentication
+mechanism used. Attackers set this to high-assurance values—such as
+<code>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</code>
+or specific FIDO/MFA Uniform Resource Identifiers (URIs). This tricks
+service providers enforcing conditional access or strict MFA
+requirements into accepting the assertion, bypassing all configured
+verification prompts.</li>
+<li><strong>Session Timestamps:</strong> The <code>AuthnInstant</code>
+attribute indicates when the authentication took place. Forgers modify
+this to appear fresh, preventing triggers related to stale
+authentication sessions.</li>
+</ul>
+<h3 id="conditions-and-audiencerestriction">Conditions and
+AudienceRestriction</h3>
+<p>The <code>&lt;saml:Conditions&gt;</code> block defines the temporal
+and contextual parameters under which the assertion is considered
+valid:</p>
+<ul>
+<li><strong>Lifetime Manipulation (<code>NotBefore</code> and
+<code>NotOnOrAfter</code>):</strong> Normal IdP assertions have a short
+validity window (typically 5 to 60 minutes). Attackers can extend the
+<code>NotOnOrAfter</code> timestamp to create long-lived or reusable
+assertions, giving them persistent access without requiring
+re-issuance.</li>
+<li><strong>Audience Targeting
+(<code>AudienceRestriction</code>):</strong> The
+<code>&lt;saml:Audience&gt;</code> element specifies the Entity ID of
+the intended service provider (such as
+<code>urn:amazon:webservices</code>). An attacker with the signing key
+can generate unique assertions for any service provider federated with
+the compromised IdP simply by changing this value.</li>
+</ul>
+<h3 id="digital-signature-dssignature">Digital Signature
+(ds:Signature)</h3>
+<p>The enabling component of the Golden SAML technique is the generation
+of a valid XML Digital Signature (<code>&lt;ds:Signature&gt;</code>).
+Using the stolen private key associated with the IdP's token-signing
+certificate, the attacker calculates the cryptographic digest of the
+forged XML structures (<code>SignedInfo</code>, canonicalized assertion,
+and references) and signs it.</p>
+<p>Because the target service provider only validates the mathematical
+correctness of the signature against the public certificate it already
+trusts, every forged structural claim—from administrative identity to
+synthetic MFA verification—is accepted as authoritative, leaving no log
+footprint on the actual IdP server.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

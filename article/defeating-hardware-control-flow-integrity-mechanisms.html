@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defeating Hardware Control Flow Integrity Mechanisms - hacking</title>
+    <meta name="description" content="Hardware-enforced Control Flow Integrity (CFI) mechanisms, such as Intel Control-flow Enforcement Technology (CET) and ARM Pointer Authentication (PAC) paired with Branch Target Identification (BTI), significantly raise the barrier for modern binary expl">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/defeating-hardware-control-flow-integrity-mechanisms">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Defeating Hardware Control Flow Integrity Mechanisms - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/defeating-hardware-control-flow-integrity-mechanisms" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Hardware-enforced Control Flow Integrity (CFI) mechanisms, such as Intel Control-flow Enforcement Technology (CET) and ARM Pointer Authentication (PAC) paired with Branch Target Identification (BTI), significantly raise the barrier for modern binary expl" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="defeating-hardware-control-flow-integrity-mechanisms">Defeating
+Hardware Control Flow Integrity Mechanisms</h1>
+<p>Hardware-enforced Control Flow Integrity (CFI) mechanisms, such as
+Intel Control-flow Enforcement Technology (CET) and ARM Pointer
+Authentication (PAC) paired with Branch Target Identification (BTI),
+significantly raise the barrier for modern binary exploitation by
+validating return addresses and indirect jump targets at the silicon
+level. Despite these robust hardware primitives, advanced research has
+demonstrated several paradigms for bypassing or neutralizing
+hardware-backed protections without violating enforced control-flow
+rules. This article examines the primary conceptual strategies used to
+defeat or circumvent hardware CFI, including data-oriented programming,
+target set ambiguity, PAC manipulation, and transient execution
+side-channels.</p>
+<h2 id="understanding-hardware-cfi-architectures">Understanding Hardware
+CFI Architectures</h2>
+<p>Modern hardware-assisted CFI solutions primarily address two main
+attack surfaces: backward-edge transfers (returns) and forward-edge
+transfers (indirect calls and jumps).</p>
+<ul>
+<li><strong>Backward-Edge Protection:</strong> Intel CET and ARM
+introduce hardware-managed shadow stacks. The CPU automatically
+duplicates return addresses onto an isolated, write-protected memory
+area. On function return (<code>RET</code>), the CPU compares the return
+address on the standard data stack with the entry on the shadow stack,
+generating an architectural fault on mismatch.</li>
+<li><strong>Forward-Edge Protection:</strong> Intel CET Indirect Branch
+Tracking (IBT) requires indirect branch targets to land on specific
+landing-pad instructions (such as
+<code>ENDBR32</code>/<code>ENDBR64</code>). Similarly, ARM BTI enforces
+that indirect branches land on <code>BTI</code> instructions.
+Additionally, ARM Pointer Authentication (PAC) uses cryptographic
+signatures embedded within unused pointer bits to ensure indirect
+pointers have not been tampered with in memory before branching.</li>
+</ul>
+<p>Because traditional control-flow hijacking techniques like arbitrary
+Return-Oriented Programming (ROP) or Jump-Oriented Programming (JOP)
+violate these invariants, adversarial methodologies have evolved to
+operate within or around the hardware constraints.</p>
+<h2 id="data-oriented-programming-dop">Data-Oriented Programming
+(DOP)</h2>
+<p>The most prevalent method to bypass CFI entirely is avoiding
+control-flow tampering. Data-Oriented Programming (DOP) and non-control
+data attacks manipulate critical program variables rather than execution
+pointers.</p>
+<p>Since hardware CFI strictly monitors control-plane integrity
+(instruction pointers, return addresses, branch targets), the data plane
+remains unprotected by these mechanisms. Attackers locate deterministic
+sequences of legitimate operations on data—such as loops, conditional
+checks, and memory copies—and alter memory variables to:</p>
+<ul>
+<li>Modify authentication flags (e.g., changing
+<code>is_admin = 0</code> to <code>is_admin = 1</code>).</li>
+<li>Manipulate configuration pointers to expose sensitive
+information.</li>
+<li>Alter loop counters or array boundaries to induce logic flaws.</li>
+<li>Alter file paths or command arguments passed to authorized system
+utility functions.</li>
+</ul>
+<p>Because the program's defined call graph remains entirely intact,
+hardware shadow stacks and branch landing pads record zero violations
+during a pure data-oriented attack.</p>
+<h2
+id="coarse-grained-target-equivalence-and-call-site-reuse">Coarse-Grained
+Target Equivalence and Call-Site Reuse</h2>
+<p>Hardware branch tracking mechanisms verify that a target is a valid
+indirect branch destination, but they often lack complete context
+regarding <em>which specific</em> call site was intended to reach that
+destination.</p>
+<ul>
+<li><strong>Landing Pad Proliferation:</strong> In Intel CET-IBT
+implementations, any function intended to be addressed by a function
+pointer begins with an <code>ENDBR</code> instruction. If an application
+contains multiple functions marked with <code>ENDBR</code>, an attacker
+capable of overwriting an indirect function pointer can redirect
+execution to any valid landing pad within the binary or its loaded
+libraries.</li>
+<li><strong>Call-Site Ambiguity:</strong> If the compiler does not
+implement strict forward-edge type-checking (fine-grained software CFI
+layered on top of hardware primitives), any function matching the
+generic entry criteria can be invoked out of context. This enables
+restricted forms of call-oriented programming, where legitimate
+functions are invoked with crafted parameters that still fulfill the
+attacker's objectives.</li>
+</ul>
+<h2 id="cryptographic-and-signing-gadget-abuse-in-arm-pac">Cryptographic
+and Signing Gadget Abuse in ARM PAC</h2>
+<p>ARM Pointer Authentication relies on a tweakable block cipher (QARMA
+or newer algorithms) using secret keys stored in internal CPU registers
+to generate a Pointer Authentication Code (PAC). Pointers are signed
+using <code>PAC*</code> instructions and authenticated using
+<code>AUT*</code> instructions.</p>
+<p>Attackers target the lifecycle and usage patterns of signed
+pointers:</p>
+<ul>
+<li><strong>Signing Oracles:</strong> If an application can be
+manipulated into executing an instruction sequence that signs an
+arbitrary attacker-controlled value (a signing oracle), valid PACs can
+be generated without knowing the underlying secret key.</li>
+<li><strong>Pointer Substitution (Cross-Context Reuse):</strong> PAC
+generation combines the pointer address with a 64-bit context modifier
+(tweak). If developers or compilers use a static, zero, or weakly bound
+context modifier across multiple call sites, a signed pointer valid in
+one part of the program can be substituted into another sensitive
+control flow path.</li>
+<li><strong>Brute-Force and Truncation Constraints:</strong> Depending
+on the virtual address configuration, the cryptographic tag size may be
+constrained to relatively few bits (e.g., 16 to 24 bits). In
+environments where crashes do not terminate the master process (such as
+certain forking daemon architectures), partial brute-forcing of PAC
+values becomes theoretically plausible.</li>
+</ul>
+<h2 id="transient-and-speculative-execution-side-channels">Transient and
+Speculative Execution Side-Channels</h2>
+<p>Hardware-enforced control invariants are checked at architectural
+retirement. Speculative execution mechanisms inside modern superscalar
+processors can execute instructions ahead of hardware boundary
+validation.</p>
+<p>Research techniques, including variants of Spectre and
+microarchitectural side-channel attacks, have demonstrated that:</p>
+<ul>
+<li>Speculative indirect branches can be trained to transiently execute
+unauthorized gadgets before the branch misprediction or hardware CFI
+check is officially committed.</li>
+<li>Transient operations can leak sensitive memory, cryptographic PAC
+keys, or shadow stack pointers across architectural boundaries via cache
+or port contention side-channels.</li>
+<li>Speculatively executed instructions can bypass pointer
+authentication checks temporarily to reveal whether a guessed PAC was
+correct based on observable microarchitectural state changes.</li>
+</ul>
+<h2 id="binary-and-runtime-misconfigurations">Binary and Runtime
+Misconfigurations</h2>
+<p>Hardware CFI mechanisms rely on coordinated support across hardware,
+operating systems, compilers, and dynamic loaders. Gaps in the
+enforcement model introduce opportunities for circumvention:</p>
+<ul>
+<li><strong>Mixed-Mode Binaries:</strong> To preserve backward
+compatibility, systems frequently permit mixed execution environments
+where non-CET or non-BTI legacy shared libraries execute alongside
+protected binaries. Transferring execution into an unprotected dynamic
+library temporarily disables or degrades enforcement capabilities.</li>
+<li><strong>Context Switching and Signal Handling:</strong> Operating
+system kernels manage shadow stack pointers during signal delivery,
+thread creation, and context switching. Flaws in kernel-level register
+management or <code>ucontext</code> manipulation can allow modification
+of the saved shadow stack pointer (SSP).</li>
+<li><strong>JIT Compilers:</strong> Just-In-Time (JIT) engines, such as
+those found in modern web browsers, dynamically allocate and write
+executable code pages. If the JIT engine fails to strictly enforce
+hardware landing pads on dynamically compiled stubs, CFI invariants can
+be invalidated within the process space.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

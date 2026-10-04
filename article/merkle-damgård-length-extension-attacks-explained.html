@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merkle-Damgård Length Extension Attacks Explained - hacking</title>
+    <meta name="description" content="This article explores how the underlying mathematical structure of Merkle-Damgård hash functions enables hash length extension attacks. Merkle-Damgård designs process data sequentially through an iterative compression function where the final hash outp">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/merkle-damgård-length-extension-attacks-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Merkle-Damgård Length Extension Attacks Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/merkle-damgård-length-extension-attacks-explained" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explores how the underlying mathematical structure of Merkle-Damgård hash functions enables hash length extension attacks. Merkle-Damgård designs process data sequentially through an iterative compression function where the final hash outp" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="merkle-damgård-length-extension-attacks-explained">Merkle-Damgård
+Length Extension Attacks Explained</h1>
+<p>This article explores how the underlying mathematical structure of
+Merkle-Damgård hash functions enables hash length extension attacks.
+Merkle-Damgård designs process data sequentially through an iterative
+compression function where the final hash output directly reflects the
+internal state of the algorithm. By examining the absence of a distinct
+finalization transform, the deterministic nature of length padding, and
+the state-continuation properties of the compression function, this
+guide breaks down why naive message authentication constructions fail
+against this specific cryptographic exploit.</p>
+<h2 id="the-merkle-damgård-construction">The Merkle-Damgård
+Construction</h2>
+<p>The Merkle-Damgård construction transforms a fixed-length compression
+function into an arbitrary-length cryptographic hash function. Given an
+input message <span class="math inline">\(M\)</span>, the algorithm
+operates as follows:</p>
+<ol type="1">
+<li><strong>Padding:</strong> The message <span
+class="math inline">\(M\)</span> is appended with padding bits so that
+its total bit length becomes a multiple of a fixed block size <span
+class="math inline">\(b\)</span> (typically 512 or 1024 bits).
+Merkle-Damgård strengthening requires the padding to include a '1' bit,
+a sequence of '0' bits, and the binary representation of the original
+message length <span class="math inline">\(|M|\)</span>.</li>
+<li><strong>Block Splitting:</strong> The padded message is divided into
+<span class="math inline">\(k\)</span> uniform blocks: <span
+class="math inline">\(M_1, M_2, \dots, M_k\)</span>.</li>
+<li><strong>Iterative Processing:</strong> The algorithm initializes an
+internal state with a public initialization vector (<span
+class="math inline">\(IV\)</span>). It then iteratively applies a
+compression function <span class="math inline">\(f\)</span>: <span
+class="math display">\[H_0 = IV\]</span> <span
+class="math display">\[H_i = f(H_{i-1}, M_i) \quad \text{for } 1 \le i
+\le k\]</span></li>
+<li><strong>Output:</strong> The output hash is the final state: <span
+class="math inline">\(\text{Hash}(M) = H_k\)</span>.</li>
+</ol>
+<p>Standard algorithms utilizing this construction include MD5, SHA-1,
+SHA-256, and SHA-512.</p>
+<h2 id="mathematical-properties-enabling-the-attack">Mathematical
+Properties Enabling the Attack</h2>
+<p>A length extension attack occurs when an attacker knowing only <span
+class="math inline">\(\text{Hash}(Secret \parallel Message)\)</span> and
+the length of <span class="math inline">\(Secret \parallel
+Message\)</span> can compute <span
+class="math inline">\(\text{Hash}(Secret \parallel Message \parallel
+Padding \parallel Extension)\)</span> without knowing the contents of
+<span class="math inline">\(Secret\)</span>. Three core mathematical
+properties enable this exploit.</p>
+<h3 id="1-equivalence-of-internal-state-and-output">1. Equivalence of
+Internal State and Output</h3>
+<p>In standard Merkle-Damgård hash functions, there is no irreversible
+finalization transformation applied to the last state variable. The
+final output is mathematically identical to the internal state:</p>
+<p><span class="math display">\[\text{Hash}(M) = H_k\]</span></p>
+<p>Because the final hash <em>is</em> the internal state of the
+compression function after processing the final block <span
+class="math inline">\(M_k\)</span>, the hash output completely leaks the
+algorithm's state at that point in time. In cryptographic terms, the
+function is state-transparent at block boundaries.</p>
+<h3 id="2-sequential-state-continuability">2. Sequential State
+Continuability</h3>
+<p>The compression function <span class="math inline">\(f\)</span>
+evaluates each block sequentially depending solely on two inputs: the
+current block <span class="math inline">\(M_i\)</span> and the previous
+intermediate state <span class="math inline">\(H_{i-1}\)</span>.</p>
+<p><span class="math display">\[H_i = f(H_{i-1}, M_i)\]</span></p>
+<p>Because <span class="math inline">\(f\)</span> does not depend on
+past blocks once their effect has been absorbed into <span
+class="math inline">\(H_{i-1}\)</span>, the calculation of future blocks
+requires only:</p>
+<ul>
+<li>The state <span class="math inline">\(H_k\)</span></li>
+<li>The new message block <span
+class="math inline">\(M_{k+1}\)</span></li>
+</ul>
+<p>An attacker can set the initialization vector of the hash function to
+the known hash output (<span class="math inline">\(IV&#39; =
+H_k\)</span>) and compute:</p>
+<p><span class="math display">\[H_{k+1} = f(H_k, M_{k+1})\]</span></p>
+<p>This produces an output identical to a continuous execution of the
+hash function over all previous blocks followed by <span
+class="math inline">\(M_{k+1}\)</span>.</p>
+<h3 id="3-deterministic-and-reversible-padding">3. Deterministic and
+Reversible Padding</h3>
+<p>The padding rule (Merkle-Damgård strengthening) is deterministic and
+depends strictly on the total length of the preceding data. Let <span
+class="math inline">\(L\)</span> denote the bit length of <span
+class="math inline">\(Secret \parallel Message\)</span>.</p>
+<p>The exact sequence of padding bytes <span
+class="math inline">\(P\)</span> can be calculated solely from <span
+class="math inline">\(L\)</span>:</p>
+<p><span class="math display">\[P = \text{Pad}(L) = 100\dots0 \parallel
+\text{bin}_r(L)\]</span></p>
+<p>Because an attacker can derive <span class="math inline">\(P\)</span>
+simply by knowing or guessing <span class="math inline">\(L\)</span>,
+the original message boundaries are fully reconstructible. The attacker
+forms an extended message:</p>
+<p><span class="math display">\[M_{\text{extended}} = Secret \parallel
+Message \parallel P \parallel Extension\]</span></p>
+<p>From the perspective of the hash function, the sequence <span
+class="math inline">\((Secret \parallel Message \parallel P)\)</span>
+forms an exact, valid sequence of complete blocks whose final processed
+state evaluates to <span class="math inline">\(\text{Hash}(Secret
+\parallel Message)\)</span>.</p>
+<h2 id="the-mechanics-of-the-attack">The Mechanics of the Attack</h2>
+<p>Assume an application generates a naive Message Authentication Code
+(MAC) via concatenation:</p>
+<p><span class="math display">\[T = \text{Hash}(K \parallel
+M)\]</span></p>
+<p>Where <span class="math inline">\(K\)</span> is an unknown secret
+key, <span class="math inline">\(M\)</span> is a known message, and
+<span class="math inline">\(T\)</span> is the valid authentication
+tag.</p>
+<ol type="1">
+<li><strong>Length Determination:</strong> The attacker knows <span
+class="math inline">\(M\)</span> and determines or guesses the length of
+<span class="math inline">\(K\)</span>. This gives the total length
+<span class="math inline">\(L = |K \parallel M|\)</span>.</li>
+<li><strong>Padding Reconstruction:</strong> The attacker calculates
+<span class="math inline">\(P = \text{Pad}(L)\)</span>.</li>
+<li><strong>State Extraction:</strong> The attacker extracts the
+internal state registers from <span class="math inline">\(T\)</span>.
+For algorithms like SHA-256, <span class="math inline">\(T\)</span>
+consists of eight 32-bit words that directly correspond to the registers
+<span class="math inline">\(A, B, C, D, E, F, G, H\)</span>.</li>
+<li><strong>State Extension:</strong> The attacker defines an arbitrary
+payload <span class="math inline">\(E\)</span> (<span
+class="math inline">\(Extension\)</span>). The attacker pads <span
+class="math inline">\(E\)</span> based on the new total length, which
+is: <span class="math display">\[L_{\text{new}} = L + |P| + |E|\]</span>
+<span class="math display">\[P_E =
+\text{Pad}(L_{\text{new}})\]</span></li>
+<li><strong>Execution:</strong> The attacker initializes the hash
+algorithm's registers using the values extracted from <span
+class="math inline">\(T\)</span>, bypassing the standard <span
+class="math inline">\(IV\)</span>, and processes <span
+class="math inline">\(E \parallel P_E\)</span>: <span
+class="math display">\[T&#39; = \text{Compress}(T, E \parallel
+P_E)\]</span></li>
+</ol>
+<p>The resulting tag <span class="math inline">\(T&#39;\)</span> is a
+mathematically valid signature:</p>
+<p><span class="math display">\[T&#39; = \text{Hash}(K \parallel M
+\parallel P \parallel E)\]</span></p>
+<p>The attacker submits <span class="math inline">\(M \parallel P
+\parallel E\)</span> alongside <span
+class="math inline">\(T&#39;\)</span>, successfully forging a verified
+message without ever learning <span
+class="math inline">\(K\)</span>.</p>
+<h2 id="prevention-and-mitigations">Prevention and Mitigations</h2>
+<p>The vulnerability stems from the naive prefix construction <span
+class="math inline">\(\text{Hash}(K \parallel M)\)</span> combined with
+Merkle-Damgård's lack of finalization. Systems prevent this attack
+through alternative mathematical constructions:</p>
+<ul>
+<li><strong>HMAC (Hash-based Message Authentication Code):</strong> Uses
+a nested hashing structure <span class="math inline">\(\text{Hash}((K
+\oplus opad) \parallel \text{Hash}((K \oplus ipad) \parallel
+M))\)</span>. The outer hash absorbs the output of the inner hash,
+hiding the internal state of the message digest.</li>
+<li><strong>Truncated Outputs:</strong> Variants like SHA-384 and
+SHA-512/256 run on larger state sizes (512 bits) and discard part of the
+final state (outputting only 384 or 256 bits). Because the internal
+state cannot be fully reconstructed from the truncated output, extension
+attacks are computationally infeasible.</li>
+<li><strong>Sponge Constructions (SHA-3):</strong> Sponge functions
+(such as Keccak) separate internal capacity from the exposed rate. The
+internal capacity remains hidden from the output, inherently
+neutralizing length extension attacks.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

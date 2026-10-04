@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dangerous Linux Capabilities for Container Escapes - hacking</title>
+    <meta name="description" content="Linux containers rely on kernel namespaces and control groups to isolate processes, but assigning elevated Linux capabilities can severely undermine these boundaries. This article examines the specific Linux kernel capabilities that can allow container b">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/dangerous-linux-capabilities-for-container-escapes">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Dangerous Linux Capabilities for Container Escapes - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/dangerous-linux-capabilities-for-container-escapes" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Linux containers rely on kernel namespaces and control groups to isolate processes, but assigning elevated Linux capabilities can severely undermine these boundaries. This article examines the specific Linux kernel capabilities that can allow container b" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="dangerous-linux-capabilities-for-container-escapes">Dangerous
+Linux Capabilities for Container Escapes</h1>
+<p>Linux containers rely on kernel namespaces and control groups to
+isolate processes, but assigning elevated Linux capabilities can
+severely undermine these boundaries. This article examines the specific
+Linux kernel capabilities that can allow container breakout attacks, the
+security implications of granting high-level privileges to containerized
+environments, and best practices for hardening container configurations
+to prevent privilege escalation.</p>
+<h2 id="understanding-linux-capabilities">Understanding Linux
+Capabilities</h2>
+<p>In traditional Linux systems, privilege checks are binary: a process
+runs either as an unprivileged user (UID nonzero) or as the superuser
+(UID 0, root). Linux capabilities divide root privileges into distinct,
+fine-grained units. When containers run, the runtime (such as Docker or
+containerd) typically drops a default set of capabilities to restrict
+the containerized root user's authority over the host kernel.</p>
+<p>Granting certain sensitive capabilities grants the container
+permissions that interact directly with the host kernel or host
+resources, effectively bypassing the boundaries established by
+namespaces.</p>
+<h2 id="high-risk-capabilities-enabling-container-breakouts">High-Risk
+Capabilities Enabling Container Breakouts</h2>
+<p>Several Linux kernel capabilities provide sufficiently deep access to
+system internals to facilitate container escapes when assigned
+incorrectly or combined with other misconfigurations.</p>
+<h3 id="1-cap_sys_admin">1. CAP_SYS_ADMIN</h3>
+<p><code>CAP_SYS_ADMIN</code> is often referred to as the "new root"
+because it encompasses a vast collection of privileged system
+operations. Within a container, granting <code>CAP_SYS_ADMIN</code>
+allows operations such as:</p>
+<ul>
+<li>Mounting and unmounting filesystems, including pseudo-filesystems
+like <code>cgroup</code> or <code>procfs</code>.</li>
+<li>Modifying control group settings, which historically allowed
+attackers to exploit release agent notifications to execute code on the
+host.</li>
+<li>Loading eBPF programs, which can interact directly with host kernel
+memory if not restricted.</li>
+</ul>
+<p>Because <code>CAP_SYS_ADMIN</code> allows mounting arbitrary
+filesystems, an attacker with root access inside the container can often
+mount host disk devices directly if device access is not explicitly
+blocked.</p>
+<h3 id="2-cap_sys_module">2. CAP_SYS_MODULE</h3>
+<p>The <code>CAP_SYS_MODULE</code> capability allows a process to insert
+and remove kernel modules using calls like <code>init_module</code> and
+<code>finit_module</code>. If a container possesses this capability, an
+attacker can compile or load a custom kernel module. Because kernel
+modules run in ring 0 (kernel space), loading a module immediately
+grants full control over the host operating system, rendering all
+container isolation mechanisms void.</p>
+<h3 id="3-cap_sys_ptrace">3. CAP_SYS_PTRACE</h3>
+<p>The <code>CAP_SYS_PTRACE</code> capability allows processes to trace,
+inspect, and modify the execution of other processes using the
+<code>ptrace()</code> system call. While standard container setups
+isolate process IDs via the PID namespace, this capability becomes
+critical if:</p>
+<ul>
+<li>The container shares the host's PID namespace
+(<code>--pid=host</code>). In this scenario, processes within the
+container can attach directly to host processes (such as system daemons)
+and inject code into their memory.</li>
+<li>Sensitive debugging endpoints or <code>/proc</code> interfaces are
+exposed.</li>
+</ul>
+<h3 id="4-cap_sys_rawio">4. CAP_SYS_RAWIO</h3>
+<p><code>CAP_SYS_RAWIO</code> permits raw input/output port operations,
+system bus access, and direct device interactions via interfaces like
+<code>/dev/mem</code> or <code>/dev/kmem</code>. Access to raw memory
+devices allows arbitrary modifications to kernel memory, enabling
+complete host takeover from inside the container.</p>
+<h3 id="5-cap_dac_override-and-cap_dac_read_search">5. CAP_DAC_OVERRIDE
+and CAP_DAC_READ_SEARCH</h3>
+<p>These capabilities bypass traditional discretionary access control
+(file read, write, and execute permissions) and directory search
+restrictions. While not an immediate escape mechanism on their own, they
+permit the container process to read or modify any mounted host file
+regardless of file ownership. If host directories or sensitive sockets
+(such as the Docker socket <code>/var/run/docker.sock</code>) are
+mounted into the container, these capabilities remove permission
+barriers.</p>
+<h2 id="defense-and-hardening-strategies">Defense and Hardening
+Strategies</h2>
+<p>To mitigate container escape risks associated with kernel
+capabilities, adhere to the following principles:</p>
+<ul>
+<li><strong>Drop All Capabilities by Default:</strong> Configure
+container specifications to drop all capabilities
+(<code>--cap-drop=ALL</code>) and explicitly add only the minimal
+capabilities strictly required for functionality.</li>
+<li><strong>Avoid Privileged Mode:</strong> Running containers with
+flags such as <code>--privileged</code> disables virtually all security
+controls, enabling all capabilities and host device access.</li>
+<li><strong>Enforce Non-Root Execution:</strong> Configure containers to
+run with an unprivileged UID/GID, preventing processes from leveraging
+capabilities even if they are retained in the capability bounding
+set.</li>
+<li><strong>Implement Mandatory Access Control:</strong> Utilize Seccomp
+profiles, AppArmor, or SELinux to enforce strict system call filtering
+and restrict actions even if dangerous capabilities are present.</li>
+<li><strong>Isolate Host Namespaces:</strong> Never share the host PID,
+network, or IPC namespaces unless strictly necessary for dedicated
+node-monitoring tools.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

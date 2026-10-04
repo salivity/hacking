@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hijacking Linux Cron Jobs for Root Persistence - hacking</title>
+    <meta name="description" content="Automated task scheduling through cron is a standard component of Linux administration, frequently executed with root privileges. Because these jobs run predictably in the background, attackers often target them to achieve persistence or escalate privile">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/hijacking-linux-cron-jobs-for-root-persistence">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Hijacking Linux Cron Jobs for Root Persistence - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/hijacking-linux-cron-jobs-for-root-persistence" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Automated task scheduling through cron is a standard component of Linux administration, frequently executed with root privileges. Because these jobs run predictably in the background, attackers often target them to achieve persistence or escalate privile" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="hijacking-linux-cron-jobs-for-root-persistence">Hijacking Linux
+Cron Jobs for Root Persistence</h1>
+<p>Automated task scheduling through cron is a standard component of
+Linux administration, frequently executed with root privileges. Because
+these jobs run predictably in the background, attackers often target
+them to achieve persistence or escalate privileges from a limited
+account to root. This article examines the primary mechanisms used to
+subvert scheduled jobs, the underlying misconfigurations that make them
+possible, and the corresponding auditing practices required to secure
+them.</p>
+<h3 id="insecure-script-and-binary-permissions">Insecure Script and
+Binary Permissions</h3>
+<p>The most common vector for cron job hijacking involves weak file
+permissions on the scripts or binaries referenced by root cron tables.
+When a cron entry located in <code>/etc/crontab</code> or
+<code>/etc/cron.d/</code> executes a script owned or writable by a
+non-root user (or a broad user group), any process with write access to
+that file can modify its contents.</p>
+<p>When the scheduled interval occurs, the cron daemon (such as
+<code>cron</code> or <code>crond</code>) executes the modified script
+under the security context defined in the crontab—often
+<code>root</code>. Because the scheduling mechanism inherently trusts
+the integrity of the target executable, modifying an existing
+maintenance script avoids creating new, anomalous schedule entries that
+might alert administrators.</p>
+<h3 id="path-environment-variable-abuse">PATH Environment Variable
+Abuse</h3>
+<p>Cron executes commands within a minimal and specific environment
+defined within the crontab configuration files. If the <code>PATH</code>
+definition in <code>/etc/crontab</code> includes relative paths (such as
+<code>.</code> or directories writable by standard users, like
+<code>/tmp</code> or <code>/usr/local/bin</code> with loose
+permissions), hijacking can occur through path precedence.</p>
+<p>When a scheduled job calls a binary using a bare command name (e.g.,
+<code>backup</code> rather than an absolute path like
+<code>/usr/sbin/backup</code>), the system searches the directories
+listed in the <code>PATH</code> variable in sequential order. If an
+attacker places an executable file with the same name in a directory
+traversed earlier in the search path, cron executes the substituted
+binary instead of the intended system utility.</p>
+<h3 id="wildcard-injection-in-scheduled-commands">Wildcard Injection in
+Scheduled Commands</h3>
+<p>Certain cron tasks rely on shell wildcards to process batches of
+files, such as <code>tar *</code> or <code>chown root:root *</code>
+within an automated cleanup or backup routine. Because the shell expands
+the asterisk (<code>*</code>) before passing arguments to the command,
+files named to resemble command-line flags can alter the execution
+behavior of the utility.</p>
+<p>For example, if an automated root job executes
+<code>tar -czf backup.tar.gz *</code> inside a directory writable by
+non-privileged users, placing files with specific flag names (such as
+<code>--checkpoint</code> or <code>--checkpoint-action</code>) can
+induce the utility to execute arbitrary actions when the wildcard
+expansion occurs. This method leverages the application's native
+command-line options rather than tampering with the cron daemon
+itself.</p>
+<h3 id="direct-crontab-and-spool-manipulation">Direct Crontab and Spool
+Manipulation</h3>
+<p>If standard users possess write privileges to administrative cron
+directories (<code>/etc/cron.daily</code>,
+<code>/etc/cron.hourly</code>, <code>/etc/cron.d</code>) or individual
+user spools located in <code>/var/spool/cron/crontabs/</code>, they can
+introduce new scheduled tasks directly.</p>
+<p>Attackers with elevated but non-persistent access often utilize this
+direct method to re-establish access if their primary channel is
+terminated. Creating a low-frequency scheduled job that communicates out
+to external infrastructure ensures persistent administrative access over
+extended periods.</p>
+<h3 id="defensive-countermeasures-and-auditing">Defensive
+Countermeasures and Auditing</h3>
+<p>Mitigating cron hijacking requires strict enforcement of the
+principle of least privilege across scheduling configurations:</p>
+<ul>
+<li><strong>Strict Absolute Paths:</strong> Always specify absolute
+paths for both the commands and any utilities called within maintenance
+scripts. Explicitly define a safe <code>PATH</code> variable at the top
+of cron configuration files (e.g.,
+<code>PATH=/usr/sbin:/usr/bin:/sbin:/bin</code>).</li>
+<li><strong>Permission Auditing:</strong> Ensure all files referenced by
+cron, as well as the directories containing them, are owned by
+<code>root</code> and have restrictive permissions (e.g.,
+<code>chmod 700</code> or <code>755</code>). The system configuration
+files in <code>/etc/cron*</code> should never be group- or
+world-writable.</li>
+<li><strong>Avoid Wildcards in Insecure Directories:</strong> Do not
+execute wildcard commands in directories where untrusted users can
+create files. If batch processing is necessary, use tools like
+<code>find</code> paired with <code>xargs</code> to handle filenames
+safely.</li>
+<li><strong>Integrity Monitoring and Logging:</strong> Employ file
+integrity monitoring tools to track unauthorized modifications to
+<code>/etc/crontab</code>, <code>/etc/cron.*</code>, and
+<code>/var/spool/cron/</code>. Ensure cron execution logs
+(<code>/var/log/cron</code> or systemd journal logs) are monitored for
+unexpected command execution and unusual parent-child process
+relationships.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

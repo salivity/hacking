@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How PPID Spoofing Works in Windows Hacking - hacking</title>
+    <meta name="description" content="Parent Process ID (PPID) spoofing is an evasion technique used by attackers to obscure the origins of a malicious process by breaking its visual and behavioral lineage. In a typical execution chain, a new child process inherits the process identifier of">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-ppid-spoofing-works-in-windows-hacking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How PPID Spoofing Works in Windows Hacking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-ppid-spoofing-works-in-windows-hacking" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Parent Process ID (PPID) spoofing is an evasion technique used by attackers to obscure the origins of a malicious process by breaking its visual and behavioral lineage. In a typical execution chain, a new child process inherits the process identifier of" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-ppid-spoofing-works-in-windows-hacking">How PPID Spoofing
+Works in Windows Hacking</h1>
+<p>Parent Process ID (PPID) spoofing is an evasion technique used by
+attackers to obscure the origins of a malicious process by breaking its
+visual and behavioral lineage. In a typical execution chain, a new child
+process inherits the process identifier of the application that created
+it. By intentionally manipulating this relationship, threat actors make
+malicious tasks appear as though they were spawned by legitimate,
+trusted system binaries—such as <code>explorer.exe</code> or
+<code>svchost.exe</code>—rather than the actual, suspicious source,
+thereby bypassing heuristic detection mechanisms and confusing security
+analysts.</p>
+<h3 id="the-mechanism-of-process-creation">The Mechanism of Process
+Creation</h3>
+<p>When an application creates a new process in Windows using standard
+API functions like <code>CreateProcess</code>, the operating system
+defaults to assigning the caller's Process ID (PID) as the new process's
+Parent Process ID (PPID). This parent-child hierarchy forms a process
+tree, which security tools (such as Endpoint Detection and Response
+platforms) and security operations center (SOC) analysts monitor to
+detect anomalous activity.</p>
+<p>For instance, an office application like <code>winword.exe</code>
+spawning <code>powershell.exe</code> or <code>cmd.exe</code> strongly
+indicates macro-based malware execution. If security systems evaluate
+execution patterns based purely on this parent-child relationship, the
+activity generates an immediate high-severity alert.</p>
+<h3 id="how-ppid-spoofing-is-executed">How PPID Spoofing Is
+Executed</h3>
+<p>Starting in Windows Vista, Microsoft introduced extended process
+creation capabilities to allow legitimate software to specify alternate
+parents, primarily for UAC elevation and process brokering. Attackers
+abuse this native functionality using the following steps:</p>
+<ol type="1">
+<li><strong>Acquiring a Handle to a Target Process:</strong> The
+attacker selects a running, trusted process (often
+<code>explorer.exe</code>, <code>lsass.exe</code>, or
+<code>services.exe</code>) and calls <code>OpenProcess</code> with the
+<code>PROCESS_CREATE_PROCESS</code> access right to obtain a valid
+handle.</li>
+<li><strong>Initializing the Attribute List:</strong> The attacker
+initializes an extended startup structure, <code>STARTUPINFOEX</code>,
+which contains an attribute list
+(<code>LPPROC_THREAD_ATTRIBUTE_LIST</code>).</li>
+<li><strong>Modifying the Parent Attribute:</strong> Using the
+<code>UpdateProcThreadAttribute</code> API, the attacker applies the
+<code>PROC_THREAD_ATTRIBUTE_PARENT_PROCESS</code> flag, passing the
+handle of the chosen legitimate process into the attribute list.</li>
+<li><strong>Spawning the Malicious Process:</strong> Finally, the
+attacker calls <code>CreateProcess</code> (or
+<code>CreateProcessA</code>/<code>CreateProcessW</code>) with the
+<code>EXTENDED_STARTUPINFO_PRESENT</code> creation flag, pointing to the
+configured <code>STARTUPINFOEX</code> structure.</li>
+</ol>
+<p>When the Windows kernel creates the new process, it assigns the PPID
+specified in the attribute list rather than the PID of the executing
+exploit or loader.</p>
+<h3 id="masquerading-and-evasion-impact">Masquerading and Evasion
+Impact</h3>
+<p>PPID spoofing effectively blends malicious execution into normal
+operating system noise. Its primary benefits to an attacker include:</p>
+<ul>
+<li><strong>Bypassing Behavioral Heuristics:</strong> EDR rules designed
+to flag anomalous parent-child relationships (e.g., Microsoft Word
+spawning command shells) fail to trigger because the process tree
+reports the parent as a routine application like
+<code>explorer.exe</code>.</li>
+<li><strong>Concealing Exploit Artifacts:</strong> If a threat actor
+gains code execution via a web server exploit (such as
+<code>w3wp.exe</code>), spawning interactive tools directly from the
+server process is an obvious indicator of compromise. Spoofing the
+parent decouples the tool from the exploited service.</li>
+<li><strong>Complicating Forensics:</strong> When incident responders
+conduct root-cause analysis, they typically trace the process lineage
+backward. A spoofed PPID misdirects the investigation away from the
+initial entry point.</li>
+</ul>
+<h3 id="detection-and-defensive-considerations">Detection and Defensive
+Considerations</h3>
+<p>While PPID spoofing masks lineage in basic process monitoring
+utilities, it introduces specific inconsistencies that advanced
+telemetry can uncover:</p>
+<ul>
+<li><strong>Session and Desktop Mismatches:</strong> A spoofed child
+process may run in a different Windows Session ID or security desktop
+than its reported parent, which rarely occurs during normal
+operations.</li>
+<li><strong>Kernel-Level Telemetry vs. User-Mode Reporting:</strong>
+Event Tracing for Windows (ETW) and deep-visibility drivers can track
+the creator process ID (the thread that actually called
+<code>CreateProcess</code>) alongside the reported parent process ID,
+exposing the discrepancy.</li>
+<li><strong>Handle Access Auditing:</strong> Monitoring for processes
+requesting <code>PROCESS_CREATE_PROCESS</code> access to sensitive
+binaries like <code>lsass.exe</code> or <code>svchost.exe</code> can
+detect the preparatory steps required for PPID spoofing before execution
+takes place.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

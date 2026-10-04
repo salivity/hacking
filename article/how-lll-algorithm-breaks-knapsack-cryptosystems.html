@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How LLL Algorithm Breaks Knapsack Cryptosystems - hacking</title>
+    <meta name="description" content="Knapsack-based cryptosystems rely on the computational hardness of the subset sum problem to encrypt data, but they can be systematically broken using lattice reduction techniques like the Lenstra–Lenstra–Lovász (LLL) algorithm. By mapping the publi">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-lll-algorithm-breaks-knapsack-cryptosystems">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How LLL Algorithm Breaks Knapsack Cryptosystems - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-lll-algorithm-breaks-knapsack-cryptosystems" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Knapsack-based cryptosystems rely on the computational hardness of the subset sum problem to encrypt data, but they can be systematically broken using lattice reduction techniques like the Lenstra–Lenstra–Lovász (LLL) algorithm. By mapping the publi" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-lll-algorithm-breaks-knapsack-cryptosystems">How LLL
+Algorithm Breaks Knapsack Cryptosystems</h1>
+<p>Knapsack-based cryptosystems rely on the computational hardness of
+the subset sum problem to encrypt data, but they can be systematically
+broken using lattice reduction techniques like the
+Lenstra–Lenstra–Lovász (LLL) algorithm. By mapping the public key
+weights and the target ciphertext into a geometric lattice,
+cryptanalysts transform the NP-complete subset sum problem into a
+Shortest Vector Problem (SVP) or Closest Vector Problem (CVP). When the
+knapsack system has low information density, the vector representing the
+original plaintext is unusually short compared to random lattice
+vectors, allowing the polynomial-time LLL algorithm to discover it and
+decrypt the secret message directly.</p>
+<h3 id="the-mechanics-of-knapsack-cryptosystems">The Mechanics of
+Knapsack Cryptosystems</h3>
+<p>In an additive knapsack cryptosystem, such as the Merkle-Hellman
+scheme, the sender encrypts a binary plaintext vector <span
+class="math inline">\(\mathbf{x} = (x_1, x_2, \dots, x_n) \in \{0,
+1\}^n\)</span> using a public sequence of integers (weights) <span
+class="math inline">\(\mathbf{a} = (a_1, a_2, \dots, a_n)\)</span>. The
+ciphertext <span class="math inline">\(C\)</span> is computed as the dot
+product:</p>
+<p><span class="math display">\[C = \sum_{i=1}^{n} x_i a_i\]</span></p>
+<p>Decryption for an unauthorized party requires solving the subset sum
+problem: finding a binary vector <span
+class="math inline">\(\mathbf{x}\)</span> that sums to <span
+class="math inline">\(C\)</span> using the public weights. While the
+general subset sum problem is NP-complete, the specific instances
+generated by knapsack cryptosystems contain structural vulnerabilities
+related to their density.</p>
+<p>The density <span class="math inline">\(d\)</span> of a knapsack
+system is defined as:</p>
+<p><span class="math display">\[d = \frac{n}{\max_i(\log_2
+a_i)}\]</span></p>
+<p>To prevent spurious solutions (accidental modular collisions that
+lead to identical ciphertexts), practical implementations require large
+public weights, which inherently lowers the density of the knapsack
+(<span class="math inline">\(d &lt; 1\)</span>). This low density is the
+primary flaw exploited by lattice reduction attacks.</p>
+<h3 id="constructing-the-lattice">Constructing the Lattice</h3>
+<p>Cryptanalysts formulate the knapsack problem as a lattice using basis
+matrices originally developed by researchers such as Lagarias, Odlyzko,
+and Coster. A common representation is an <span
+class="math inline">\((n+1) \times (n+1)\)</span> integer matrix <span
+class="math inline">\(B\)</span>, where each row forms a basis
+vector:</p>
+<p><span class="math display">\[B = \begin{pmatrix}
+1 &amp; 0 &amp; \dots &amp; 0 &amp; a_1 \\
+0 &amp; 1 &amp; \dots &amp; 0 &amp; a_2 \\
+\vdots &amp; \vdots &amp; \ddots &amp; \vdots &amp; \vdots \\
+0 &amp; 0 &amp; \dots &amp; 1 &amp; a_n \\
+0 &amp; 0 &amp; \dots &amp; 0 &amp; -C
+\end{pmatrix}\]</span></p>
+<p>Any linear combination of these basis vectors using integer
+coefficients corresponds to a vector in the lattice <span
+class="math inline">\(\mathcal{L}(B)\)</span>. If we take the specific
+linear combination where the first <span
+class="math inline">\(n\)</span> coefficients are the binary message
+bits <span class="math inline">\(x_1, x_2, \dots, x_n\)</span> and the
+final coefficient is <span class="math inline">\(1\)</span>, the
+resulting lattice vector <span class="math inline">\(\mathbf{v}\)</span>
+evaluates to:</p>
+<p><span class="math display">\[\mathbf{v} = \left( x_1, x_2, \dots,
+x_n, \sum_{i=1}^n x_i a_i - C \right)\]</span></p>
+<p>Because <span class="math inline">\(\sum x_i a_i = C\)</span> by
+definition of the ciphertext, the final coordinate cancels out to
+zero:</p>
+<p><span class="math display">\[\mathbf{v} = (x_1, x_2, \dots, x_n,
+0)\]</span></p>
+<h3 id="applying-the-lll-algorithm">Applying the LLL Algorithm</h3>
+<p>The Euclidean norm of this target vector <span
+class="math inline">\(\mathbf{v}\)</span> is <span
+class="math inline">\(\|\mathbf{v}\| = \sqrt{\sum x_i^2} \le
+\sqrt{n}\)</span>.</p>
+<p>In a high-dimensional lattice generated from large public weights
+<span class="math inline">\(a_i\)</span>, Minkowski's theorem dictates
+that a typical non-zero lattice vector will have a length roughly
+proportional to <span class="math inline">\(\det(\mathcal{L})^{1/(n+1)}
+\approx C^{1/(n+1)}\)</span>. When the knapsack density is sufficiently
+low, the public weights <span class="math inline">\(a_i\)</span> (and
+therefore <span class="math inline">\(C\)</span>) are exponentially
+larger than <span class="math inline">\(2^n\)</span>. As a result, the
+target vector <span class="math inline">\(\mathbf{v}\)</span> with
+length <span class="math inline">\(\le \sqrt{n}\)</span> is drastically
+shorter than almost every other vector in the lattice.</p>
+<p>Finding the exact shortest vector in an arbitrary lattice is NP-hard,
+but the LLL algorithm approximates the shortest vector in polynomial
+time by generating an LLL-reduced basis satisfying:</p>
+<ol type="1">
+<li><strong>Size reduction:</strong> Projection coefficients between
+vectors are bounded by <span class="math inline">\(| \mu_{i,j} | \le
+\frac{1}{2}\)</span>.</li>
+<li><strong>Lovász condition:</strong> Vectors are ordered such that no
+significant length reduction can be achieved by swapping adjacent
+Gram-Schmidt orthogonalized vectors.</li>
+</ol>
+<p>When LLL runs on the constructed basis matrix <span
+class="math inline">\(B\)</span>, it progressively rotates and reduces
+the basis vectors toward their shortest, most orthogonal components.
+Because the target vector <span class="math inline">\((x_1, x_2, \dots,
+x_n, 0)\)</span> is an extreme geometric outlier, LLL frequently places
+it directly into the reduced basis.</p>
+<h3 id="density-thresholds-and-cryptographic-impact">Density Thresholds
+and Cryptographic Impact</h3>
+<p>The effectiveness of LLL-based attacks depends heavily on the
+knapsack density:</p>
+<ul>
+<li><strong>Lagarias-Odlyzko Attack:</strong> Proved that knapsack
+cryptosystems with density <span class="math inline">\(d &lt;
+0.6463\)</span> can be broken almost always in polynomial time using
+standard LLL reduction.</li>
+<li><strong>Coster et al. Refinements:</strong> By centering the binary
+variables using the transformation <span class="math inline">\(y_i = x_i
+- \frac{1}{2}\)</span> to reduce the expected Euclidean norm to <span
+class="math inline">\(\frac{1}{2}\sqrt{n}\)</span>, the solvable density
+bound increased to <span class="math inline">\(d &lt;
+0.9408\)</span>.</li>
+</ul>
+<p>Because avoiding spurious decryptions requires high public weights
+(leading to <span class="math inline">\(d &lt; 1\)</span>), virtually
+all standard single-iteration knapsack cryptosystems fall within the
+threshold solvable by LLL or its block-reduction variant, BKZ (Block
+Korkine-Zolotarev). Consequently, mathematical cryptanalysis through
+lattice reduction rendered early public-key knapsack schemes obsolete
+for secure communication.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

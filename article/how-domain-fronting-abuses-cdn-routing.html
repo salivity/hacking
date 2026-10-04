@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Domain Fronting Abuses CDN Routing - hacking</title>
+    <meta name="description" content="Domain fronting is an evasion technique that hides the true destination of an internet connection by exploiting discrepancies between the encryption layer and application layer within Content Delivery Networks (CDNs). By establishing a secure connection">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-domain-fronting-abuses-cdn-routing">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Domain Fronting Abuses CDN Routing - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-domain-fronting-abuses-cdn-routing" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Domain fronting is an evasion technique that hides the true destination of an internet connection by exploiting discrepancies between the encryption layer and application layer within Content Delivery Networks (CDNs). By establishing a secure connection" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-domain-fronting-abuses-cdn-routing">How Domain Fronting
+Abuses CDN Routing</h1>
+<p>Domain fronting is an evasion technique that hides the true
+destination of an internet connection by exploiting discrepancies
+between the encryption layer and application layer within Content
+Delivery Networks (CDNs). By establishing a secure connection using a
+reputable domain in the initial handshake while requesting an entirely
+different, attacker-controlled domain in the encrypted HTTP header,
+threat actors can bypass network security perimeters, evade censorship,
+and disguise malicious command-and-control (C2) traffic as benign web
+activity.</p>
+<h3 id="the-decoupling-of-sni-and-the-http-host-header">The Decoupling
+of SNI and the HTTP Host Header</h3>
+<p>The mechanism of domain fronting relies on the fundamental
+architecture of HTTPS traffic, specifically the interaction between the
+Transport Layer Security (TLS) handshake and the underlying HTTP
+request.</p>
+<p>Under standard HTTPS communication, two distinct destination
+identifiers are used:</p>
+<ol type="1">
+<li><strong>Server Name Indication (SNI):</strong> A TLS extension sent
+in plaintext during the initial Client Hello. The SNI tells the edge
+server which digital certificate to present to the client.</li>
+<li><strong>The HTTP Host Header:</strong> An application-layer field
+sent after the encrypted TLS tunnel is established. This header tells
+the receiving web server which specific virtual host should process the
+request.</li>
+</ol>
+<p>Under normal circumstances, the SNI and the HTTP <code>Host</code>
+header match. In a domain fronting attack, the adversary deliberately
+mismatches these two fields to trick intermediate monitoring tools.</p>
+<h3 id="how-the-abuse-operates-on-a-cdn">How the Abuse Operates on a
+CDN</h3>
+<p>Content Delivery Networks operate reverse-proxy edge servers that
+terminate TLS connections for thousands of independent customers using
+shared IP infrastructure. When an attacker abuses a CDN for domain
+fronting, the process unfolds in distinct phases:</p>
+<ol type="1">
+<li><strong>Initial TLS Negotiation (The "Front"):</strong> The
+attacker's client initiates a TLS connection to an IP address owned by
+the CDN. In the plaintext SNI extension, the client specifies a benign,
+highly trusted domain hosted on that same CDN (for example, a major
+financial institution or software vendor).</li>
+<li><strong>Perimeter Inspection Bypass:</strong> Network defense
+systems, such as firewalls, proxies, and deep packet inspection (DPI)
+engines, observe the plaintext SNI and the CDN-owned IP address. Because
+the SNI belongs to a legitimate, trusted entity, the traffic is
+classified as safe and permitted to pass through the network
+perimeter.</li>
+<li><strong>TLS Termination:</strong> The CDN's edge server receives the
+request, validates the SNI, presents the valid TLS certificate for the
+fronted domain, and establishes an encrypted session with the
+client.</li>
+<li><strong>The Encrypted Payload Delivery:</strong> Once the encrypted
+tunnel is active, the client sends an HTTP request (such as a
+<code>GET</code> or <code>POST</code>). Hidden inside this encrypted
+payload is an HTTP <code>Host</code> header set to the attacker’s
+malicious domain (e.g., an active C2 server endpoint), which is also
+registered as a customer on the same CDN.</li>
+<li><strong>Internal CDN Routing:</strong> When processing the request,
+the CDN's edge proxy ignores the SNI used during the handshake and
+instead inspects the inner HTTP <code>Host</code> header to determine
+request routing. The CDN forwards the decrypted request through its
+internal backbone to the origin server configured for the attacker's
+domain.</li>
+</ol>
+<h3 id="operational-advantages-for-attackers">Operational Advantages for
+Attackers</h3>
+<p>By leveraging this routing disconnect, attackers achieve several
+tactical advantages:</p>
+<ul>
+<li><strong>Reputational Camouflage:</strong> Security logs record
+connections exclusively to reputable domains and trusted CDN IP spaces,
+preventing domain-based blocking and automated threat-intelligence
+alerts.</li>
+<li><strong>Resistance to IP Blocking:</strong> Network administrators
+cannot block the destination IP address without causing collateral
+damage to critical third-party services that share the same CDN
+infrastructure.</li>
+<li><strong>Encrypted Evasion:</strong> Because the true destination is
+located entirely within the encrypted HTTP request, perimeter inspection
+tools cannot identify the malicious host header without active TLS
+decryption and inspection proxies.</li>
+</ul>
+<h3 id="countermeasures-and-current-status">Countermeasures and Current
+Status</h3>
+<p>Major cloud and CDN providers have implemented protections against
+domain fronting by enforcing strict validation between the TLS SNI and
+the application-layer <code>Host</code> header. If the domain requested
+in the HTTP <code>Host</code> header does not match or belong to the
+same account as the domain specified in the TLS SNI, the edge server
+terminates the connection with an HTTP 421 (Misdirected Request) or HTTP
+403 (Forbidden) response. Additionally, modern standards such as
+Encrypted Client Hello (ECH) seek to encrypt the SNI itself, altering
+how network defenders inspect TLS negotiation parameters.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

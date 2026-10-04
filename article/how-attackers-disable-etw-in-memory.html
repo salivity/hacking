@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Attackers Disable ETW in Memory - hacking</title>
+    <meta name="description" content="Event Tracing for Windows (ETW) is a core diagnostic and telemetry mechanism utilized by Endpoint Detection and Response (EDR) agents to detect malicious activity in enterprise environments. This article examines how adversaries disable or "blind" ETW in">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-attackers-disable-etw-in-memory">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Attackers Disable ETW in Memory - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-attackers-disable-etw-in-memory" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Event Tracing for Windows (ETW) is a core diagnostic and telemetry mechanism utilized by Endpoint Detection and Response (EDR) agents to detect malicious activity in enterprise environments. This article examines how adversaries disable or "blind" ETW in" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-attackers-disable-etw-in-memory">How Attackers Disable ETW
+in Memory</h1>
+<p>Event Tracing for Windows (ETW) is a core diagnostic and telemetry
+mechanism utilized by Endpoint Detection and Response (EDR) agents to
+detect malicious activity in enterprise environments. This article
+examines how adversaries disable or "blind" ETW in memory through
+user-mode API patching, why this technique effectively silences security
+telemetry, and the strategies defenders use to detect and mitigate these
+bypass attempts.</p>
+<h3 id="the-role-of-user-mode-etw-in-telemetry">The Role of User-Mode
+ETW in Telemetry</h3>
+<p>ETW provides high-throughput tracing of kernel and user-mode events.
+While the ETW framework resides in the Windows kernel, applications
+running in user space—such as the .NET Common Language Runtime (CLR),
+PowerShell, and standard executables—rely on user-mode dynamic-link
+libraries (primarily <code>ntdll.dll</code>) to generate telemetry.</p>
+<p>When an application performs monitored activities (such as loading
+assemblies or executing suspicious scripts), it calls functions such as
+<code>EtwEventWrite</code> to submit event data to the ETW subsystem.
+EDR sensors subscribe to these user-mode ETW providers to flag malicious
+behavior in real time.</p>
+<h3 id="the-mechanics-of-in-memory-etw-patching">The Mechanics of
+In-Memory ETW Patching</h3>
+<p>Because <code>ntdll.dll</code> is mapped directly into the address
+space of the running process, the code responsible for dispatching these
+events resides in memory controlled by that process. Attackers with
+execution privileges inside the process can manipulate this code
+directly.</p>
+<ol type="1">
+<li><p><strong>Locating the Target Function</strong><br />
+The process retrieves the memory address of telemetry dispatch
+functions—most commonly <code>ntdll!EtwEventWrite</code> or
+<code>ntdll!EtwEventWriteFull</code>—using functions like
+<code>GetProcAddress</code>.</p></li>
+<li><p><strong>Modifying Memory Protection</strong><br />
+By default, the <code>.text</code> section of <code>ntdll.dll</code> is
+marked as executable and read-only (<code>PAGE_EXECUTE_READ</code>).
+Attackers use APIs like <code>VirtualProtect</code> to modify the
+protection of the memory page containing the target function to
+<code>PAGE_EXECUTE_READWRITE</code>.</p></li>
+<li><p><strong>Applying the In-Memory Patch</strong><br />
+Once the memory is writable, the attacker overwrites the entry point of
+<code>EtwEventWrite</code> with instructions that force the function to
+return immediately without executing the telemetry delivery logic. A
+common approach involves writing a <code>RET</code> instruction (opcode
+<code>0xC3</code> on x86/x64) or setting a success status
+(<code>XOR EAX, EAX; RET</code>), effectively returning
+<code>STATUS_SUCCESS</code> without forwarding any events.</p></li>
+<li><p><strong>Restoring Permissions</strong><br />
+The memory permissions are often restored to
+<code>PAGE_EXECUTE_READ</code> using <code>VirtualProtect</code> to
+reduce the likelihood of detection by basic memory scanners that look
+for writable-executable pages.</p></li>
+</ol>
+<h3 id="impact-on-enterprise-visibility">Impact on Enterprise
+Visibility</h3>
+<p>Once <code>EtwEventWrite</code> is modified, any subsequent calls
+made by the process to emit ETW events fail silently. This technique is
+frequently used before executing in-memory payloads, reflective DLL
+injections, or unmanaged PowerShell executions. By blinding user-mode
+ETW, malicious activities—such as loading unauthorized .NET
+assemblies—occur without producing the standard telemetry feeds that
+SIEM and EDR platforms rely on for behavioral detection.</p>
+<h3 id="detection-and-defensive-countermeasures">Detection and Defensive
+Countermeasures</h3>
+<p>While user-mode ETW patching alters running processes, security
+operations teams and modern defensive agents utilize several mechanisms
+to identify and neutralize the technique:</p>
+<ul>
+<li><strong>Kernel-Level Telemetry:</strong> Unlike user-mode ETW,
+kernel-mode ETW providers and kernel callbacks (such as
+<code>PsSetCreateProcessNotifyRoutine</code> and
+<code>PsSetCreateThreadNotifyRoutine</code>) cannot be tampered with
+from standard user-mode processes. Defenses relying on kernel sensors
+maintain visibility into process and thread activity regardless of
+user-mode hooks.</li>
+<li><strong>Memory Integrity Verification:</strong> Advanced EDR agents
+regularly inspect the memory spaces of monitored processes, comparing
+mapped modules (like <code>ntdll.dll</code>) against their original
+on-disk counterparts. Discrepancies in the <code>.text</code> section
+indicate unauthorized in-memory modifications.</li>
+<li><strong>API Monitoring:</strong> Monitoring calls to
+<code>VirtualProtect</code> or <code>NtProtectVirtualMemory</code>
+targeting native library address ranges allows defenders to detect the
+permission changes required to perform the patch.</li>
+<li><strong>Process Mitigation Policies:</strong> Enforcing Arbitrary
+Code Guard (ACG) prevents dynamic code generation and prohibits
+modifying executable code pages, thereby blocking the initial step of
+modifying function instructions in memory.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

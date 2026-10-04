@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Process Herpaderping Techniques - hacking</title>
+    <meta name="description" content="Process Herpaderping is an evasion technique that manipulates how Windows handles executable file mappings and process creation callbacks to conceal malicious code from security products. By altering the source file on disk after creating an execution se">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-process-herpaderping-techniques">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding Process Herpaderping Techniques - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-process-herpaderping-techniques" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Process Herpaderping is an evasion technique that manipulates how Windows handles executable file mappings and process creation callbacks to conceal malicious code from security products. By altering the source file on disk after creating an execution se" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="understanding-process-herpaderping-techniques">Understanding
+Process Herpaderping Techniques</h1>
+<p>Process Herpaderping is an evasion technique that manipulates how
+Windows handles executable file mappings and process creation callbacks
+to conceal malicious code from security products. By altering the source
+file on disk after creating an execution section but before the process
+begins execution, the technique creates a discrepancy between what is
+executed in memory and what security scanners observe on disk. This
+article explains the underlying file mapping mechanics, the timing of
+security checks, and how defenders identify the activity.</p>
+<h2 id="the-core-concept-of-process-herpaderping">The Core Concept of
+Process Herpaderping</h2>
+<p>Traditional security solutions often rely on kernel callbacks,
+specifically <code>PsSetCreateProcessNotifyRoutineEx</code>, to scan
+binaries at process creation time. When this routine triggers, security
+software receives the process identifier and inspects the backing file
+on disk to determine whether the executable is benign.</p>
+<p>Process Herpaderping exploits the relationship between the Windows
+Cache Manager, the underlying file handle, and the memory section object
+(<code>SEC_IMAGE</code>) to manipulate this inspection process.</p>
+<h2 id="step-by-step-file-mapping-mechanics">Step-by-Step File Mapping
+Mechanics</h2>
+<p>The technique relies on a specific sequence of system calls that
+alters the disk contents while preserving the executable code in
+memory:</p>
+<ol type="1">
+<li><p><strong>File Creation and Payload Delivery:</strong><br />
+The target binary is initially written to a file on disk using standard
+file operations. This file contains the actual code intended for
+execution.</p></li>
+<li><p><strong>Image Section Creation
+(<code>NtCreateSection</code>):</strong><br />
+The program creates a section object from the file with the
+<code>SEC_IMAGE</code> flag. In Windows, an image section parses the
+Portable Executable (PE) headers and maps the sections into virtual
+memory according to their alignment requirements. At this point, the
+executable data resides in memory backed by the file's current
+state.</p></li>
+<li><p><strong>Disk Modification (The "Herpaderp"):</strong><br />
+Before creating a process or thread, the file handle remains open with
+write permissions. The actor overwrites the original executable on disk
+with benign data, garbage bytes, or a different valid binary. Because
+the image section has already been instantiated in memory, the operating
+system retains the originally mapped code for execution purposes, but
+the raw file on disk no longer contains the original payload.</p></li>
+<li><p><strong>Process Creation
+(<code>NtCreateProcessEx</code>):</strong><br />
+A process object is created referencing the previously created section
+object. The process now possesses an address space containing the
+original payload.</p></li>
+<li><p><strong>Thread Creation and Notification Trigger:</strong><br />
+When the initial thread is created using <code>NtCreateThreadEx</code>,
+the Windows kernel invokes registered
+<code>PsSetCreateProcessNotifyRoutineEx</code> callbacks. Security tools
+that inspect the backing file associated with the process read the
+overwritten contents on disk rather than the original executable
+code.</p></li>
+</ol>
+<h2 id="discrepancies-between-file-cache-and-memory">Discrepancies
+Between File Cache and Memory</h2>
+<p>The technique relies on how the Windows kernel manages file handles
+and section objects:</p>
+<ul>
+<li><strong>Section Persistence:</strong> Once a section is created with
+<code>SEC_IMAGE</code>, changes written to the file handle do not
+immediately overwrite the mapped executable pages unless explicitly
+flushed or re-mapped.</li>
+<li><strong>Callback Timing:</strong> Security drivers typically inspect
+the file path reported during the process creation callback. Because the
+file on disk was modified before this callback occurs, static file
+analysis yields the altered or benign bytes instead of the malicious
+binary.</li>
+</ul>
+<h2 id="detection-and-defensive-countermeasures">Detection and Defensive
+Countermeasures</h2>
+<p>While Process Herpaderping evades simple on-disk file checks at
+process startup, it leaves distinctive forensic and behavioral
+indicators:</p>
+<ul>
+<li><strong>Header and Disk Discrepancies:</strong> Endpoint Detection
+and Response (EDR) agents can compare the PE headers and contents in the
+virtual address space with the corresponding bytes on disk. A mismatch
+between the memory-mapped image and the raw file indicates potential
+tampering.</li>
+<li><strong>High-Entropy or Suspicious Write Sequences:</strong>
+Monitoring for patterns where an executable file is written, mapped as
+an image section, modified immediately afterward, and then launched as a
+process provides high-fidelity behavioral detection.</li>
+<li><strong>Mini-Filter Driver Monitoring:</strong> File system
+mini-filter drivers can track file write operations occurring on files
+that already have open <code>SEC_IMAGE</code> section handles.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

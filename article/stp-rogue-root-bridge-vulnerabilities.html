@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STP Rogue Root Bridge Vulnerabilities - hacking</title>
+    <meta name="description" content="The Spanning Tree Protocol (STP) is essential for preventing switching loops in Ethernet networks, but legacy implementations suffer from a critical lack of authentication that exposes networks to manipulation. This article examines how attackers exploit">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/stp-rogue-root-bridge-vulnerabilities">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="STP Rogue Root Bridge Vulnerabilities - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/stp-rogue-root-bridge-vulnerabilities" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Spanning Tree Protocol (STP) is essential for preventing switching loops in Ethernet networks, but legacy implementations suffer from a critical lack of authentication that exposes networks to manipulation. This article examines how attackers exploit" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="stp-rogue-root-bridge-vulnerabilities">STP Rogue Root Bridge
+Vulnerabilities</h1>
+<p>The Spanning Tree Protocol (STP) is essential for preventing
+switching loops in Ethernet networks, but legacy implementations suffer
+from a critical lack of authentication that exposes networks to
+manipulation. This article examines how attackers exploit inherent STP
+trust models using crafted Bridge Protocol Data Units (BPDUs) to declare
+rogue devices as the root bridge. By forcing topology recalculations,
+adversaries can direct sensitive traffic through unauthorized systems,
+execute Man-in-the-Middle (MitM) attacks, and cause severe network
+disruption.</p>
+<h3 id="inherent-trust-and-lack-of-authentication">Inherent Trust and
+Lack of Authentication</h3>
+<p>The fundamental flaw in standard STP (IEEE 802.1D) and its modern
+variants, such as Rapid STP (RSTP, 802.1w), is the absence of
+cryptographic authentication for control messages. Switches rely
+entirely on unauthenticated BPDUs exchanged across access and trunk
+ports to elect the root bridge and determine the active forwarding
+topology.</p>
+<p>Every switch automatically trusts incoming BPDUs unless explicitly
+configured otherwise. If a frame claims to come from a switch with
+superior path metrics, recipient switches accept the update as
+legitimate and initiate a topology change.</p>
+<h3 id="how-the-rogue-root-bridge-attack-works">How the Rogue Root
+Bridge Attack Works</h3>
+<p>In STP, the root bridge is elected based on the lowest Bridge
+Identifier (BID), which consists of a 2-byte Bridge Priority (defaulting
+to 32768) and a 6-byte MAC address. The election process operates on a
+simple rule: the lowest numerical value wins.</p>
+<p>An attacker exploits this mechanism using the following process:</p>
+<ol type="1">
+<li><strong>Physical or Virtual Access:</strong> The attacker connects a
+compromised machine or unauthorized network device to an exposed switch
+port (such as a wall jack in a conference room).</li>
+<li><strong>BPDU Generation:</strong> Using network tools like Yersinia
+or Scapy, the attacker generates and injects crafted Configuration BPDUs
+onto the segment.</li>
+<li><strong>Claiming Superiority:</strong> The attacker sets the Bridge
+Priority to the lowest possible value (<code>0</code>) combined with a
+spoofed, low-value MAC address (e.g.,
+<code>00:00:00:00:00:01</code>).</li>
+<li><strong>Topology Recalculation:</strong> Surrounding legitimate
+switches receive this "superior" BPDU, concede the election, update
+their root path cost, and propagate the announcement across the local
+area network.</li>
+</ol>
+<h3 id="security-impact-and-traffic-interception">Security Impact and
+Traffic Interception</h3>
+<p>Once a rogue device becomes the root bridge, the logical layout of
+the network is fundamentally altered:</p>
+<ul>
+<li><strong>Man-in-the-Middle (MitM) Eavesdropping:</strong> Because the
+root bridge serves as the logical center of the network, significant
+amounts of inter-switch traffic are redirected through the rogue device.
+If the attacker has dual connections into distinct segments, they can
+forward traffic while capturing cleartext credentials, sensitive
+payloads, and internal communications.</li>
+<li><strong>Denial of Service (DoS):</strong> An attacker can drop
+intercepted packets entirely, effectively blackholing traffic across
+entire VLANs.</li>
+<li><strong>Topology Instability:</strong> Continuously injecting
+conflicting BPDUs forces switches into constant recalculation loops,
+consuming switch CPU resources and causing network-wide packet
+loss.</li>
+</ul>
+<h3 id="essential-defenses-and-mitigations">Essential Defenses and
+Mitigations</h3>
+<p>To neutralize STP root bridge hijacking, network administrators must
+deploy specific hardening features on switch interfaces:</p>
+<ul>
+<li><strong>Root Guard:</strong> Configured on interfaces connected to
+downstream or edge switches where the root bridge should never reside.
+If a port enabled with Root Guard receives a superior BPDU, it
+immediately places the port into a "root-inconsistent" listening state,
+blocking traffic until the rogue BPDUs cease.</li>
+<li><strong>BPDU Guard:</strong> Applied to all access ports utilizing
+PortFast. Any port configured with BPDU Guard will immediately shut down
+(enter an <code>err-disable</code> state) if a single BPDU is detected,
+preventing rogue switches or attack software from participating in
+STP.</li>
+<li><strong>BPDU Filter:</strong> Prevents switches from sending or
+processing BPDUs on specific edge ports, though BPDU Guard is generally
+preferred for active intrusion prevention.</li>
+<li><strong>Hardened Priority Configurations:</strong> Core switches
+should be explicitly configured with the lowest supported bridge
+priorities (e.g., <code>priority 0</code> for the primary root and
+<code>priority 4096</code> for the secondary root) rather than relying
+on default settings, raising the bar against accidental
+misconfigurations.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How the Logjam Attack Downgrades TLS Connections - hacking</title>
+    <meta name="description" content="The Logjam attack is a cryptographic exploit discovered in 2015 that allows a man-in-the-middle (MitM) attacker to downgrade vulnerable Transport Layer Security (TLS) connections to weakened, export-grade 512-bit Diffie-Hellman (DH) key exchange paramete">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-the-logjam-attack-downgrades-tls-connections">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How the Logjam Attack Downgrades TLS Connections - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-the-logjam-attack-downgrades-tls-connections" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Logjam attack is a cryptographic exploit discovered in 2015 that allows a man-in-the-middle (MitM) attacker to downgrade vulnerable Transport Layer Security (TLS) connections to weakened, export-grade 512-bit Diffie-Hellman (DH) key exchange paramete" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-the-logjam-attack-downgrades-tls-connections">How the Logjam
+Attack Downgrades TLS Connections</h1>
+<p>The Logjam attack is a cryptographic exploit discovered in 2015 that
+allows a man-in-the-middle (MitM) attacker to downgrade vulnerable
+Transport Layer Security (TLS) connections to weakened, export-grade
+512-bit Diffie-Hellman (DH) key exchange parameters. By actively
+manipulating the handshake messages between a client and a server, an
+attacker tricks both endpoints into using weak cryptography that can be
+broken in real time, allowing the attacker to decrypt, read, and alter
+encrypted traffic without being detected.</p>
+<h3 id="the-historical-context-export-grade-cryptography">The Historical
+Context: Export-Grade Cryptography</h3>
+<p>To understand the downgrade mechanism, one must understand
+export-grade cryptography. In the 1990s, the United States government
+placed strict export restrictions on strong encryption software,
+limiting symmetric encryption to 40 bits and Diffie-Hellman or RSA key
+lengths to 512 bits for foreign deployments. Although these restrictions
+were lifted decades ago, many modern TLS implementations maintained
+backward compatibility with "DHE-EXPORT" cipher suites for legacy
+reasons.</p>
+<h3 id="the-protocol-flaw-in-the-tls-handshake">The Protocol Flaw in the
+TLS Handshake</h3>
+<p>The fundamental flaw enabling the Logjam attack exists within the
+structure of the TLS handshake when using ephemeral Diffie-Hellman (DHE)
+key exchanges.</p>
+<p>In a standard DHE exchange:</p>
+<ol type="1">
+<li>The server chooses prime parameters (<span
+class="math inline">\(p\)</span> and <span
+class="math inline">\(g\)</span>) and an ephemeral public key (<span
+class="math inline">\(y_s\)</span>).</li>
+<li>The server signs these parameters using its long-term RSA or DSA
+private key to prove identity and prevent tampering.</li>
+<li>The server sends these signed parameters inside the
+<code>ServerKeyExchange</code> message.</li>
+</ol>
+<p>Critically, the TLS specification did not require the server to sign
+the specific cipher suite name inside the <code>ServerKeyExchange</code>
+message—it only signed the parameters (<span class="math inline">\(p, g,
+y_s\)</span>) and the client/server random nonces. This created a
+semantic ambiguity: a client could not tell whether the 512-bit
+parameters it received were generated because the server intended to use
+an export cipher suite or because the server was simply choosing a small
+prime for a non-export cipher suite.</p>
+<h3 id="the-step-by-step-downgrade-mechanism">The Step-by-Step Downgrade
+Mechanism</h3>
+<p>A Logjam attack requires an active network attacker positioned
+between the client and the server. The downgrade unfolds through the
+following stages:</p>
+<ol type="1">
+<li><strong>Client Hello Tampering:</strong> The client initiates a TLS
+connection by sending a <code>ClientHello</code> message listing its
+supported cipher suites, including standard DHE. The attacker intercepts
+this message, strips away modern cipher suites, and replaces them with
+an export-grade suite (e.g.,
+<code>TLS_DHE_EXPORT_WITH_RSA_CBC_40_SHA</code>).</li>
+<li><strong>Server Response:</strong> The server receives the modified
+<code>ClientHello</code>. If the server supports export-grade suites, it
+accepts the request and replies with a <code>ServerHello</code>
+indicating the export suite. It generates 512-bit Diffie-Hellman
+parameters, signs them with its RSA key, and sends the
+<code>ServerKeyExchange</code> message containing these parameters.</li>
+<li><strong>Parameter Relay to the Client:</strong> The attacker
+intercepts the server's reply. The attacker modifies the
+<code>ServerHello</code> back to the standard DHE cipher suite
+originally requested by the client, but leaves the server's 512-bit DH
+parameters and the valid RSA signature untouched in the
+<code>ServerKeyExchange</code> message.</li>
+<li><strong>Client Signature Verification:</strong> The client receives
+the <code>ServerKeyExchange</code>. Because the server's RSA signature
+covers the prime <span class="math inline">\(p\)</span>, generator <span
+class="math inline">\(g\)</span>, and public key <span
+class="math inline">\(y_s\)</span>, the signature validates
+successfully. The client assumes the server legitimately chose a 512-bit
+prime for a standard DHE connection and proceeds with the
+handshake.</li>
+</ol>
+<h3 id="solving-the-discrete-logarithm">Solving the Discrete
+Logarithm</h3>
+<p>Because the connection has been restricted to a 512-bit prime, the
+discrete logarithm problem becomes computationally feasible.
+Diffie-Hellman relies on the difficulty of finding the private exponent
+<span class="math inline">\(x\)</span> given <span
+class="math inline">\(g^x \pmod p\)</span>.</p>
+<p>Most servers supporting DHE-EXPORT reused a very small set of
+well-known, standardized 512-bit primes (such as the default prime
+hardcoded into Apache). Using the Number Field Sieve (NFS) algorithm, an
+attacker can precompute the heavy cryptographic calculations for a
+specific shared prime. Once the precomputation phase is complete,
+solving the individual discrete logarithm for a specific session can be
+achieved in a matter of seconds.</p>
+<h3 id="completing-the-man-in-the-middle-attack">Completing the
+Man-in-the-Middle Attack</h3>
+<p>TLS handshakes conclude with a <code>Finished</code> message, which
+contains a Message Authentication Code (MAC) of all prior handshake
+messages to detect tampering. Normally, this prevents downgrade attacks
+because the client and server would notice discrepancies in their
+respective <code>ClientHello</code> messages.</p>
+<p>However, because the attacker computes the discrete log in near
+real-time, the attacker discovers the connection's master session key
+before the handshake completes. Using this master key, the attacker
+decrypts, recalculates, and properly signs the <code>Finished</code>
+message for both the client and the server. The endpoints accept the
+connection as valid, leaving the attacker in complete control of the
+decrypted TLS stream.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

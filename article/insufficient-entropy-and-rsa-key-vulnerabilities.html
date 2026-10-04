@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insufficient Entropy and RSA Key Vulnerabilities - hacking</title>
+    <meta name="description" content="The security of the RSA cryptosystem depends entirely on the difficulty of factoring the product of two large, secret prime numbers. However, when the random number generator used during key creation suffers from insufficient entropy, these prime numbers">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/insufficient-entropy-and-rsa-key-vulnerabilities">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Insufficient Entropy and RSA Key Vulnerabilities - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/insufficient-entropy-and-rsa-key-vulnerabilities" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The security of the RSA cryptosystem depends entirely on the difficulty of factoring the product of two large, secret prime numbers. However, when the random number generator used during key creation suffers from insufficient entropy, these prime numbers" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="insufficient-entropy-and-rsa-key-vulnerabilities">Insufficient
+Entropy and RSA Key Vulnerabilities</h1>
+<p>The security of the RSA cryptosystem depends entirely on the
+difficulty of factoring the product of two large, secret prime numbers.
+However, when the random number generator used during key creation
+suffers from insufficient entropy, these prime numbers cease to be truly
+random and unpredictable. This failure collapses the search space,
+allowing attackers to reconstruct private keys through mathematical
+shortcuts—such as greatest common divisor (GCD) calculations across
+public datasets—or direct seed recovery, completely undermining the
+encryption and digital signature guarantees RSA is designed to
+provide.</p>
+<h3 id="the-role-of-entropy-in-rsa-key-generation">The Role of Entropy
+in RSA Key Generation</h3>
+<p>To generate an RSA key pair, a cryptographic system selects two
+distinct prime numbers, <span class="math inline">\(p\)</span> and <span
+class="math inline">\(q\)</span>, and multiplies them to produce the
+public modulus, <span class="math inline">\(N = p \times q\)</span>. The
+public exponent <span class="math inline">\(e\)</span> and private
+exponent <span class="math inline">\(d\)</span> are derived from these
+primes.</p>
+<p>The mathematical security of RSA relies on the assumption that
+computing <span class="math inline">\(d\)</span> from <span
+class="math inline">\(N\)</span> and <span
+class="math inline">\(e\)</span> is computationally infeasible because
+factoring <span class="math inline">\(N\)</span> into <span
+class="math inline">\(p\)</span> and <span
+class="math inline">\(q\)</span> would take conventional computers
+millennia. However, this assumption holds only if <span
+class="math inline">\(p\)</span> and <span
+class="math inline">\(q\)</span> are selected uniformly at random from
+an astronomically large pool of possible candidates. Cryptographically
+secure pseudorandom number generators (CSPRNGs) require physical
+randomness—known as entropy, collected from hardware noise, keystrokes,
+or network interrupts—to initialize and generate unpredictable
+values.</p>
+<h3 id="the-shared-factor-vulnerability-batch-gcd-attacks">The Shared
+Factor Vulnerability (Batch GCD Attacks)</h3>
+<p>When multiple systems generate RSA keys using low-entropy states—a
+frequent occurrence in embedded devices, routers, and virtual machines
+generating keys immediately after boot—their CSPRNGs may produce
+identical or overlapping prime numbers.</p>
+<p>If Device A generates <span class="math inline">\(N_1 = p \times
+q_1\)</span> and Device B generates <span class="math inline">\(N_2 = p
+\times q_2\)</span>, both devices share the prime factor <span
+class="math inline">\(p\)</span>. While factoring <span
+class="math inline">\(N_1\)</span> or <span
+class="math inline">\(N_2\)</span> individually remains computationally
+intractable, finding the shared factor between them is trivial using the
+Euclidean algorithm for greatest common divisors:</p>
+<p><span class="math display">\[\gcd(N_1, N_2) = p\]</span></p>
+<p>Computing the GCD of two large integers requires only fractions of a
+millisecond. By scraping millions of public RSA keys from the internet
+and running pairwise GCD computations (or using efficient batch GCD
+algorithms), an attacker can isolate shared primes and derive the
+private keys of every affected system without ever breaking the
+underlying RSA algorithm itself.</p>
+<h3 id="reduced-keyspace-and-seed-reconstruction">Reduced Keyspace and
+Seed Reconstruction</h3>
+<p>Insufficient entropy also severely restricts the effective keyspace
+of the generator. If an entropy source produces only 32 bits of actual
+randomness instead of the required 128 to 256 bits, there are only <span
+class="math inline">\(2^{32}\)</span> (roughly 4.3 billion) possible
+outcomes.</p>
+<p>An attacker aware of a device's low-entropy state can:</p>
+<ul>
+<li><strong>Brute-Force the Seed:</strong> Iterate through all possible
+seeds of the PRNG to generate candidate primes until the resulting
+modulus matches the target public key.</li>
+<li><strong>Precompute Prime Lists:</strong> Generate tables of primes
+derived from predictable boot sequences or default system states,
+enabling rapid matching against target public keys.</li>
+</ul>
+<h3 id="practical-implications-for-key-security">Practical Implications
+for Key Security</h3>
+<p>When the underlying primes are exposed due to low entropy:</p>
+<ul>
+<li><strong>Decryption of Traffic:</strong> Attackers can passively
+record and decrypt encrypted communications (such as TLS/HTTPS sessions)
+that rely on static RSA key exchange.</li>
+<li><strong>Impersonation and Identity Theft:</strong> Possession of the
+private key allows malicious actors to forge digital signatures,
+generate legitimate-looking certificates, and stage man-in-the-middle
+(MitM) attacks.</li>
+<li><strong>Firmware Tampering:</strong> In embedded systems where RSA
+keys verify software updates, a compromised key enables attackers to
+sign and deploy malicious firmware.</li>
+</ul>
+<p>Preventing these failures requires systems to delay cryptographic key
+generation until system entropy pools are fully initialized and to
+utilize robust hardware random number generators (TRNGs) alongside
+modern CSPRNG algorithms.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

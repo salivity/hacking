@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VXLAN Security Flaws and Tenant Isolation Breaches - hacking</title>
+    <meta name="description" content="Virtual Extensible LAN (VXLAN) is the standard overlay encapsulation protocol used to achieve multi-tenancy and scalability in modern cloud and data center networks. While it expands the traditional Layer 2 network boundary across a Layer 3 underlay usin">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/vxlan-security-flaws-and-tenant-isolation-breaches">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="VXLAN Security Flaws and Tenant Isolation Breaches - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/vxlan-security-flaws-and-tenant-isolation-breaches" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Virtual Extensible LAN (VXLAN) is the standard overlay encapsulation protocol used to achieve multi-tenancy and scalability in modern cloud and data center networks. While it expands the traditional Layer 2 network boundary across a Layer 3 underlay usin" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="vxlan-security-flaws-and-tenant-isolation-breaches">VXLAN
+Security Flaws and Tenant Isolation Breaches</h1>
+<p>Virtual Extensible LAN (VXLAN) is the standard overlay encapsulation
+protocol used to achieve multi-tenancy and scalability in modern cloud
+and data center networks. While it expands the traditional Layer 2
+network boundary across a Layer 3 underlay using 24-bit Virtual Network
+Identifiers (VNIs), it was designed for scalability rather than
+zero-trust security. In multi-tenant environments, critical
+implementation oversights—including unauthenticated encapsulation,
+improper underlay-to-overlay validation, and misconfigured control
+planes—can allow sophisticated attackers to break tenant boundaries,
+sniff inter-tenant traffic, and execute cross-segment attacks.</p>
+<h3 id="1-plaintext-data-plane-and-lack-of-native-cryptography">1.
+Plaintext Data Plane and Lack of Native Cryptography</h3>
+<p>The core VXLAN specification (RFC 7348) defines encapsulation over
+standard UDP (port 4789) without native encryption, data integrity
+checks, or source authentication. If an attacker compromises a single
+host, a virtualized appliance, or gains access to the underlay switching
+fabric, they can inspect and inject VXLAN packets directly. Because the
+outer IP/UDP headers and the inner Ethernet frames are transmitted in
+cleartext, an attacker on the underlay can forge packets with any
+arbitrary VNI, allowing direct packet injection into a target tenant's
+isolated broadcast domain.</p>
+<h3 id="2-vni-spoofing-and-insufficient-ingress-filtering">2. VNI
+Spoofing and Insufficient Ingress Filtering</h3>
+<p>Tenant isolation in VXLAN depends entirely on the Virtual Tunnel
+Endpoint (VTEP)—typically implemented in the hypervisor switch (e.g.,
+Open vSwitch) or top-of-rack (ToR) physical switches—correctly binding
+virtual interfaces to specific VNIs. A severe oversight occurs when
+VTEPs do not strictly enforce ingress traffic filtering:</p>
+<ul>
+<li><strong>Hypervisor-Level Forgery:</strong> If a compromised tenant
+VM can bypass hypervisor virtual switch restrictions (e.g., disabling
+anti-spoofing controls or taking over the local vSwitch), it can
+construct pre-encapsulated VXLAN frames or craft raw Layer 2 packets
+with tagged headers that trick the VTEP into forwarding the traffic into
+an adjacent tenant’s VNI.</li>
+<li><strong>Missing Ingress Port-to-VNI Mapping:</strong> If a VTEP
+accepts encapsulated VXLAN traffic arriving from internal customer ports
+rather than strictly from trusted underlay interfaces, an attacker can
+directly encapsulate traffic to bridge segments.</li>
+</ul>
+<h3 id="3-rogue-vtep-injection-and-unauthenticated-underlays">3. Rogue
+VTEP Injection and Unauthenticated Underlays</h3>
+<p>Because base VXLAN lacks endpoint authentication, any network node
+with Layer 3 reachability to other VTEPs can theoretically act as a
+VTEP. If an attacker gains a footprint in the underlay:</p>
+<ul>
+<li><strong>BUM Traffic Interception:</strong> By default, broadcast,
+unknown unicast, and multicast (BUM) traffic is distributed across the
+underlay using multicast trees or head-end replication. A rogue VTEP can
+join these multicast groups (via IGMP/PIM) and passively ingest
+broadcast and discovery frames belonging to every tenant on that
+multicast group.</li>
+<li><strong>L2 Table Flooding:</strong> A rogue VTEP can flood fake
+MAC-to-IP bindings, poisoning the forwarding databases (MAC tables) of
+legitimate VTEPs and forcing traffic intended for a specific tenant to
+be redirected to the attacker.</li>
+</ul>
+<h3 id="4-control-plane-poisoning-in-bgp-evpn">4. Control Plane
+Poisoning in BGP EVPN</h3>
+<p>Modern enterprise and hyperscale data centers use Multiprotocol BGP
+with Ethernet VPN (MP-BGP EVPN) as the control plane for VXLAN to handle
+MAC and IP address learning dynamically. Security lapses in the EVPN
+control plane introduce critical vulnerabilities:</p>
+<ul>
+<li><strong>Lack of Route Target (RT) Filtering:</strong> Tenants are
+isolated logically using BGP Extended Communities (Route Targets). If
+operators misconfigure route maps or fail to isolate BGP peering
+sessions, route leaks can occur, causing one tenant’s routing instances
+(EVPN Type-2 or Type-5 routes) to be imported into another tenant’s
+Virtual Routing and Forwarding (VRF) table.</li>
+<li><strong>Unauthenticated BGP Peering:</strong> If VTEP leaf switches
+do not mandate TCP-AO (TCP Authentication Option) or MD5 authentication
+on BGP sessions, an underlay attacker can inject forged EVPN Type-2
+(MAC/IP Advertisement) routes. This allows traffic interception,
+man-in-the-middle attacks, and tenant-to-tenant routing subversion
+without physical access to the tenant's hypervisor.</li>
+</ul>
+<h3 id="5-shared-underlay-infrastructure-and-gateway-leaks">5. Shared
+Underlay Infrastructure and Gateway Leaks</h3>
+<p>VXLAN implementations frequently utilize shared centralized or
+distributed Anycast Gateways to route traffic between different VNIs and
+external networks.</p>
+<ul>
+<li><strong>Hairpinning and Route Leakage:</strong> Improper VRF-Lite
+configurations or leaky route redistribution on Layer 3 gateways can
+accidentally merge routes between VNIs, bypassing firewall and ACL
+inspection.</li>
+<li><strong>Shared Resource Denial of Service:</strong> Because the
+underlay IP transport is shared, a malicious tenant generating
+high-bandwidth traffic can saturate the underlying physical links,
+exhausting the buffers on spine-leaf switches and degrading service for
+neighboring tenants across separate VNIs.</li>
+</ul>
+<p>Securing multi-tenant VXLAN environments requires deploying
+cryptographic underlay mechanisms like MACsec or IPsec between all
+VTEPs, enforcing strict hypervisor port-filtering to strip unexpected
+encapsulation headers, isolating BGP EVPN control plane traffic from
+customer workloads, and utilizing explicit ingress ACLs on all tunnel
+endpoints.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

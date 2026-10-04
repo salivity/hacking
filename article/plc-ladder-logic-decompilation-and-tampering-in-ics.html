@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLC Ladder Logic Decompilation and Tampering in ICS - hacking</title>
+    <meta name="description" content="This article examines how threat actors reverse engineer and modify proprietary programmable logic controller (PLC) logic within industrial control systems (ICS). It details the architectural mechanisms behind PLC compilation, the technical challenges an">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/plc-ladder-logic-decompilation-and-tampering-in-ics">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PLC Ladder Logic Decompilation and Tampering in ICS - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/plc-ladder-logic-decompilation-and-tampering-in-ics" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines how threat actors reverse engineer and modify proprietary programmable logic controller (PLC) logic within industrial control systems (ICS). It details the architectural mechanisms behind PLC compilation, the technical challenges an" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="plc-ladder-logic-decompilation-and-tampering-in-ics">PLC Ladder
+Logic Decompilation and Tampering in ICS</h1>
+<p>This article examines how threat actors reverse engineer and modify
+proprietary programmable logic controller (PLC) logic within industrial
+control systems (ICS). It details the architectural mechanisms behind
+PLC compilation, the technical challenges and methods involved in
+decompiling vendor-specific bytecode, the vectors used to deploy
+unauthorized changes, and the essential engineering controls required to
+defend critical infrastructure against logic manipulation attacks.</p>
+<h3 id="the-architecture-of-plc-logic-compilation">The Architecture of
+PLC Logic Compilation</h3>
+<p>Programmable logic controllers do not execute graphical ladder logic
+diagrams directly on the processor. Instead, the logic designed within
+an Engineering Workstation (EWS) undergoes a translation process before
+deployment:</p>
+<ol type="1">
+<li><strong>Source Representation:</strong> The engineering software
+manages ladder logic, function block diagrams, or structured text as
+proprietary project files, often containing metadata, symbol tables, and
+graphical layouts.</li>
+<li><strong>Intermediate Representation and Bytecode:</strong> The
+development environment translates these visual or textual
+representations into an intermediate representation (IR) or
+machine-independent bytecode designed for the PLC’s proprietary virtual
+machine runtime.</li>
+<li><strong>Native Machine Code:</strong> In higher-performance
+controllers, this bytecode is compiled directly into native machine code
+(such as ARM, MIPS, or PowerPC instructions) tailored to the
+controller's underlying microprocessor.</li>
+</ol>
+<p>In most legacy architectures, the compiled binary payload sent to the
+controller lacks the variable names, comments, and visual structural
+data present in the original development environment.</p>
+<h3 id="reverse-engineering-and-decompilation-techniques">Reverse
+Engineering and Decompilation Techniques</h3>
+<p>To manipulate logic without access to the original EWS source files,
+attackers must reverse engineer the proprietary binaries. This process
+generally involves three distinct phases:</p>
+<ul>
+<li><strong>Payload Acquisition:</strong> Binaries are extracted either
+by capturing network traffic during an EWS-to-PLC download procedure,
+extracting the runtime configuration directly from the PLC’s
+non-volatile memory, or pulling project archives stored on an insecure
+engineering station.</li>
+<li><strong>Format Analysis and Disassembly:</strong> Attackers identify
+whether the payload consists of native machine code or proprietary
+bytecode. If native code is used, standard disassemblers (such as Ghidra
+or IDA Pro) are configured with custom processor modules to map out the
+firmware base and execution loops. If the runtime uses proprietary
+virtual machine bytecode, analysts must reverse engineer the interpreter
+binary from the PLC firmware to reconstruct the instruction set
+architecture (ISA), opcodes, and operand structures.</li>
+<li><strong>Mapping I/O and Memory Layouts:</strong> Ladder logic relies
+heavily on memory addressing (e.g., physical inputs, outputs, internal
+memory bits, and timers). Analysts cross-reference the extracted code
+with publicly available technical manuals or hardware schematics to
+identify which memory registers correspond to critical physical
+actuators and sensors.</li>
+</ul>
+<h3 id="modification-and-injection-vectors">Modification and Injection
+Vectors</h3>
+<p>Once the logic structure is understood, changes can be introduced
+into the control process using several operational vectors:</p>
+<ul>
+<li><strong>Engineering Workstation Compromise:</strong> If an attacker
+gains administrative control of the EWS, they can alter the logic within
+the official development software. The software automatically
+re-compiles and signs (if required) the payload, allowing the attacker
+to push malicious modifications through legitimate channels.</li>
+<li><strong>Protocol-Level Download Injection:</strong> Attackers can
+utilize proprietary operational technology (OT) protocols to mimic an
+authorized engineering session. By sending crafted network commands
+directly to the PLC's control port, an attacker can overwrite specific
+memory blocks or initiate a download sequence containing the tampered
+bytecode.</li>
+<li><strong>Online Program Editing:</strong> Many industrial runtimes
+support "online edits," which allow logic changes to be applied in real
+time without stopping the industrial process. Attackers leverage these
+features to patch specific subroutines or bypass interlocks while
+maintaining standard execution loops for secondary systems.</li>
+</ul>
+<h3 id="defensive-mitigations-and-integrity-verification">Defensive
+Mitigations and Integrity Verification</h3>
+<p>Protecting industrial environments from unauthorized logic alteration
+requires defense-in-depth across hardware, network, and operational
+domains:</p>
+<ul>
+<li><strong>Hardware Key Switches:</strong> Enforcing physical key
+switches on PLCs (setting the controller to "RUN" rather than "REMOTE"
+or "PROGRAM") physically prevents memory writes and logic downloads over
+the network during normal operations.</li>
+<li><strong>Cryptographic Payload Signing:</strong> Modern ICS platforms
+should implement cryptographic verification to ensure the PLC only
+executes firmware and logic files signed by an authorized certificate
+authority.</li>
+<li><strong>Network Segmentation and Protocol Filtering:</strong>
+Restricting access to engineering ports using industrial firewalls and
+dedicated demilitarized zones (DMZs) limits unauthorized communication
+between general enterprise networks and control networks.</li>
+<li><strong>Automated Logic Baselining:</strong> Continuous OT
+monitoring solutions should periodically compare the running controller
+hash or logic dump against an approved repository to detect unauthorized
+drift, logic modifications, or unexpected memory state changes
+immediately.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

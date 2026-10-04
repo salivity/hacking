@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risks of Package Manager Post-Install Scripts - hacking</title>
+    <meta name="description" content="Package managers across major software ecosystems routinely permit packages to execute arbitrary shell commands automatically during installation. While designed for tasks like compiling native dependencies or configuring local environments, this capabil">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/risks-of-package-manager-post-install-scripts">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Risks of Package Manager Post-Install Scripts - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/risks-of-package-manager-post-install-scripts" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Package managers across major software ecosystems routinely permit packages to execute arbitrary shell commands automatically during installation. While designed for tasks like compiling native dependencies or configuring local environments, this capabil" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="risks-of-package-manager-post-install-scripts">Risks of Package
+Manager Post-Install Scripts</h1>
+<p>Package managers across major software ecosystems routinely permit
+packages to execute arbitrary shell commands automatically during
+installation. While designed for tasks like compiling native
+dependencies or configuring local environments, this capability presents
+critical security risks that attackers exploit to compromise developer
+systems and upstream software supply chains. When arbitrary command
+execution is permitted, simple installation commands become vectors for
+credential theft, persistent backdoors, and lateral network
+movement.</p>
+<h3 id="immediate-remote-code-execution-rce">Immediate Remote Code
+Execution (RCE)</h3>
+<p>The primary hazard of post-install lifecycle scripts—such as npm's
+<code>postinstall</code>, pip's <code>setup.py</code>, or RubyGems'
+extensions—is immediate code execution. A developer does not need to
+run, test, or import the untrusted package to be compromised; executing
+a standard installation command like <code>npm install</code> or
+<code>pip install</code> instantly grants the package author the ability
+to run arbitrary system commands under the developer's user
+privileges.</p>
+<h3 id="credential-and-secret-exfiltration">Credential and Secret
+Exfiltration</h3>
+<p>Developer workstations are high-value targets because they typically
+store elevated secrets, API keys, and deployment credentials.
+Post-install scripts run with access to the user's home directory and
+active environment variables. Attackers use these scripts to scan for
+and exfiltrate:</p>
+<ul>
+<li>Cloud provider keys (e.g., <code>~/.aws/credentials</code>)</li>
+<li>Source control access tokens (e.g., personal access tokens, SSH
+private keys)</li>
+<li>Environment files containing production secrets
+(<code>.env</code>)</li>
+<li>Package registry tokens (e.g., <code>~/.npmrc</code>,
+<code>~/.pypirc</code>)</li>
+</ul>
+<p>Once stolen, these credentials allow adversaries to compromise
+broader enterprise infrastructure and publish malicious updates to
+legitimate packages owned by the developer.</p>
+<h3 id="software-supply-chain-contamination">Software Supply Chain
+Contamination</h3>
+<p>Allowing post-install scripts to run unchecked facilitates supply
+chain attacks via typosquatting, dependency confusion, and account
+takeovers of popular open-source maintainers. If an attacker injects a
+malicious post-install hook into a library used within a continuous
+integration/continuous deployment (CI/CD) pipeline, the automated build
+agent will execute the script upon fetching dependencies. This allows
+attackers to tamper with source code, modify compiled binaries, or
+inject malicious code directly into production deployments.</p>
+<h3
+id="establishing-stealth-persistence-and-lateral-movement">Establishing
+Stealth Persistence and Lateral Movement</h3>
+<p>Because developers often run terminal sessions with elevated
+permissions or access to private internal corporate networks,
+post-install scripts can silently establish persistence. An attacker's
+script can modify shell profiles (<code>.bashrc</code>,
+<code>.zshrc</code>), configure malicious <code>git</code> hooks, plant
+scheduled tasks (cron jobs), or spin up background reverse shells. From
+there, the infected machine can serve as a jumping-off point for
+internal reconnaissance and lateral movement across the organization's
+private subnets.</p>
+<h3 id="mitigating-scripting-execution-risks">Mitigating Scripting
+Execution Risks</h3>
+<p>To limit the blast radius of post-install execution, security teams
+and developers can apply several defensive controls:</p>
+<ul>
+<li><strong>Disable automatic script execution:</strong> Run
+installation commands with flags that block scripts by default, such as
+<code>npm install --ignore-scripts</code>.</li>
+<li><strong>Use isolated development environments:</strong> Perform
+package testing and building inside lightweight containers, virtual
+machines, or sandboxed environments rather than directly on host
+workstations.</li>
+<li><strong>Implement dependency firewalls:</strong> Route package
+downloads through private artifact managers that inspect and block
+packages exhibiting suspicious install scripts or anomalous
+behavior.</li>
+<li><strong>Strict privilege separation:</strong> Ensure build agents
+and developer accounts run with the lowest necessary system permissions
+and avoid running package managers with root or administrative
+privileges.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

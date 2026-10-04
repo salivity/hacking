@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Pass-the-Ticket Attacks Bypass Kerberos - hacking</title>
+    <meta name="description" content="The Pass-the-Ticket (PtT) attack is a lateral movement and privilege escalation technique in Active Directory environments that enables adversaries to authenticate to network resources without knowing a user's plaintext password or NTLM hash. By extracti">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-pass-the-ticket-attacks-bypass-kerberos">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Pass-the-Ticket Attacks Bypass Kerberos - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-pass-the-ticket-attacks-bypass-kerberos" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Pass-the-Ticket (PtT) attack is a lateral movement and privilege escalation technique in Active Directory environments that enables adversaries to authenticate to network resources without knowing a user's plaintext password or NTLM hash. By extracti" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-pass-the-ticket-attacks-bypass-kerberos">How Pass-the-Ticket
+Attacks Bypass Kerberos</h1>
+<p>The Pass-the-Ticket (PtT) attack is a lateral movement and privilege
+escalation technique in Active Directory environments that enables
+adversaries to authenticate to network resources without knowing a
+user's plaintext password or NTLM hash. By extracting valid Kerberos
+tickets from memory or generating forged ones, attackers inject these
+authentication tokens directly into their current logon session. This
+article explains the fundamentals of the Kerberos protocol, how
+attackers steal or forge Kerberos tickets (such as Silver and Golden
+Tickets), the step-by-step mechanics of injecting them into memory to
+bypass authentication controls, and practical methods for detection and
+mitigation.</p>
+<h3 id="the-basics-of-kerberos-authentication">The Basics of Kerberos
+Authentication</h3>
+<p>In an Active Directory environment, the Kerberos protocol handles
+identity verification using cryptographic tickets rather than passing
+raw credentials over the network. The process relies on a Key
+Distribution Center (KDC), typically hosted on a Domain Controller:</p>
+<ol type="1">
+<li><strong>Authentication Service (AS) Exchange:</strong> A user
+requests a Ticket Granting Ticket (TGT) by encrypting a timestamp with
+their password-derived key. The KDC validates this and returns a TGT,
+encrypted with the domain's Key Distribution Center Service Account
+(<code>KRBTGT</code>) key.</li>
+<li><strong>Ticket Granting Service (TGS) Exchange:</strong> When the
+user wants to access a specific network service (e.g., a file share or
+database), they present the TGT to the KDC. The KDC verifies the TGT and
+issues a Service Ticket (TGS), encrypted with that specific service
+account's secret key.</li>
+<li><strong>Client/Server Exchange:</strong> The user presents the TGS
+directly to the target server, which decrypts it using its own key to
+grant access.</li>
+</ol>
+<p>These tickets are stored locally in the client machine's memory,
+specifically within the Local Security Authority Subsystem Service
+(LSASS) process, so the user does not have to re-enter credentials
+repeatedly.</p>
+<h3 id="how-attackers-obtain-or-forge-tickets">How Attackers Obtain or
+Forge Tickets</h3>
+<p>A Pass-the-Ticket attack begins when an attacker acquires a usable
+Kerberos ticket. This occurs through two primary methods:</p>
+<ul>
+<li><strong>Harvesting Existing Tickets:</strong> An attacker with local
+administrative privileges on a compromised endpoint can read the memory
+of the LSASS process using post-exploitation frameworks (such as
+Mimikatz or Rubeus). They extract legitimate, active <code>.kirbi</code>
+or <code>.ccache</code> ticket files belonging to logged-in users,
+including domain administrators.</li>
+<li><strong>Forging Tickets:</strong> Attackers can generate synthetic
+tickets if they compromise specific cryptographic keys:
+<ul>
+<li><strong>Golden Tickets:</strong> Created if an attacker obtains the
+hash of the <code>KRBTGT</code> account. A Golden Ticket is a forged
+TGT, allowing the attacker to claim any identity, assign arbitrary group
+memberships (e.g., Domain Admins), and set ticket lifetimes extending
+years into the future.</li>
+<li><strong>Silver Tickets:</strong> Created if an attacker obtains the
+password hash of a specific service account. A Silver Ticket is a forged
+TGS that allows unauthorized access to that specific service without
+ever communicating with the Domain Controller.</li>
+</ul></li>
+</ul>
+<h3 id="the-mechanics-of-the-pass-the-ticket-bypass">The Mechanics of
+the Pass-the-Ticket Bypass</h3>
+<p>Once an attacker possesses a stolen or forged ticket, the bypass
+relies on manipulating the local Kerberos credential cache to
+impersonate the target identity:</p>
+<ol type="1">
+<li><strong>Ticket Importation:</strong> The attacker executes a command
+via tools like Mimikatz (<code>kerberos::ptt</code>) or Rubeus
+(<code>ptt /ticket:...</code>) to load the ticket file into the current
+user's session memory in LSASS. Unlike Pass-the-Hash, which relies on
+the older NTLM protocol, PtT operates entirely within the native
+Kerberos framework.</li>
+<li><strong>Session Hijacking:</strong> The local operating system
+immediately recognizes the newly injected ticket as the valid credential
+for outbound Kerberos requests initiated from that command shell or
+session.</li>
+<li><strong>Authentication Request:</strong> When the attacker accesses
+a remote system (via PowerShell remoting, WMI, SMB, or Remote Desktop),
+the host operating system bypasses the normal prompt for credentials. It
+automatically extracts the injected TGT or TGS from LSASS and presents
+it to the destination service or KDC.</li>
+<li><strong>Cryptographic Validation:</strong> The receiving service or
+Domain Controller decrypts the ticket using its shared secret key
+(<code>KRBTGT</code> key for TGTs, service account key for TGSs).
+Because the ticket contains a cryptographically valid signature, the
+server accepts it as proof of identity. The server assumes that the
+presenter was legitimately authenticated by the KDC, granting access
+according to the permissions specified inside the ticket's Privilege
+Attribute Certificate (PAC).</li>
+</ol>
+<p>Through this mechanism, the attacker successfully impersonates
+privileged accounts, evades multi-factor authentication (MFA) prompts
+that occur only during initial logons, and bypasses standard
+authentication checks across the entire domain.</p>
+<h3 id="detection-and-mitigation-strategies">Detection and Mitigation
+Strategies</h3>
+<p>Defending against Pass-the-Ticket attacks requires securing
+credential caches and monitoring ticket-granting anomalies:</p>
+<ul>
+<li><strong>Protect LSASS:</strong> Enable Windows Defender Credential
+Guard to isolate the LSASS process using virtualization-based security
+(VBS), preventing unauthorized processes from extracting or injecting
+tickets in memory.</li>
+<li><strong>Restrict Administrative Privileges:</strong> Limit local
+administrator rights on endpoints to prevent attackers from obtaining
+the system-level permissions required to inspect LSASS.</li>
+<li><strong>Rotate the KRBTGT Account Password:</strong> Regularly
+rotate the <code>KRBTGT</code> account password twice (allowing time for
+replication) to invalidate any existing Golden Tickets.</li>
+<li><strong>Monitor Active Directory Event Logs:</strong> Look for
+abnormal Kerberos activity, such as Event ID 4768 (TGT Request) and
+Event ID 4769 (TGS Request). Watch for anomalous ticket lifetimes,
+mismatches between client IP addresses and requested tickets, and
+requests for service tickets without a preceding TGT request.</li>
+<li><strong>Enforce Kerberos Armoring (FAST):</strong> Flexible
+Authentication Secure Tunneling (FAST) protects Kerberos
+pre-authentication exchanges against offline dictionary attacks and
+ticket tampering.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

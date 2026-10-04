@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPA3 Dragonfly Handshake Downgrade Attacks - hacking</title>
+    <meta name="description" content="The Wi-Fi Protected Access 3 (WPA3) standard introduced the Simultaneous Authentication of Equals (SAE) protocol, based on the Dragonfly handshake, to eliminate the offline dictionary attacks that plagued WPA2. Despite these theoretical cryptographic imp">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/wpa-3-dragonfly-handshake-downgrade-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="WPA3 Dragonfly Handshake Downgrade Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/wpa-3-dragonfly-handshake-downgrade-attacks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Wi-Fi Protected Access 3 (WPA3) standard introduced the Simultaneous Authentication of Equals (SAE) protocol, based on the Dragonfly handshake, to eliminate the offline dictionary attacks that plagued WPA2. Despite these theoretical cryptographic imp" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="wpa3-dragonfly-handshake-downgrade-attacks">WPA3 Dragonfly
+Handshake Downgrade Attacks</h1>
+<p>The Wi-Fi Protected Access 3 (WPA3) standard introduced the
+Simultaneous Authentication of Equals (SAE) protocol, based on the
+Dragonfly handshake, to eliminate the offline dictionary attacks that
+plagued WPA2. Despite these theoretical cryptographic improvements,
+researchers identified critical weaknesses in early WPA3
+implementations—collectively known as the "Dragonblood" vulnerabilities.
+This article examines the mathematical and protocol-level downgrade
+mechanisms that allow adversaries to circumvent the Dragonfly
+handshake's protections, including elliptic curve manipulation,
+transition mode abuse, and side-channel timing attacks.</p>
+<h3 id="the-dragonfly-handshake-and-password-to-key-construction">The
+Dragonfly Handshake and Password-to-Key Construction</h3>
+<p>To understand downgrade attacks, one must first look at how Dragonfly
+authenticates peers. Dragonfly converts a shared password into an
+elliptic curve point or finite field element through a mapping algorithm
+known as "Password-to-Key" (PWE). In the original WPA3 specification,
+this was achieved via a "hunt-and-peck" method: the client iteratively
+hashes the password along with a counter until the output corresponds to
+a valid coordinate on the negotiated elliptic curve.</p>
+<p>Once the base point <span class="math inline">\(P\)</span> is
+established, both parties perform a zero-knowledge proof of password
+ownership using ephemeral Diffie-Hellman exchanges. Because the session
+keys are ephemeral, the handshake is designed to offer forward secrecy
+and prevent passive eavesdropping.</p>
+<h3 id="cryptographic-group-and-curve-downgrades">Cryptographic Group
+and Curve Downgrades</h3>
+<p>The Dragonfly handshake allows negotiating parties to select from
+several cryptographic groups (such as specific NIST curves or Brainpool
+curves). A key mathematical vulnerability lies in how different groups
+handle the hunt-and-peck algorithm and scalar multiplication.</p>
+<ol type="1">
+<li><strong>Weak Group Negotiation</strong>: If an access point (AP)
+supports multiple groups (e.g., both 256-bit and weaker or less
+optimized curves), an active attacker can forge or manipulate group
+negotiation frames to force the client into using a group with lower
+computational overhead or distinct implementation flaws.</li>
+<li><strong>Brainpool Curve Inefficiencies</strong>: When Brainpool
+curves were selected, the reference implementation of the hunt-and-peck
+algorithm required significantly more iterations to find a valid
+coordinate compared to standard NIST curves. This discrepancy
+drastically amplifies the timing differences between passwords, making
+side-channel analysis mathematically feasible with fewer observation
+frames.</li>
+</ol>
+<h3 id="side-channel-downgrades-hunt-and-peck-leaks">Side-Channel
+Downgrades: Hunt-and-Peck Leaks</h3>
+<p>Although not a protocol downgrade in the traditional negotiation
+sense, the hunt-and-peck mechanism introduces an information-leak
+downgrade that reduces the search space of the password.</p>
+<ul>
+<li><strong>Timing Side-Channels</strong>: In the hunt-and-peck loop,
+the number of iterations required to locate a quadratic residue on the
+curve depends directly on the combination of the password, the MAC
+addresses, and the counter. If the implementation does not run in
+strictly constant time, an attacker measuring the time taken to respond
+to an authentication request can deduce the exact iteration count.</li>
+<li><strong>Cache-Attack Downgrades</strong>: If the victim device uses
+non-constant-time memory lookups or branching during the quadratic
+residue checks, an unprivileged local application or co-located process
+can monitor CPU cache access (e.g., via Flush+Reload). This leaks
+whether an iteration succeeded or failed.</li>
+</ul>
+<p>Mathematically, recovering the iteration counter across multiple
+distinct handshakes (or over repeated connections using randomized MAC
+addresses) turns the secure Dragonfly handshake into a set of linear
+equations. This allows the attacker to execute an offline partitioned
+dictionary attack, effectively degrading WPA3 security back to the
+vulnerabilities of WPA2.</p>
+<h3 id="transition-mode-downgrades">Transition Mode Downgrades</h3>
+<p>To facilitate backward compatibility, the Wi-Fi Alliance defined a
+"WPA3-Transition Mode," allowing a single Access Point to accept both
+WPA2-Personal (Pre-Shared Key / 4-Way Handshake) and WPA3-Personal (SAE)
+connections under the same SSID.</p>
+<ul>
+<li><strong>Beacon and Probe Response Manipulation</strong>: In a
+standard transition network, the Access Point advertises support for
+both WPA2 and WPA3. An attacker can set up a rogue AP or inject forged
+beacon frames that strip the WPA3 SAE information elements, advertising
+only WPA2 support.</li>
+<li><strong>Client Fallback</strong>: If a client device is configured
+to prioritize network availability over strict protocol enforcement, it
+falls back to the legacy 4-way handshake. The attacker can then capture
+the standard WPA2 4-way handshake messages (EAPOL frames) and launch
+offline dictionary or brute-force attacks against the pre-shared
+key.</li>
+</ul>
+<h3 id="mitigations-and-the-transition-to-hash-to-curve-h2c">Mitigations
+and the Transition to Hash-to-Curve (H2C)</h3>
+<p>To counter mathematical downgrades and side-channel leakage, the
+Wi-Fi Alliance updated the WPA3 specifications:</p>
+<ul>
+<li><strong>Hash-to-Curve (H2C)</strong>: The hunt-and-peck method has
+been superseded by Hash-to-Curve algorithms (defined in RFC 9380). H2C
+deterministically maps arbitrary strings directly to elliptic curve
+points in constant time, entirely removing the iteration loop and its
+associated timing and cache side-channels.</li>
+<li><strong>Strict Transition Mode Validation</strong>: Modern operating
+systems and wireless supplicants now implement operating mode pinning,
+warning users or outright refusing to connect if a previously identified
+WPA3-capable network suddenly drops to WPA2.</li>
+<li><strong>Group Deprecation</strong>: Implementations are encouraged
+to restrict allowed SAE groups strictly to modern, constant-time curves
+(such as Curve25519/Ed25519 or properly hardened NIST P-256
+implementations) to prevent group-negotiation abuse.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Automation Runbook Privilege Escalation - hacking</title>
+    <meta name="description" content="Azure Automation Runbooks are widely used to automate operational and administrative tasks across cloud environments, but misconfigurations can transform them into high-impact privilege escalation vectors. This article examines how over-privileged identi">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/azure-automation-runbook-privilege-escalation">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Azure Automation Runbook Privilege Escalation - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/azure-automation-runbook-privilege-escalation" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Azure Automation Runbooks are widely used to automate operational and administrative tasks across cloud environments, but misconfigurations can transform them into high-impact privilege escalation vectors. This article examines how over-privileged identi" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="azure-automation-runbook-privilege-escalation">Azure Automation
+Runbook Privilege Escalation</h1>
+<p>Azure Automation Runbooks are widely used to automate operational and
+administrative tasks across cloud environments, but misconfigurations
+can transform them into high-impact privilege escalation vectors. This
+article examines how over-privileged identities, improper access
+controls, and unvalidated inputs allow adversaries to hijack runbooks,
+pivot through cloud tenants, and compromise critical infrastructure,
+along with strategies to mitigate these risks.</p>
+<h2 id="understanding-the-attack-surface">Understanding the Attack
+Surface</h2>
+<p>Azure Automation accounts utilize execution contexts known as
+Runbooks to execute PowerShell or Python scripts. To interact with cloud
+resources, these runbooks rely on service principals, traditionally the
+legacy Azure Run As Account, and more commonly, System-Assigned or
+User-Assigned Managed Identities.</p>
+<p>Privilege escalation occurs when an attacker obtains unauthorized
+control over the execution of a runbook that possesses higher privileges
+within the Azure resource hierarchy (such as Subscription Contributor,
+Owner, or Entra ID Application Administrator) than the attacker's
+current identity.</p>
+<h2 id="common-hijacking-vectors">Common Hijacking Vectors</h2>
+<h3 id="1-excessive-rbac-assignments-on-managed-identities">1. Excessive
+RBAC Assignments on Managed Identities</h3>
+<p>Automation accounts frequently require permissions to manage diverse
+resources, leading administrators to assign broad roles like
+<code>Contributor</code> at the Subscription or Management Group level.
+If a runbook executes under a Managed Identity with elevated
+permissions, any user who can modify that runbook effectively inherits
+those elevated permissions.</p>
+<h3 id="2-overly-permissive-automation-account-rbac">2. Overly
+Permissive Automation Account RBAC</h3>
+<p>Access control to the Automation Account itself is a critical
+boundary:</p>
+<ul>
+<li><strong>Automation Contributor</strong>: Users assigned this role
+can create, edit, publish, and trigger runbooks. If low-privilege users
+or third-party service principals are granted the
+<code>Automation Contributor</code> role on an Automation Account
+containing high-privilege identities, they can inject arbitrary code to
+run under the high-privilege identity.</li>
+<li><strong>Custom Roles without Scoped Runbook Permissions</strong>:
+Inadequate separation between who can author scripts and who can publish
+them allows arbitrary execution.</li>
+</ul>
+<h3 id="3-exposed-or-unsecured-webhooks">3. Exposed or Unsecured
+Webhooks</h3>
+<p>Runbooks can be triggered via HTTP POST requests through Webhooks. A
+Webhook URL contains a security token in the request URI. If these URLs
+are logged in plain text, stored in unencrypted repositories, or shared
+across non-secure channels, an attacker can trigger execution without
+authentication. If the runbook accepts parameters via the request body
+without strict validation, it may lead to command injection or
+unauthorized execution flows.</p>
+<h3 id="4-code-and-parameter-tampering">4. Code and Parameter
+Tampering</h3>
+<p>When runbooks accept user-defined parameters to construct system
+commands, SQL queries, or Azure Resource Manager calls, inadequate input
+validation introduces injection vulnerabilities. Furthermore, if
+runbooks load external modules, scripts, or credentials from unverified
+storage accounts, attackers with write access to those storage locations
+can swap legitimate components with malicious ones.</p>
+<h2 id="the-escalation-path">The Escalation Path</h2>
+<p>The conceptual path from low-privilege access to subscription
+compromise generally follows these phases:</p>
+<ol type="1">
+<li><strong>Reconnaissance</strong>: The attacker enumerates available
+Automation Accounts and inspects their associated Managed Identities,
+searching for broad role assignments (<code>Owner</code>,
+<code>User Access Administrator</code>, <code>Contributor</code>) at the
+subscription or management group scope.</li>
+<li><strong>Access Evaluation</strong>: The attacker identifies
+Automation Accounts where their current credentials grant edit
+permissions (such as
+<code>Microsoft.Automation/automationAccounts/runbooks/write</code> or
+<code>publish/action</code>).</li>
+<li><strong>Payload Insertion</strong>: The attacker edits an existing
+runbook or creates a new one, inserting logic to grant their own
+identity administrative access, export sensitive credentials, or create
+backdoors.</li>
+<li><strong>Execution</strong>: The attacker triggers or publishes the
+runbook. The script runs within the context of the elevated Managed
+Identity, successfully executing the administrative commands.</li>
+</ol>
+<h2 id="detection-and-remediation-strategies">Detection and Remediation
+Strategies</h2>
+<p>Securing Azure Automation environments requires hardening identity
+boundaries, enforcing least privilege, and implementing robust
+monitoring:</p>
+<ul>
+<li><strong>Enforce Least Privilege for Managed Identities</strong>:
+Avoid assigning <code>Contributor</code> or <code>Owner</code> at broad
+scopes. Use custom RBAC roles with minimal necessary permissions
+restricted to specific resource groups.</li>
+<li><strong>Restrict Access to Automation Accounts</strong>: Treat the
+<code>Automation Contributor</code> role as a high-tier administrative
+entitlement. Limit runbook creation and modification rights using
+privileged access management (PIM).</li>
+<li><strong>Migrate from Run As Accounts</strong>: Transition to Managed
+Identities, which eliminate stored service principal secrets and
+certificates, reducing credential extraction risks.</li>
+<li><strong>Secure Webhooks</strong>: Avoid passing sensitive parameters
+directly into webhooks. Use Azure Event Grid or API Management to
+authenticate and validate callers before triggering automation.</li>
+<li><strong>Source Control Integration</strong>: Enable source control
+integration (e.g., Azure DevOps or GitHub) to ensure all runbook code
+undergoes peer review and approval before deployment to production.
+Disallow direct in-portal editing.</li>
+<li><strong>Audit and Logging</strong>: Forward Azure Activity Logs and
+Automation job diagnostic logs to a central SIEM. Monitor specifically
+for
+<code>Microsoft.Automation/automationAccounts/runbooks/publish/action</code>
+events initiated by non-administrative entities.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

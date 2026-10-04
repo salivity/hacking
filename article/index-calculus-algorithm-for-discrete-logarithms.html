@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index Calculus Algorithm for Discrete Logarithms - hacking</title>
+    <meta name="description" content="The discrete logarithm problem serves as the mathematical foundation for several public-key cryptosystems, including Diffie-Hellman key exchange and the Digital Signature Algorithm. While traditional generic algorithms require exponential time relative t">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/index-calculus-algorithm-for-discrete-logarithms">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Index Calculus Algorithm for Discrete Logarithms - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/index-calculus-algorithm-for-discrete-logarithms" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The discrete logarithm problem serves as the mathematical foundation for several public-key cryptosystems, including Diffie-Hellman key exchange and the Digital Signature Algorithm. While traditional generic algorithms require exponential time relative t" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="index-calculus-algorithm-for-discrete-logarithms">Index Calculus
+Algorithm for Discrete Logarithms</h1>
+<p>The discrete logarithm problem serves as the mathematical foundation
+for several public-key cryptosystems, including Diffie-Hellman key
+exchange and the Digital Signature Algorithm. While traditional generic
+algorithms require exponential time relative to key size to compute
+these logarithms, the index calculus algorithm fundamentally alters this
+landscape by achieving sub-exponential time complexity in certain
+algebraic structures. This article examines how the index calculus
+algorithm operates, the structural properties it exploits in finite
+fields, and the mathematical mechanisms that allow it to drastically
+accelerate discrete logarithm computation in cryptographic attacks.</p>
+<h3 id="the-limitation-of-generic-attacks">The Limitation of Generic
+Attacks</h3>
+<p>In a finite cyclic group such as the multiplicative group of a prime
+field <span class="math inline">\(\mathbb{F}_p^*\)</span>, the discrete
+logarithm problem requires finding an integer <span
+class="math inline">\(x\)</span> such that <span
+class="math inline">\(g^x \equiv h \pmod p\)</span>, given a generator
+<span class="math inline">\(g\)</span> and a target value <span
+class="math inline">\(h\)</span>.</p>
+<p>Generic algorithms—such as the Baby-Step Giant-Step method or
+Pollard’s rho algorithm—treat the underlying group as a "black box."
+They only perform group multiplications and equality checks without
+utilizing any arithmetic properties of the integers representing the
+group elements. Because of this limitation, generic algorithms are
+bounded by Shoup's lower bound of <span
+class="math inline">\(\Omega(\sqrt{p})\)</span> operations. In terms of
+the input size <span class="math inline">\(n \approx \log_2 p\)</span>,
+this complexity is <span class="math inline">\(O(2^{n/2})\)</span>,
+which is fully exponential and renders attacks against sufficiently
+large keys computationally infeasible.</p>
+<h3 id="exploiting-ring-structure-via-index-calculus">Exploiting Ring
+Structure via Index Calculus</h3>
+<p>Index calculus breaks the generic complexity barrier because it does
+not treat the group as a black box. Instead, it exploits the natural
+embedding of the finite field <span
+class="math inline">\(\mathbb{F}_p\)</span> within the ring of integers
+<span class="math inline">\(\mathbb{Z}\)</span>, allowing the use of
+integer factorization and prime numbers.</p>
+<p>The algorithm executes across four distinct phases:</p>
+<ol type="1">
+<li><strong>Choosing a Factor Base:</strong> The attacker defines a
+smoothness bound <span class="math inline">\(B\)</span> and collects all
+prime numbers up to <span class="math inline">\(B\)</span>. This set of
+small primes, along with <span class="math inline">\(-1\)</span>, is
+called the factor base: <span class="math inline">\(\mathcal{F} = \{p_1,
+p_2, \dots, p_m\}\)</span>.</li>
+<li><strong>Relation Collection:</strong> The attacker selects random
+exponents <span class="math inline">\(k\)</span> and computes <span
+class="math inline">\(r \equiv g^k \pmod p\)</span>, representing the
+result as an integer in the interval <span class="math inline">\([1,
+p-1]\)</span>. The attacker then tests whether <span
+class="math inline">\(r\)</span> factors completely over the factor base
+<span class="math inline">\(\mathcal{F}\)</span> (i.e., whether <span
+class="math inline">\(r\)</span> is <span
+class="math inline">\(B\)</span>-smooth): <span
+class="math display">\[g^k \equiv \prod_{i=1}^{m} p_i^{e_i} \pmod
+p\]</span> Taking the discrete logarithm with base <span
+class="math inline">\(g\)</span> of both sides converts this
+multiplicative identity into a linear equation: <span
+class="math display">\[k \equiv \sum_{i=1}^{m} e_i \log_g(p_i)
+\pmod{p-1}\]</span></li>
+<li><strong>Linear Algebra:</strong> Once slightly more than <span
+class="math inline">\(m\)</span> linearly independent relations are
+collected, the attacker constructs a system of linear equations modulo
+<span class="math inline">\(p-1\)</span>. Using sparse linear algebra
+solvers (such as the Wiedemann or Lanczos algorithms), the attacker
+solves for the discrete logarithms of all primes in the factor base:
+<span class="math inline">\(\log_g(p_1), \log_g(p_2), \dots,
+\log_g(p_m)\)</span>.</li>
+<li><strong>Individual Logarithm Computation:</strong> To find the
+discrete logarithm of the specific target <span
+class="math inline">\(h\)</span>, the attacker selects random integers
+<span class="math inline">\(s\)</span> until <span
+class="math inline">\(h \cdot g^s \pmod p\)</span> is <span
+class="math inline">\(B\)</span>-smooth. When factored, it yields: <span
+class="math display">\[h \cdot g^s \equiv \prod_{i=1}^{m} p_i^{v_i}
+\pmod p\]</span> Substituting the known logarithms of <span
+class="math inline">\(p_i\)</span> enables direct calculation of <span
+class="math inline">\(\log_g(h)\)</span>: <span
+class="math display">\[\log_g(h) \equiv \left(\sum_{i=1}^{m} v_i
+\log_g(p_i)\right) - s \pmod{p-1}\]</span></li>
+</ol>
+<h3 id="transition-to-sub-exponential-complexity">Transition to
+Sub-Exponential Complexity</h3>
+<p>The dramatic speedup delivered by index calculus arises from
+balancing relation collection against linear algebra.</p>
+<p>If the smoothness bound <span class="math inline">\(B\)</span> is set
+high, numbers factor easily over the factor base, speeding up relation
+collection; however, the factor base grows larger, increasing the cost
+of the linear algebra phase. Conversely, a small <span
+class="math inline">\(B\)</span> minimizes the matrix dimensions but
+makes finding smooth numbers exponentially rare.</p>
+<p>By optimizing the choice of <span class="math inline">\(B\)</span>
+relative to <span class="math inline">\(p\)</span> using the Dickman
+function—which models the probability of an integer being smooth—the
+combined complexity of index calculus achieves sub-exponential scaling.
+In the standard <span class="math inline">\(L\)</span>-notation:</p>
+<p><span class="math display">\[L_p[\alpha, c] = \exp\left((c + o(1))
+(\ln p)^\alpha (\ln \ln p)^{1-\alpha}\right)\]</span></p>
+<p>While generic attacks scale at <span class="math inline">\(L_p[1,
+1/2]\)</span> (pure exponential growth), basic index calculus achieves
+<span class="math inline">\(L_p[1/2, c]\)</span>. Advanced variants that
+adapt the Number Field Sieve (NFS) to discrete logarithms further
+optimize this to:</p>
+<p><span class="math display">\[L_p[1/3, c] \quad \text{where } c
+\approx 1.923\]</span></p>
+<h3 id="cryptographic-implications">Cryptographic Implications</h3>
+<p>The reduction from exponential to sub-exponential complexity
+significantly weakens the security per bit of finite-field cryptography.
+An attacker targeting a 2048-bit prime field does not face a <span
+class="math inline">\(2^{1024}\)</span> workload (as implied by
+square-root generic bounds), but rather a workload within range of
+modern distributed computing clusters.</p>
+<p>Consequently, maintaining security in systems based on finite-field
+discrete logarithms requires massive key sizes (such as 2048 or 3072
+bits) to offset the efficiency of index calculus. This mathematical
+vulnerability is also the primary reason modern public-key cryptography
+has transitioned toward Elliptic Curve Cryptography (ECC); standard
+elliptic curves lack a comparable notion of integer smoothness,
+preventing index calculus from functioning and forcing attackers back
+into fully exponential generic attacks.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

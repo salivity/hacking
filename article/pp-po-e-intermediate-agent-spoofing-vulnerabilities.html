@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPPoE Intermediate Agent Spoofing Vulnerabilities - hacking</title>
+    <meta name="description" content="Point-to-Point Protocol over Ethernet (PPPoE) is widely deployed by broadband Internet Service Providers (ISPs) to manage subscriber authentication, session establishment, and billing across access networks. However, architectural reliance on unauthentic">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/pp-po-e-intermediate-agent-spoofing-vulnerabilities">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PPPoE Intermediate Agent Spoofing Vulnerabilities - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/pp-po-e-intermediate-agent-spoofing-vulnerabilities" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Point-to-Point Protocol over Ethernet (PPPoE) is widely deployed by broadband Internet Service Providers (ISPs) to manage subscriber authentication, session establishment, and billing across access networks. However, architectural reliance on unauthentic" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="pppoe-intermediate-agent-spoofing-vulnerabilities">PPPoE
+Intermediate Agent Spoofing Vulnerabilities</h1>
+<p>Point-to-Point Protocol over Ethernet (PPPoE) is widely deployed by
+broadband Internet Service Providers (ISPs) to manage subscriber
+authentication, session establishment, and billing across access
+networks. However, architectural reliance on unauthenticated Layer 2
+metadata allows adversaries to exploit the PPPoE Intermediate Agent
+(PPPoE IA) mechanism. This article outlines how the PPPoE Discovery
+phase operates, the specific protocol and configuration vulnerabilities
+that permit Intermediate Agent spoofing, the attack vectors used against
+broadband providers, and the engineering controls required to mitigate
+the risk.</p>
+<h3 id="the-role-of-the-pppoe-intermediate-agent">The Role of the PPPoE
+Intermediate Agent</h3>
+<p>In standard broadband architectures, such as those defined by
+Broadband Forum TR-101, an access node—such as an Optical Line Terminal
+(OLT), DSLAM, or aggregation switch—sits between the customer premises
+equipment (CPE) and the Broadband Network Gateway (BNG) or Broadband
+Remote Access Server (BRAS).</p>
+<p>Because the BNG needs to identify the physical subscriber line for
+authentication, service-tier allocation, and regulatory compliance
+(lawful intercept), the access node acts as a PPPoE Intermediate Agent.
+During the PPPoE Active Discovery (PPPoE-AD) phase, the Intermediate
+Agent intercepts subscriber broadcast frames (<code>PADI</code> - Active
+Discovery Initiation and <code>PADR</code> - Active Discovery Request)
+and appends a Vendor-Specific Tag (Tag type <code>0x0105</code>). This
+tag encapsulates crucial metadata, primarily:</p>
+<ul>
+<li><strong>Circuit-ID:</strong> Identifies the physical rack, frame,
+slot, and port of the access node.</li>
+<li><strong>Remote-ID:</strong> Often maps to a customer account number,
+subscriber ID, or unique modem identifier.</li>
+</ul>
+<p>The BNG parses these tags and forwards them via RADIUS/Diameter
+attributes (such as <code>Vendor-Specific Attributes</code> /
+<code>NAS-Port-Id</code>) to the Authentication, Authorization, and
+Accounting (AAA) server.</p>
+<h3
+id="core-vulnerabilities-permitting-intermediate-agent-spoofing">Core
+Vulnerabilities Permitting Intermediate Agent Spoofing</h3>
+<p>Intermediate Agent spoofing occurs when an attacker injects or alters
+these Vendor-Specific Tags to bypass access controls, hijack accounts,
+or manipulate traffic routing. Several protocol-level and implementation
+flaws make this possible.</p>
+<h4 id="1-absence-of-cryptographic-integrity-in-pppoe-discovery">1.
+Absence of Cryptographic Integrity in PPPoE Discovery</h4>
+<p>The PPPoE standard (RFC 2516) and TR-101 specifications contain no
+native cryptographic authentication or message integrity checks for
+discovery frames. PPPoE Active Discovery packets traverse the network as
+cleartext Layer 2 Ethernet payloads (EtherType <code>0x8863</code>).
+Because tags are not digitally signed, a BNG has no inherent
+cryptographic mechanism to verify whether a
+<code>Vendor-Specific Tag</code> originated from a legitimate
+intermediate switch or directly from an end-user device.</p>
+<h4
+id="2-implicit-trust-and-inadequate-tag-stripping-on-customer-ports">2.
+Implicit Trust and Inadequate Tag Stripping on Customer Ports</h4>
+<p>The most common implementation flaw is the failure of access nodes to
+enforce strict trust boundaries. By default, a secure Intermediate Agent
+must inspect incoming frames on untrusted (customer-facing)
+interfaces:</p>
+<ul>
+<li>If an incoming <code>PADI</code> or <code>PADR</code> packet already
+contains a Vendor-Specific Tag (<code>0x0105</code>), the switch must
+drop the packet or strip the pre-existing tag before appending its
+own.</li>
+<li>When access switches fail to strip these tags, they pass the
+user-crafted tag directly to the BNG, or they append an additional tag,
+leading to parsing ambiguities on the BNG where the first (spoofed) tag
+takes precedence.</li>
+</ul>
+<h4 id="3-permissive-layer-2-environments-and-lack-of-port-isolation">3.
+Permissive Layer 2 Environments and Lack of Port Isolation</h4>
+<p>In broadband networks with flat Layer 2 aggregation networks or
+misconfigured VLAN architectures, customer ports are not always isolated
+from one another. Without Private VLANs (PVLANs) or Split-Horizon
+forwarding, a compromised subscriber can see or inject Layer 2 frames
+into the shared broadcast domain. This allows the injection of crafted
+<code>PADO</code> (Active Discovery Offer) or <code>PADS</code> (Active
+Discovery Session-confirmation) packets directly into other subscribers'
+sessions.</p>
+<h4 id="4-bng-credential-decoupling">4. BNG Credential Decoupling</h4>
+<p>Many broadband architectures rely heavily on "Option 82-style"
+circuit authorization, where authentication is tied primarily to the
+Circuit-ID/Remote-ID rather than strong, per-subscriber PPPoE
+credentials (often using blank or static PAP/CHAP passwords). When the
+BNG relies exclusively on the physical identifiers supplied in the
+intermediate tag, spoofing that tag guarantees immediate identity
+impersonation.</p>
+<h3 id="exploitation-scenarios-in-provider-networks">Exploitation
+Scenarios in Provider Networks</h3>
+<p>When attackers successfully manipulate PPPoE IA tags, several
+high-impact attack vectors emerge:</p>
+<ul>
+<li><strong>Subscription Theft and Tier Bypassing:</strong> An attacker
+on a lower-tier plan crafts a <code>PADI</code> frame containing the
+Circuit-ID of an enterprise-tier subscriber on the same aggregation
+loop. If the access switch does not drop incoming client tags, the BNG
+allocates higher bandwidth, static public IP blocks, or unmetered
+transit to the attacker.</li>
+<li><strong>Session Hijacking and Redirection:</strong> By injecting
+spoofed PPPoE discovery responses or forcing renegotiations, an attacker
+can manipulate MAC-to-circuit bindings on the BNG, redirecting inbound
+traffic meant for legitimate subscribers through an attacker-controlled
+endpoint.</li>
+<li><strong>Bypassing Lawful Interception and Logging:</strong> By
+masquerading as another line identifier, an attacker ensures that any
+malicious traffic logged at the ISP's core networks points directly to
+an innocent subscriber's physical port.</li>
+<li><strong>Denial of Service (DoS):</strong> Injecting malformed tags
+or flooding the BNG with conflicting Circuit-IDs can exhaust the state
+machine of the Intermediate Agent or trigger session disconnects for
+legitimate users due to duplicate circuit bindings.</li>
+</ul>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Securing the PPPoE access architecture requires defense-in-depth
+across the access nodes, aggregation layers, and BNGs:</p>
+<ol type="1">
+<li><strong>Enforce Interface Trust States:</strong> Configure access
+switches and DSLAMs/OLTs with explicit port trust models.
+Customer-facing user-to-network interfaces (UNIs) must be marked as
+untrusted, and any incoming frame bearing a pre-existing PPPoE
+Intermediate Agent tag (<code>0x0105</code>) must be dropped
+immediately.</li>
+<li><strong>Strict Layer 2 Isolation:</strong> Deploy Private VLANs
+(PVLANs) or Port Isolation on all access equipment to ensure customer
+endpoints can communicate strictly with the upstream gateway and never
+with peer subscribers.</li>
+<li><strong>Strong Credential Binding:</strong> Avoid zero-touch or
+line-only authentication. The AAA infrastructure should cross-validate
+PPPoE PAP/CHAP credentials against the incoming Circuit-ID and the
+originating MAC address, rejecting sessions where credentials do not
+match the expected physical circuit profile.</li>
+<li><strong>Tag Overwrite Policies:</strong> Configure intermediate
+agents to enforce an "overwrite" or "strip" policy rather than an
+"append" policy for incoming tags, ensuring that the switch's locally
+generated hardware parameters replace any payload injected by the
+client.</li>
+</ol></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

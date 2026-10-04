@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Stuxnet Sabotaged Uranium Centrifuges - hacking</title>
+    <meta name="description" content="The Stuxnet worm represents the first known cyber weapon explicitly engineered to cause physical destruction to industrial infrastructure. Discovered in 2010, the malware targeted Iran's Natanz uranium enrichment facility by infiltrating the supervisory">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-stuxnet-sabotaged-uranium-centrifuges">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Stuxnet Sabotaged Uranium Centrifuges - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-stuxnet-sabotaged-uranium-centrifuges" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Stuxnet worm represents the first known cyber weapon explicitly engineered to cause physical destruction to industrial infrastructure. Discovered in 2010, the malware targeted Iran's Natanz uranium enrichment facility by infiltrating the supervisory" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-stuxnet-sabotaged-uranium-centrifuges">How Stuxnet Sabotaged
+Uranium Centrifuges</h1>
+<p>The Stuxnet worm represents the first known cyber weapon explicitly
+engineered to cause physical destruction to industrial infrastructure.
+Discovered in 2010, the malware targeted Iran's Natanz uranium
+enrichment facility by infiltrating the supervisory control and data
+acquisition (SCADA) systems controlling gas centrifuges. Rather than
+simply shutting the facility down, Stuxnet executed a sequence of
+targeted hardware manipulations—altering centrifuge rotation speeds,
+manipulating valve pressures, and spoofing operational
+telemetry—designed to destroy the sensitive machinery while deceiving
+plant operators into believing the failures were ordinary mechanical
+defects.</p>
+<h3 id="precise-target-identification-and-fingerprinting">Precise Target
+Identification and Fingerprinting</h3>
+<p>Before executing any destructive payload, Stuxnet performed rigorous
+fingerprinting to confirm it had infected the intended industrial
+environment. The malware monitored Siemens Step7 software and interfaced
+directly with programmable logic controllers (PLCs), specifically
+targeting Siemens S7-315 and S7-417 models.</p>
+<p>Stuxnet analyzed the industrial network topology over the Profibus
+communications architecture. It verified the exact configuration of
+frequency converter drives (variable frequency drives, or VFDs) that
+regulated the electric motors spinning the IR-1 centrifuges.
+Specifically, it checked for drives manufactured by Fararo Paya in Iran
+and Vacon in Finland. If the exact combination of hardware, network
+layout, and operational parameters was not present, Stuxnet remained
+dormant, preventing unintended damage to non-targeted industrial
+sites.</p>
+<h3 id="rotational-frequency-and-harmonic-manipulation">Rotational
+Frequency and Harmonic Manipulation</h3>
+<p>The primary physical attack against the centrifuges involved
+manipulating the frequency sent from the PLCs to the converter drives,
+which dictated the rotational speed of the centrifuge rotors. Iran's
+IR-1 centrifuges operated with delicate aluminum rotors designed to spin
+at a nominal speed of 1,064 Hz (63,840 RPM) inside a vacuum casing.</p>
+<p>Stuxnet disrupted this balance using two distinct operational
+phases:</p>
+<ul>
+<li><strong>Overspeed Phase:</strong> The malware covertly increased the
+output frequency to 1,410 Hz (84,600 RPM) for 15 minutes. This subjected
+the aluminum rotor cylinders to extreme centrifugal forces far beyond
+their tensile strength limits, causing the metal to deform and
+wobble.</li>
+<li><strong>Deceleration Phase:</strong> After returning to nominal
+speeds for nearly a month, Stuxnet dropped the frequency sharply to 2 Hz
+(120 RPM) for approximately 50 minutes. Rapidly decelerating the
+centrifuges forced the rotors to pass through their critical resonance
+frequencies. At these specific harmonic thresholds, uncontrolled
+vibrations caused the rotors to tilt, contact the outer casing, and
+disintegrate violently.</li>
+</ul>
+<h3 id="overpressurization-and-valve-control">Overpressurization and
+Valve Control</h3>
+<p>A secondary, earlier payload within Stuxnet targeted the S7-417 PLCs
+responsible for managing the gas feed and exhaust systems of centrifuge
+cascades. Centrifuges rely on a carefully regulated flow of uranium
+hexafluoride (<span class="math inline">\(UF_6\)</span>) gas under deep
+vacuum conditions.</p>
+<p>This routine manipulated the valves controlling the exhaust of <span
+class="math inline">\(UF_6\)</span> gas, effectively closing the outlets
+while the cascade continued to receive input gas. The resulting pressure
+spikes placed heavy aerodynamic drag on the spinning rotors, increased
+motor temperatures, and caused the corrosive gas to condense into solid
+or liquid forms inside the centrifuge chambers. This mechanical
+imbalance caused immediate catastrophic structural failure across entire
+centrifuge cascades.</p>
+<h3 id="plc-rootkit-and-telemetry-spoofing">PLC Rootkit and Telemetry
+Spoofing</h3>
+<p>To prevent plant operators or automated safety systems from
+identifying the attack, Stuxnet deployed a programmable logic controller
+rootkit using a "man-in-the-middle" technique. Stuxnet intercepted the
+PLC's read and write routines to replace the actual physical inputs with
+fabricated data.</p>
+<p>Prior to triggering a destructive speed or pressure shift, the
+malware recorded 21 seconds of normal operational sensor readings. When
+the attack initiated, Stuxnet played this recorded baseline data on a
+continuous loop back to the human-machine interface (Siemens WinCC SCADA
+software). Control room operators saw normal operational values on their
+monitors while centrifuges were physically breaking apart. Additionally,
+the malware disabled automatic safety triggers, preventing emergency
+valves or braking mechanisms from halting the cascade before structural
+destruction occurred.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

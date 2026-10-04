@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Service ImagePath Persistence Explained - hacking</title>
+    <meta name="description" content="Windows services provide a critical background execution mechanism, running tasks autonomously often under high-privilege accounts such as NT AUTHORITY\SYSTEM. By altering the binary path—stored in the registry as the ImagePath value—an entity with s">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/windows-service-image-path-persistence-explained">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Windows Service ImagePath Persistence Explained - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/windows-service-image-path-persistence-explained" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Windows services provide a critical background execution mechanism, running tasks autonomously often under high-privilege accounts such as NT AUTHORITY\SYSTEM. By altering the binary path—stored in the registry as the ImagePath value—an entity with s" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="windows-service-imagepath-persistence-explained">Windows Service
+ImagePath Persistence Explained</h1>
+<p>Windows services provide a critical background execution mechanism,
+running tasks autonomously often under high-privilege accounts such as
+<code>NT AUTHORITY\SYSTEM</code>. By altering the binary path—stored in
+the registry as the <code>ImagePath</code> value—an entity with
+sufficient access can redirect the service to execute arbitrary code
+instead of the legitimate binary. This technique allows an attacker to
+achieve long-term persistence, execute payloads with elevated privileges
+whenever the service starts, and blend into standard operational noise
+unless monitored by robust configuration auditing.</p>
+<h3 id="mechanics-of-the-service-imagepath">Mechanics of the Service
+ImagePath</h3>
+<p>In Windows operating systems, installed services are defined under
+the registry hive:</p>
+<p><code>HKLM\SYSTEM\CurrentControlSet\Services\&lt;ServiceName&gt;</code></p>
+<p>Within each service's key, the <code>ImagePath</code> entry specifies
+the exact path to the executable that the Service Control Manager (SCM)
+invokes when starting the service.</p>
+<p>Under normal circumstances, services execute with the privileges
+assigned during configuration, which frequently default to
+<code>LocalSystem</code>, <code>LocalService</code>, or
+<code>NetworkService</code>. If an administrator or a compromised
+account with sufficient privileges (such as
+<code>SeSecurityPrivilege</code> or local administrator rights) modifies
+this entry, the SCM does not inherently validate whether the target
+binary matches the original vendor specification. Upon the next system
+boot or service restart, the SCM simply executes whatever path is
+specified in <code>ImagePath</code>, running the new binary within the
+service's designated security context.</p>
+<h3 id="privileged-persistence-mechanisms">Privileged Persistence
+Mechanisms</h3>
+<p>Modifying service image paths is effective for persistence for
+several reasons:</p>
+<ol type="1">
+<li><strong>Privilege Retention</strong>: Services configured to run as
+<code>LocalSystem</code> possess near-unrestricted access to the local
+machine. Hijacking such a service ensures that any spawned payload runs
+with equivalent administrative and operating-system-level rights without
+requiring repeated privilege escalation.</li>
+<li><strong>Survival Across Reboots</strong>: Services configured with a
+startup type of <code>Automatic</code> start during the boot sequence,
+ensuring execution resumes even after reboots, security updates, or
+session logouts.</li>
+<li><strong>Living off the Land</strong>: Instead of creating entirely
+new, potentially conspicuous services (which trigger specific
+installation event logs like Event ID 7045), modifying an existing,
+seldom-inspected legitimate service can evade basic configuration audits
+that only monitor for <em>new</em> service creation rather than
+alterations to existing ones.</li>
+</ol>
+<h3 id="common-vectors-for-modification">Common Vectors for
+Modification</h3>
+<p>Altering an <code>ImagePath</code> typically requires administrative
+access or misconfigured access controls:</p>
+<ul>
+<li><strong>Registry Direct Modification</strong>: Using administrative
+tools or scripts to edit the <code>ImagePath</code> value directly
+within <code>HKLM\SYSTEM\CurrentControlSet\Services\</code>.</li>
+<li><strong>Service Control Command (<code>sc.exe</code>)</strong>:
+Utilizing the built-in utility via
+<code>sc config [ServiceName] binPath= ...</code> to update the
+executable path through the SCM API.</li>
+<li><strong>Weak Service Permissions</strong>: If an existing service
+key or service object has insecure Access Control Lists (ACLs), such as
+granting <code>Modify</code> or <code>Full Control</code> to
+non-administrative groups (e.g., <code>Authenticated Users</code>),
+unprivileged users can alter the <code>binPath</code> directly to
+escalate their privileges to SYSTEM.</li>
+</ul>
+<h3 id="detection-and-defensive-countermeasures">Detection and Defensive
+Countermeasures</h3>
+<p>Because this technique leverages legitimate system administration
+pathways, defense relies on configuration auditing and behavioral
+monitoring:</p>
+<ul>
+<li><strong>Registry Auditing</strong>: Monitor changes to
+<code>HKLM\SYSTEM\CurrentControlSet\Services\*\ImagePath</code>. Tools
+like Sysmon (Event ID 12 and 13 for registry modifications) or the
+native Windows Security Log (Event ID 4657) can capture unauthorized
+adjustments to service definitions.</li>
+<li><strong>Service Configuration Logs</strong>: Track Event ID 7040
+(service start type changed) and Event ID 7036 (service state changes)
+in the System event log, as well as command-line logging (Event ID 4688)
+for invocations of <code>sc.exe config</code>.</li>
+<li><strong>Access Control Hardening</strong>: Regularly audit service
+permissions using tools like PowerShell (<code>Get-Acl</code>) or
+AccessChk to ensure low-privileged users cannot modify service
+configurations or registry keys.</li>
+<li><strong>Application Control</strong>: Implement Windows Defender
+Application Control (WDAC) or AppLocker to enforce executable
+whitelisting, preventing the SCM from running unsigned or unauthorized
+binaries regardless of what is entered into the
+<code>ImagePath</code>.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

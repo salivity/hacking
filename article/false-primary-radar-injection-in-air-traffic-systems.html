@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>False Primary Radar Injection in Air Traffic Systems - hacking</title>
+    <meta name="description" content="Injecting false primary radar returns into civilian air traffic management (ATM) systems involves manipulating the raw echo detection chain or tampering with downstream digital processing networks. Unlike Secondary Surveillance Radar (SSR) or Automatic D">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/false-primary-radar-injection-in-air-traffic-systems">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="False Primary Radar Injection in Air Traffic Systems - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/false-primary-radar-injection-in-air-traffic-systems" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Injecting false primary radar returns into civilian air traffic management (ATM) systems involves manipulating the raw echo detection chain or tampering with downstream digital processing networks. Unlike Secondary Surveillance Radar (SSR) or Automatic D" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="false-primary-radar-injection-in-air-traffic-systems">False
+Primary Radar Injection in Air Traffic Systems</h1>
+<p>Injecting false primary radar returns into civilian air traffic
+management (ATM) systems involves manipulating the raw echo detection
+chain or tampering with downstream digital processing networks. Unlike
+Secondary Surveillance Radar (SSR) or Automatic Dependent
+Surveillance-Broadcast (ADS-B), which rely on transponder-based digital
+messages, Primary Surveillance Radar (PSR) measures passive radio
+frequency (RF) reflections bouncing off an aircraft's physical hull. To
+successfully insert phantom targets—often called "ghost
+aircraft"—adversaries exploit vulnerabilities across two distinct
+domains: the physical electromagnetic spectrum via specialized RF
+transmission, and the terrestrial digital networks that transport radar
+data to Air Traffic Control (ATC) displays.</p>
+<h3 id="physical-layer-radio-frequency-manipulation">Physical Layer:
+Radio Frequency Manipulation</h3>
+<p>To create synthetic primary returns directly at the radar receiver,
+an adversary must generate RF signals that convincingly mimic passive
+reflections of the radar's own transmitted pulses.</p>
+<ul>
+<li><strong>Digital Radio Frequency Memory (DRFM) Repeaters:</strong>
+DRFM devices intercept an incoming pulse from a civilian PSR, digitize
+it, modify its parameters (such as phase, frequency, and time delay),
+and re-transmit it back to the radar antenna. Because the re-transmitted
+signal matches the radar's original pulse shape and frequency
+modulation, the radar’s matched-filter receiver accepts it as a genuine
+echo. Modulating the return delay simulates range, while adjusting the
+Doppler frequency shift simulates velocity.</li>
+<li><strong>Synchronized Pulse Injection:</strong> If an attacker knows
+the pulse repetition frequency (PRF), scan rate, and operating band of a
+non-cooperative or simpler civilian radar, they can transmit synthetic
+pulses timed precisely to coincide with the radar antenna beam passing
+their location. This forces the receiver to register non-existent
+targets along that specific azimuth.</li>
+<li><strong>False Target Deception Jamming:</strong> By generating a
+cluster of delayed pulse replicas, an adversary can create multiple
+false tracks simultaneously. When designed correctly, these pulses
+overwhelm the radar’s Constant False Alarm Rate (CFAR) algorithms,
+forcing the processing pipeline to instantiate multiple valid "plots"
+where no physical object exists.</li>
+</ul>
+<h3 id="processing-layer-radar-plot-extractor-exploitation">Processing
+Layer: Radar Plot Extractor Exploitation</h3>
+<p>At the physical radar installation, raw analog signals are converted
+into discrete target detections by a Radar Plot Extractor (RPE) or Radar
+Signal Processor (RSP).</p>
+<ul>
+<li><strong>Firmware and Calibration Tampering:</strong> If physical
+access or remote maintenance access to the radar head is compromised, an
+attacker can modify the calibration tables or digital signal processing
+(DSP) parameters. Modifying the CFAR threshold or injecting
+pre-programmed synthetic target vectors directly into the DSP firmware
+generates false target coordinates before any external verification
+occurs.</li>
+<li><strong>Sensor Interface Poisoning:</strong> Intercepting the analog
+or digitizer buses (such as intermediate frequency inputs to
+analog-to-digital converters) via rogue hardware implants allows
+attackers to inject false voltage spikes corresponding to target
+reflections, bypassing all RF transmission hurdles entirely.</li>
+</ul>
+<h3 id="network-layer-surveillance-data-link-interception">Network
+Layer: Surveillance Data Link Interception</h3>
+<p>Modern civilian air traffic management architectures rarely transmit
+raw analog radar signals over long distances. Instead, the radar
+digitizer translates detected returns into standardized digital data
+packets—most commonly the Eurocontrol Standard Format for Radar Data
+Exchange (ASTERIX), specifically categories such as CAT 001 or CAT 048
+for monoradar target reports.</p>
+<ul>
+<li><strong>Man-in-the-Middle (MitM) Attacks on Telemetry
+Backhaul:</strong> Radar stations in remote locations often send digital
+plot data to Air Route Traffic Control Centers (ARTCC) via legacy serial
+lines, point-to-point microwave links, or commercial telecommunications
+networks. In many legacy deployments, these links lack strong
+cryptographic integrity checks or mutual authentication. An adversary
+who intercepts this link can inject forged ASTERIX packets representing
+primary radar tracks.</li>
+<li><strong>Network Packet Injection:</strong> By gaining a foothold
+inside the Air Navigation Service Provider’s (ANSP) operational network,
+an attacker can route spoofed UDP/IP packets directly to the operational
+data ports of the central Radar Data Processing System (RDPS). Because
+primary radar plots contain minimal identifying telemetry compared to
+transponder data, a fabricated packet containing realistic range,
+azimuth, and Doppler attributes will be processed as an uncooperative
+physical target.</li>
+</ul>
+<h3
+id="central-system-layer-radar-data-processing-system-rdps-manipulation">Central
+System Layer: Radar Data Processing System (RDPS) Manipulation</h3>
+<p>The Radar Data Processing System (RDPS) correlates data from multiple
+PSRs, SSRs, and ADS-B receivers into a unified situational picture.</p>
+<ul>
+<li><strong>Multi-Sensor Fusion Exploitation:</strong> The RDPS uses
+algorithms such as Kalman filters to fuse raw primary returns into
+continuous tracks. Attackers targeting the RDPS software itself can
+exploit memory corruption vulnerabilities, malicious software updates,
+or misconfigured integration APIs to inject synthetic tracks directly
+into the database.</li>
+<li><strong>Display Subsystem Spoofing:</strong> An adversary can bypass
+radar sensors entirely by compromising the Controller Working Position
+(CWP) human-machine interface. Injecting data at the local display
+client forces ghost aircraft symbols onto the air traffic controller's
+screen, achieving the operational effect of false primary returns
+without interacting with any radar hardware.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

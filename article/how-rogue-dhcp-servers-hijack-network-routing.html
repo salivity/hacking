@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Rogue DHCP Servers Hijack Network Routing - hacking</title>
+    <meta name="description" content="A rogue Dynamic Host Configuration Protocol (DHCP) server is an unauthorized device placed on a local network that intercepts and manipulates client configuration parameters. Because standard DHCP exchanges lack native authentication, an attacker can res">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-rogue-dhcp-servers-hijack-network-routing">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Rogue DHCP Servers Hijack Network Routing - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-rogue-dhcp-servers-hijack-network-routing" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A rogue Dynamic Host Configuration Protocol (DHCP) server is an unauthorized device placed on a local network that intercepts and manipulates client configuration parameters. Because standard DHCP exchanges lack native authentication, an attacker can res" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-rogue-dhcp-servers-hijack-network-routing">How Rogue DHCP
+Servers Hijack Network Routing</h1>
+<p>A rogue Dynamic Host Configuration Protocol (DHCP) server is an
+unauthorized device placed on a local network that intercepts and
+manipulates client configuration parameters. Because standard DHCP
+exchanges lack native authentication, an attacker can respond to initial
+network connection requests faster than the legitimate DHCP
+infrastructure. By doing so, the rogue server injects malicious routing
+data—specifically by reassigning the default gateway and primary Domain
+Name System (DNS) servers—allowing the attacker to stage
+Man-in-the-Middle (MitM) attacks, monitor unencrypted traffic, and
+arbitrarily redirect network communications.</p>
+<h3 id="the-dhcp-exchange-and-the-race-condition">The DHCP Exchange and
+the Race Condition</h3>
+<p>When a device connects to a local area network (LAN), it negotiates
+its IP parameters using the four-step DORA process:
+<strong>D</strong>iscover, <strong>O</strong>ffer,
+<strong>R</strong>equest, and <strong>A</strong>cknowledge.</p>
+<ol type="1">
+<li><strong>DHCP Discover:</strong> The client broadcasts a request
+across the local broadcast domain to locate an available DHCP
+server.</li>
+<li><strong>DHCP Offer:</strong> Any listening DHCP server responds with
+an offer containing an IP address, subnet mask, default gateway, and DNS
+servers.</li>
+<li><strong>DHCP Request:</strong> The client typically accepts the
+first valid offer it receives and broadcasts a request to lease those
+specific settings.</li>
+<li><strong>DHCP Acknowledge (ACK):</strong> The responding server
+finalizes the lease.</li>
+</ol>
+<p>Because the client accepts the first response it encounters, an
+attacker on the same broadcast domain creates a race condition. By
+positioning a rogue server that responds marginally faster than the
+network’s authentic server—or by disabling the real server via a DHCP
+starvation attack—the rogue server guarantees that the victim accepts
+its malicious configuration payload.</p>
+<h3 id="pushing-malicious-default-gateways-dhcp-option-3">Pushing
+Malicious Default Gateways (DHCP Option 3)</h3>
+<p>The default gateway tells a host where to send traffic destined for
+any IP address outside its local subnet. In a rogue DHCP deployment, the
+attacker uses DHCP Option 3 (Router Option) to assign their own
+machine’s IP address as the client's default gateway.</p>
+<p>Once the client commits this configuration:</p>
+<ul>
+<li>All outbound Internet and cross-subnet packets are directed to the
+attacker's physical hardware.</li>
+<li>The attacker enables IP forwarding on their system, silently
+relaying traffic between the victim and the legitimate router to avoid
+raising suspicion.</li>
+<li>With traffic routing directly through the attacker’s network
+interface, the attacker gains full Man-in-the-Middle (MitM)
+capabilities, allowing for passive packet sniffing, session hijacking,
+or selective packet dropping and tampering.</li>
+</ul>
+<h3 id="pushing-malicious-dns-configurations-dhcp-option-6">Pushing
+Malicious DNS Configurations (DHCP Option 6)</h3>
+<p>DHCP Option 6 specifies the DNS server addresses the client should
+use to resolve domain names to IP addresses. A rogue server overrides
+this setting with the IP address of an attacker-controlled DNS
+server.</p>
+<p>Manipulating DNS entries allows the attacker to compromise network
+routing at the application layer:</p>
+<ul>
+<li><strong>Targeted DNS Spoofing:</strong> When the client requests an
+IP for an external service, the malicious DNS server returns the IP
+address of an attacker-hosted credential harvesting page or malware
+delivery server.</li>
+<li><strong>Selective Resolution:</strong> To maintain stealth, the
+rogue DNS server forwards legitimate requests for mundane services to a
+public resolver (like 8.8.8.8) while selectively spoofing high-value
+targets, such as intranet portals, internal corporate services, or
+banking domains.</li>
+<li><strong>Bypassing Encryption Protections:</strong> By pairing
+malicious DNS resolution with tools that enforce SSL stripping or
+present custom root certificates, attackers can downgrade secure
+connections or trick users into trusting fraudulent TLS endpoints.</li>
+</ul>
+<h3 id="attack-execution-and-network-defenses">Attack Execution and
+Network Defenses</h3>
+<p>To maximize the reach of the attack, attackers often precede a rogue
+DHCP deployment with a DHCP starvation attack. Tools like
+<code>yersinia</code> flood the authentic DHCP server with requests
+using spoofed MAC addresses, exhausting the server's pool of available
+IP leases. Once the legitimate server is unresponsive, the rogue server
+becomes the sole responder on the network.</p>
+<p>Organizations mitigate rogue DHCP routing attacks primarily through
+Layer 2 switch security features:</p>
+<ul>
+<li><strong>DHCP Snooping:</strong> Configured on managed network
+switches, DHCP snooping designates specific switch ports as "trusted"
+(connected to legitimate DHCP infrastructure) and all other ports as
+"untrusted." The switch drops any DHCP Offer or ACK messages originating
+from an untrusted port.</li>
+<li><strong>Port Security:</strong> Restricting the number of MAC
+addresses permitted on an individual switch port prevents the MAC
+exhaustion tactics required for DHCP starvation attacks.</li>
+<li><strong>Static Configurations and 802.1X:</strong> Implementing
+dynamic port-based network access control (802.1X) prevents unauthorized
+rogue machines from joining the broadcast domain entirely, neutralising
+the attack vector before configuration exchanges occur.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

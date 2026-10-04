@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlapping IP Fragmentation Firewall Evasion - hacking</title>
+    <meta name="description" content="This article examines how threat actors exploit overlapping IP fragmentation to bypass packet filters and network intrusion detection systems (NIDS). By manipulating IP header fields such as the Fragment Offset and More Fragments (MF) flags, attackers cr">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/overlapping-ip-fragmentation-firewall-evasion">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Overlapping IP Fragmentation Firewall Evasion - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/overlapping-ip-fragmentation-firewall-evasion" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines how threat actors exploit overlapping IP fragmentation to bypass packet filters and network intrusion detection systems (NIDS). By manipulating IP header fields such as the Fragment Offset and More Fragments (MF) flags, attackers cr" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="overlapping-ip-fragmentation-firewall-evasion">Overlapping IP
+Fragmentation Firewall Evasion</h1>
+<p>This article examines how threat actors exploit overlapping IP
+fragmentation to bypass packet filters and network intrusion detection
+systems (NIDS). By manipulating IP header fields such as the Fragment
+Offset and More Fragments (MF) flags, attackers create intentionally
+misaligned and conflicting packet fragments. Because packet filters and
+destination operating systems often use different rules to reassemble
+overlapping data, attackers can mask malicious payloads during transit,
+allowing malicious traffic to slip past defenses and execute on the
+target host.</p>
+<h2 id="understanding-ip-fragmentation">Understanding IP
+Fragmentation</h2>
+<p>The Internet Protocol (IP) allows packets to be split into smaller
+units, called fragments, when transmitting data across networks with a
+Maximum Transmission Unit (MTU) smaller than the packet size. Reassembly
+occurs at the destination host using three key fields from the IP
+header:</p>
+<ul>
+<li><strong>Identification (ID):</strong> A unique 16-bit value
+identifying fragments originating from the same original packet.</li>
+<li><strong>Flags:</strong> Includes the "More Fragments" (MF) flag,
+which indicates whether more fragments follow (MF=1) or if it is the
+final segment (MF=0).</li>
+<li><strong>Fragment Offset:</strong> A 13-bit value measuring the
+relative position of the fragment data within the original IP datagram,
+calculated in 8-byte blocks.</li>
+</ul>
+<p>Standard networking assumes fragments arrive sequentially or out of
+order without duplicate offsets. However, attackers intentionally craft
+packets with overlapping offsets to exploit how intermediate security
+devices process them versus the target host.</p>
+<h2 id="key-overlapping-fragmentation-techniques">Key Overlapping
+Fragmentation Techniques</h2>
+<h3 id="1-tiny-fragment-attack">1. Tiny Fragment Attack</h3>
+<p>In a tiny fragment attack, the attacker forces the first fragment to
+be extremely small—often just large enough to hold the IP header and a
+fraction of the Layer 4 (TCP/UDP) header.</p>
+<p>Traditional stateless packet filters typically evaluate access
+control rules (such as blocking access to a sensitive port like SSH or
+RDP) against the first fragment containing offset zero
+(<code>Offset = 0</code>). If the Layer 4 destination port is pushed
+into the second fragment (<code>Offset &gt; 0</code>), the firewall
+cannot see the port number in the first fragment and may allow it
+through based on default permit rules. Subsequent fragments lack the
+Layer 4 header altogether and are routinely forwarded, allowing the
+target host to reconstruct the unauthorized connection.</p>
+<h3 id="2-overlapping-fragment-overwrite">2. Overlapping Fragment
+Overwrite</h3>
+<p>In an overlapping fragment attack, an attacker sends an initial
+fragment containing seemingly benign data to satisfy the firewall's
+inspection engine, followed by a subsequent fragment whose offset
+overlaps the data of the first fragment.</p>
+<ul>
+<li><strong>Header Overwrite:</strong> The initial fragment arrives with
+an authorized destination port (e.g., port 80 for HTTP). A subsequent
+fragment arrives with an offset that overwrites the destination port in
+the host's reassembly buffer with a restricted port (e.g., port 445 for
+SMB). The packet filter permits both fragments, but the receiving host
+connects to the restricted service.</li>
+<li><strong>Payload Overwrite:</strong> The initial fragment contains
+benign application-layer data that passes an intrusion detection
+signature check. The overlapping fragment overwrites portions of that
+benign payload with shellcode or exploit commands during host-level
+reassembly.</li>
+</ul>
+<h3 id="3-exploiting-os-reassembly-divergence-insertion-vs-evasion">3.
+Exploiting OS Reassembly Divergence (Insertion vs. Evasion)</h3>
+<p>Firewall evasion through overlapping fragments relies primarily on
+the differences in how operating systems resolve conflicting data. When
+two fragments claim the same offset, an operating system must choose
+whether to favor the original data (First) or the new data (Last).</p>
+<p>Common reassembly policies include:</p>
+<ul>
+<li><strong>First Policy (e.g., BSD, Cisco IOS):</strong> The host keeps
+the original data from the earlier fragment and discards the overlapping
+bytes of subsequent fragments.</li>
+<li><strong>Last Policy (e.g., Windows):</strong> The host overwrites
+the original data with the bytes provided in the newer fragment.</li>
+<li><strong>Linux Policy:</strong> Linux systems employ hybrid
+heuristics that favor the original fragment in some offset conditions
+and newer fragments in others, depending on the kernel version and
+specific packet boundaries.</li>
+</ul>
+<p>If a firewall uses a "First" policy to inspect traffic, an attacker
+targeting a Windows host will design the attack so that the benign data
+is in the first fragment and the malicious code is in the overlapping
+second fragment. The firewall inspects and permits the initial data,
+while the target host overwrites the data with the malicious payload.
+Conversely, if the firewall uses a "Last" policy and the target is a BSD
+system, the attacker reverses the order of the payload delivery to
+achieve evasion.</p>
+<h2 id="defenses-against-fragmentation-evasion">Defenses Against
+Fragmentation Evasion</h2>
+<ul>
+<li><strong>Traffic Normalization:</strong> Modern firewalls and
+intrusion prevention systems (IPS) use packet normalization (scrubbing)
+to defragment packets, resolve overlaps uniformly, and re-fragment or
+forward the stream in a clean, unambiguous state.</li>
+<li><strong>Drop Overlapping Packets:</strong> Modern network devices
+can be configured to drop any packet where
+<code>Offset + Fragment Length</code> creates a collision with an
+existing fragment in the queue, as legitimate IP stacks rarely produce
+overlapping fragments under normal network conditions.</li>
+<li><strong>Minimum Fragment Size Enforcement:</strong> Enforcing a
+minimum fragment size rule ensures that the entire Layer 4 header is
+always present in the first fragment (<code>Offset = 0</code>),
+neutralizing tiny fragment attacks.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

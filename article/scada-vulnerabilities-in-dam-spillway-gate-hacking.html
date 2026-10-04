@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCADA Vulnerabilities in Dam Spillway Gate Hacking - hacking</title>
+    <meta name="description" content="Critical water infrastructure relies heavily on Supervisory Control and Data Acquisition (SCADA) systems to monitor water levels and automate the mechanical operation of spillway gates. However, architectural deficiencies, legacy communication standards,">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/scada-vulnerabilities-in-dam-spillway-gate-hacking">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SCADA Vulnerabilities in Dam Spillway Gate Hacking - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/scada-vulnerabilities-in-dam-spillway-gate-hacking" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Critical water infrastructure relies heavily on Supervisory Control and Data Acquisition (SCADA) systems to monitor water levels and automate the mechanical operation of spillway gates. However, architectural deficiencies, legacy communication standards," />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="scada-vulnerabilities-in-dam-spillway-gate-hacking">SCADA
+Vulnerabilities in Dam Spillway Gate Hacking</h1>
+<p>Critical water infrastructure relies heavily on Supervisory Control
+and Data Acquisition (SCADA) systems to monitor water levels and
+automate the mechanical operation of spillway gates. However,
+architectural deficiencies, legacy communication standards, and insecure
+remote connections can allow malicious actors to compromise these
+operational technology (OT) environments. This article examines the
+primary SCADA vulnerabilities that enable unauthorized remote actors to
+manipulate spillway gate actuators, detailing the specific protocol
+weaknesses, access failures, and device-level exploits involved in
+automated dam intrusion.</p>
+<h3 id="lack-of-authentication-in-legacy-industrial-protocols">Lack of
+Authentication in Legacy Industrial Protocols</h3>
+<p>Most automated dams utilize operational protocols developed decades
+ago, such as Modbus TCP, DNP3, or IEC 60870-5-104. By default, these
+legacy protocols lack built-in authentication, cryptographic integrity
+checks, and encryption.</p>
+<p>When a SCADA network is bridged to an external network without strict
+protocol-aware firewalls, an attacker can perform Man-in-the-Middle
+(MitM) attacks or inject unauthorized commands directly into the
+network. For instance, sending an unauthenticated Modbus
+<code>Write Single Coil</code> (Function Code 05) or
+<code>Write Multiple Registers</code> (Function Code 16) command to the
+IP address of a Programmable Logic Controller (PLC) controlling gate
+motors can force the spillway gates to open or close, regardless of
+supervisory software status.</p>
+<h3 id="insecure-remote-access-points-and-cellular-modems">Insecure
+Remote Access Points and Cellular Modems</h3>
+<p>Dam infrastructure is frequently located in remote geographical
+areas, requiring maintenance teams to configure cellular gateways,
+satellite modems, or external virtual private networks (VPNs) for remote
+telemetry and diagnostics.</p>
+<p>Threat actors frequently discover these exposed field controllers
+using internet scanning platforms like Shodan or Censys. Vulnerabilities
+that allow entry include:</p>
+<ul>
+<li><strong>Weak or Default Credentials:</strong> Remote management
+portals, cellular routers, and Human-Machine Interface (HMI) web servers
+frequently remain configured with factory-default usernames and
+passwords.</li>
+<li><strong>Absence of Multi-Factor Authentication (MFA):</strong>
+Remote access gateways that rely exclusively on single-factor
+authentication are vulnerable to credential stuffing, brute-force
+attacks, and phishing.</li>
+<li><strong>Unpatched Gateway Firmware:</strong> Cellular routers and
+edge devices often contain known remote code execution (RCE)
+vulnerabilities, allowing adversaries to establish persistent
+command-and-control access within the local OT subnet.</li>
+</ul>
+<h3
+id="exploitation-of-hmi-and-engineering-workstation-weaknesses">Exploitation
+of HMI and Engineering Workstation Weaknesses</h3>
+<p>The Human-Machine Interface provides operators with real-time visual
+schematics and manual override capabilities for spillway gates.
+Compromising the HMI software or the underlying Windows-based
+workstation grants an attacker direct software-level control over the
+physical process.</p>
+<p>Attackers compromise these workstations via lateral movement from
+enterprise IT networks, malicious USB drives, or spear-phishing. Once
+inside, an actor can leverage unpatched vulnerabilities in the HMI
+software suite (such as directory traversal, memory corruption, or
+hardcoded API keys) to hijack the application interface. Through this
+hijacked interface, the attacker can execute graphical control scripts
+or issue manual overrides that activate gate hoists.</p>
+<h3 id="programmable-logic-controller-plc-vulnerabilities">Programmable
+Logic Controller (PLC) Vulnerabilities</h3>
+<p>The physical actuators that lift and drop dam spillway gates are
+wired directly to I/O modules on PLCs or Remote Terminal Units (RTUs).
+If an attacker bypasses perimeter defenses, device-level vulnerabilities
+in the PLCs themselves can lead to complete physical override:</p>
+<ul>
+<li><strong>Unauthenticated Firmware Updates:</strong> Many legacy PLCs
+accept firmware updates without validating digital signatures, allowing
+an adversary to upload weaponized firmware that executes automated gate
+movements while masking the action from monitoring interfaces.</li>
+<li><strong>Buffer Overflows in Embedded Web Servers:</strong> Many
+modern RTUs and PLCs run embedded web servers for remote diagnostics.
+Unauthenticated buffer overflow vulnerabilities in these services allow
+attackers to execute arbitrary code, altering the internal logic (ladder
+logic) that governs safety thresholds.</li>
+<li><strong>Direct Register Manipulation:</strong> If logic routines
+lack defensive coding, an actor can overwrite internal memory registers
+responsible for safety interlocks, neutralizing physical limit sensors
+and ordering the gate hoists to move past designated mechanical
+limits.</li>
+</ul>
+<h3 id="insufficient-physical-and-hardware-interlocks">Insufficient
+Physical and Hardware Interlocks</h3>
+<p>A digital vulnerability only leads to physical movement if software
+logic is entirely decoupled from independent mechanical safeguards. In
+poorly defended dam architectures, the physical gate controllers depend
+exclusively on software logic from the SCADA system to determine whether
+a gate should move. When automated systems lack independent, hardwired
+physical interlocks—such as hardwired keyed limit switches, centrifugal
+overspeed governors, and separate safety instrumented systems
+(SIS)—unauthorized SCADA commands execute unimpeded, directly
+manipulating water flow.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

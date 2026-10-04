@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding NTDLL Unhooking and Syscall Mechanics - hacking</title>
+    <meta name="description" content="This article examines the low-level mechanisms behind user-mode API unhooking in Windows, detailing the assembly instructions involved in system call stubs, how endpoint detection mechanisms modify them, and how those modifications are altered or bypasse">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-ntdll-unhooking-and-syscall-mechanics">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding NTDLL Unhooking and Syscall Mechanics - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-ntdll-unhooking-and-syscall-mechanics" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article examines the low-level mechanisms behind user-mode API unhooking in Windows, detailing the assembly instructions involved in system call stubs, how endpoint detection mechanisms modify them, and how those modifications are altered or bypasse" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="understanding-ntdll-unhooking-and-syscall-mechanics">Understanding
+NTDLL Unhooking and Syscall Mechanics</h1>
+<p>This article examines the low-level mechanisms behind user-mode API
+unhooking in Windows, detailing the assembly instructions involved in
+system call stubs, how endpoint detection mechanisms modify them, and
+how those modifications are altered or bypassed. It also explores the
+telemetry sources defenders use to observe these low-level
+interactions.</p>
+<h2 id="the-architecture-of-user-mode-syscall-stubs">The Architecture of
+User-Mode Syscall Stubs</h2>
+<p>In the Windows architecture, user-mode applications interact with the
+kernel via the Native API, implemented largely in
+<code>ntdll.dll</code>. On x86-64 platforms, system service functions
+(such as <code>NtReadVirtualMemory</code> or
+<code>NtAllocateVirtualMemory</code>) typically adhere to a uniform,
+minimal assembly layout:</p>
+<pre class="assembly"><code>mov r10, rcx
+mov eax, &lt;System Service Number&gt;
+test byte ptr [SharedUserData+0x308], 1
+jne &lt;alternate_code_path&gt;
+syscall
+ret</code></pre>
+<p>In standard implementations, the instructions execute as follows:</p>
+<ul>
+<li><code>mov r10, rcx</code>: Preserves the first function parameter
+into the <code>r10</code> register, as the subsequent
+<code>syscall</code> instruction destroys the contents of
+<code>rcx</code> by using it to save the return address.</li>
+<li><code>mov eax, &lt;SSN&gt;</code>: Loads the specific System Service
+Number (SSN) into the <code>eax</code> register to identify which system
+routine the kernel must invoke.</li>
+<li><code>syscall</code>: Transitions processor execution from user mode
+(Ring 3) to kernel mode (Ring 0).</li>
+<li><code>ret</code>: Restores control to the caller once the kernel
+returns execution to user space.</li>
+</ul>
+<h2 id="inline-user-mode-hooking-mechanisms">Inline User-Mode Hooking
+Mechanisms</h2>
+<p>Endpoint Detection and Response (EDR) solutions frequently inject
+monitoring dynamic link libraries (DLLs) into user-mode processes to
+track suspicious API execution before execution transitions to the
+kernel.</p>
+<p>To achieve this, the monitoring software modifies the beginning (the
+prologue) of exported functions in <code>ntdll.dll</code>. The original
+instructions are replaced with a detour, typically a branch
+instruction:</p>
+<ul>
+<li>Relative jump: <code>jmp &lt;Offset&gt;</code> (5 bytes,
+<code>E9 xx xx xx xx</code>)</li>
+<li>Absolute jump: <code>mov rax, &lt;Address&gt;; jmp rax</code> or
+<code>push &lt;Low&gt;; push &lt;High&gt;; ret</code></li>
+</ul>
+<p>When an application invokes the API, control flow is diverted to the
+security agent's inspection routines. If the parameters pass security
+policies, execution is redirected back to the original function or to a
+trampoline executing the saved prologue bytes followed by a jump back
+into <code>ntdll.dll</code>.</p>
+<h2 id="how-unhooking-alters-assembly-stubs">How Unhooking Alters
+Assembly Stubs</h2>
+<p>The term "unhooking" refers to techniques designed to restore the
+original bytes of <code>ntdll.dll</code>'s exported routines,
+neutralizing the injected detours so that subsequent execution flows
+directly through standard system calls without alerting user-mode
+hooks.</p>
+<h3 id="1-in-memory-overwrite-via-memory-copies">1. In-Memory Overwrite
+via Memory Copies</h3>
+<p>A common approach involves mapping a clean copy of
+<code>ntdll.dll</code> directly from disk
+(<code>\KnownDlls\ntdll.dll</code> or from
+<code>C:\Windows\System32\ntdll.dll</code>) into memory. The process
+then compares or replaces the modified <code>.text</code> section of the
+already-loaded <code>ntdll.dll</code>.</p>
+<p>At the assembly level, memory restoration relies on block-transfer
+instructions:</p>
+<ul>
+<li><code>cld</code>: Clears the direction flag to ensure forward
+indexing.</li>
+<li><code>rep movsb</code>: Moves a stream of bytes from the source
+buffer (<code>rsi</code>) to the target destination in the loaded module
+(<code>rdi</code>), controlled by the counter register
+(<code>rcx</code>).</li>
+</ul>
+<p>Alternatively, targeted patching involves writing the standard
+4-to-8-byte prologue back to the hook location, replacing the
+<code>jmp</code> opcode with the original <code>mov r10, rcx</code>
+(<code>4C 8B D1</code>) sequence and the relevant <code>mov eax</code>
+assignment.</p>
+<h3 id="2-direct-syscall-invocation">2. Direct Syscall Invocation</h3>
+<p>Rather than modifying the in-memory image of <code>ntdll.dll</code>,
+direct syscall execution involves embedding the syscall sequence
+directly into the application's own code segment. By recreating the stub
+manually:</p>
+<pre class="assembly"><code>mov r10, rcx
+mov eax, &lt;SSN&gt;
+syscall
+ret</code></pre>
+<p>The process bypasses <code>ntdll.dll</code> entirely, avoiding any
+hooks placed within the module's address space.</p>
+<h2 id="prerequisites-and-memory-protections">Prerequisites and Memory
+Protections</h2>
+<p>Because code segments in loaded PE images are marked with the
+<code>PAGE_EXECUTE_READ</code> (<code>RX</code>) memory protection by
+default, assembly-level overwriting requires changing page
+permissions:</p>
+<ol type="1">
+<li><code>NtProtectVirtualMemory</code> or <code>VirtualProtect</code>
+transitions the target page to <code>PAGE_EXECUTE_READWRITE</code>
+(<code>RWX</code>).</li>
+<li>The memory write instruction (<code>mov</code> or
+<code>rep movsb</code>) overwrites the detour bytes.</li>
+<li>Memory permissions are restored to
+<code>PAGE_EXECUTE_READ</code>.</li>
+</ol>
+<h2 id="detection-and-defensive-telemetry">Detection and Defensive
+Telemetry</h2>
+<p>User-mode unhooking techniques are constrained by several observable
+artifacts that modern defensive systems monitor:</p>
+<ul>
+<li><strong>Kernel Callbacks</strong>: Kernel routines registered via
+<code>PsSetCreateProcessNotifyRoutine</code> and
+<code>ObRegisterCallbacks</code> operate independently of user-mode
+memory modifications.</li>
+<li><strong>ETW Threat Intelligence (ETW-TI)</strong>: Kernel-level
+Event Tracing for Windows emits telemetry directly from kernel-mode
+transitions, logging the origin and call stack of critical operations
+regardless of whether user-mode hooks were bypassed.</li>
+<li><strong>Integrity Auditing</strong>: Periodic integrity scanning
+scans process memory pages for anomalous protection transitions (e.g.,
+unexpected transitions to <code>RWX</code> on system libraries) and
+unauthorized modifications to signed module code sections.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

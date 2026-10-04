@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How ECDIS Hacking Steers Cargo Ships Off-Course - hacking</title>
+    <meta name="description" content="Modern maritime navigation relies heavily on Electronic Chart Display and Information Systems (ECDIS) to automate passage planning, verify vessel position, and maintain safe transit. However, inherent cybersecurity vulnerabilities within bridge networks">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-ecdis-hacking-steers-cargo-ships-off-course">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How ECDIS Hacking Steers Cargo Ships Off-Course - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-ecdis-hacking-steers-cargo-ships-off-course" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Modern maritime navigation relies heavily on Electronic Chart Display and Information Systems (ECDIS) to automate passage planning, verify vessel position, and maintain safe transit. However, inherent cybersecurity vulnerabilities within bridge networks" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-ecdis-hacking-steers-cargo-ships-off-course">How ECDIS
+Hacking Steers Cargo Ships Off-Course</h1>
+<p>Modern maritime navigation relies heavily on Electronic Chart Display
+and Information Systems (ECDIS) to automate passage planning, verify
+vessel position, and maintain safe transit. However, inherent
+cybersecurity vulnerabilities within bridge networks allow threat actors
+to manipulate these digital systems. By tampering with electronic
+navigational charts, spoofing sensor feeds, or altering stored passage
+plans, attackers can surreptitiously steer massive cargo vessels
+off-course, driving them into hazardous waters, hostile territories, or
+collision courses without alerting the bridge crew.</p>
+<h3 id="the-vulnerability-of-bridge-systems">The Vulnerability of Bridge
+Systems</h3>
+<p>ECDIS units do not operate in complete isolation. They interface
+directly with satellite communications, shipboard Local Area Networks
+(LANs), and critical bridge instruments via standardized protocols like
+NMEA 0183 and NMEA 2000. Many commercial installations run on
+general-purpose operating systems, such as embedded versions of Windows
+or Linux, which frequently lack timely security patches.</p>
+<p>Attackers can compromise an ECDIS through several attack vectors:</p>
+<ul>
+<li><strong>Insecure Chart Updates:</strong> Electronic Navigational
+Charts (ENCs) are regularly updated via USB flash drives or direct
+satellite Internet downloads. If an update file is corrupted or
+intercepted via a man-in-the-middle attack, malicious code or falsified
+chart data can be injected directly into the system.</li>
+<li><strong>Network Lateral Movement:</strong> A compromised shoreside
+connection, crew Wi-Fi network, or satellite communication terminal can
+serve as a pivot point for attackers to enter the operational technology
+(OT) network that houses the ECDIS.</li>
+<li><strong>Direct Physical Access:</strong> Unauthorized personnel or
+service technicians using infected maintenance laptops can introduce
+malware directly into the bridge console.</li>
+</ul>
+<h3 id="chart-manipulation-and-phantom-hazards">Chart Manipulation and
+Phantom Hazards</h3>
+<p>Once unauthorized access is achieved, an attacker can modify the
+underlying ENC vector data. This does not require altering the ship's
+physical steering immediately; instead, it alters the crew's perception
+of reality:</p>
+<ol type="1">
+<li><strong>Relocating Navigation Hazards:</strong> Attackers can delete
+known shallow banks, reefs, or wrecks from the chart, or shift their
+coordinates several miles away.</li>
+<li><strong>Fabricating Safe Corridors:</strong> Depths and bathymetric
+contours can be inflated to indicate deep water where shallow shoals
+actually exist.</li>
+<li><strong>Ghost Obstacles:</strong> By inserting false hazards into
+the plotted route, attackers can force the crew to manually alter course
+to avoid a nonexistent threat, inadvertently directing the ship into
+danger.</li>
+</ol>
+<h3 id="sensor-spoofing-and-feed-injection">Sensor Spoofing and Feed
+Injection</h3>
+<p>ECDIS relies on continuous inputs from the Global Navigation
+Satellite System (GNSS), gyrocompass, speed log, and Automatic
+Identification System (AIS). Because legacy maritime protocols often
+lack encryption and authentication, an attacker with network access can
+intercept and forge these data streams.</p>
+<p>By feeding falsified GNSS coordinates into the ECDIS, the display
+shows the vessel drifting away from its intended track. If the ECDIS is
+integrated with a Track Control System (TCS) or an autopilot, the
+automated bridge system will attempt to "correct" this fictitious
+cross-track error. In doing so, the autopilot physically turns the
+ship’s rudder, steering the vessel off its genuine course while the
+ECDIS screen reports that the vessel remains perfectly centered on the
+planned route.</p>
+<h3 id="subtle-waypoint-alterations">Subtle Waypoint Alterations</h3>
+<p>Blatant route modifications are easily noticed by alert
+watchstanders. Sophisticated attacks rely on micro-modifications to
+route files (such as <code>.rtz</code> exchange files). By shifting
+waypoints by fractions of a degree over extended oceanic crossings, the
+vessel gradually accumulates significant navigational error.</p>
+<p>Over long distances, these incremental deviations can steer a vessel
+out of international shipping lanes, into restricted sovereign waters,
+or into bottleneck zones where the ship becomes vulnerable to piracy,
+physical interdiction, or catastrophic grounding. Because the visual
+line on the ECDIS screen appears continuous, human error and automation
+bias often prevent navigators from verifying the vessel's true position
+using independent, non-digital methods like radar plotting or celestial
+navigation.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

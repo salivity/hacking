@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commercial Aircraft Avionics Hacking Vectors - hacking</title>
+    <meta name="description" content="Modern commercial aviation relies on a layered architecture that isolates passenger-facing networks from critical flight systems. This article examines the theoretical physical and wireless vectors an attacker might exploit to cross security boundaries i">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/commercial-aircraft-avionics-hacking-vectors">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Commercial Aircraft Avionics Hacking Vectors - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/commercial-aircraft-avionics-hacking-vectors" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Modern commercial aviation relies on a layered architecture that isolates passenger-facing networks from critical flight systems. This article examines the theoretical physical and wireless vectors an attacker might exploit to cross security boundaries i" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="commercial-aircraft-avionics-hacking-vectors">Commercial
+Aircraft Avionics Hacking Vectors</h1>
+<p>Modern commercial aviation relies on a layered architecture that
+isolates passenger-facing networks from critical flight systems. This
+article examines the theoretical physical and wireless vectors an
+attacker might exploit to cross security boundaries into flight-critical
+avionics, focusing on network bridges, maintenance uplinks, onboard
+passenger systems, and direct bus interfaces.</p>
+<h3 id="the-avionics-architecture-and-separation-model">The Avionics
+Architecture and Separation Model</h3>
+<p>Commercial aircraft networks are typically categorized into distinct
+domains based on standards such as ARINC 664. These include the Aircraft
+Control Domain (ACD), which governs flight-critical systems; the Airline
+Information Services Domain (AISD), used for administrative and
+operational data; and the Passenger Information and Entertainment
+Services Domain (PIESD), which handles in-flight entertainment (IFE) and
+passenger Wi-Fi. Crossing between these domains requires bypassing
+deterministic network switches, unidirectional security gateways (data
+diodes), or physical air gaps.</p>
+<h3
+id="in-flight-entertainment-ife-and-cabin-network-bridging">In-Flight
+Entertainment (IFE) and Cabin Network Bridging</h3>
+<p>The most frequently analyzed theoretical vector is an escalation from
+the passenger cabin network to the flight control domain. Passenger
+Wi-Fi and seatback IFE systems reside in the PIESD. While physically
+separate in many airframes, some modern configurations share physical
+cabling or specialized network switches to reduce aircraft weight.</p>
+<p>To bridge this gap, an attacker would need to identify a software
+vulnerability in the IFE system, gain elevated privileges, and then
+exploit a logic flaw or firmware vulnerability in the gateway device
+connecting the PIESD to the AISD. Even if an attacker gains access to
+the AISD, they face an additional, strictly controlled barrier to reach
+the ACD. Bridging into the ACD typically requires subverting a
+hardware-enforced data diode designed to allow data flow only outward
+from flight instruments to the cabin, not inward.</p>
+<h3
+id="electronic-flight-bags-efbs-and-aircraft-interface-devices-aids">Electronic
+Flight Bags (EFBs) and Aircraft Interface Devices (AIDs)</h3>
+<p>Pilots routinely use EFBs—commercial tablets or installed
+displays—for navigation, performance calculations, and weather
+monitoring. Many EFBs connect to an Aircraft Interface Device (AID) to
+receive real-time aircraft parameters such as GPS coordinates, altitude,
+and engine status via Wi-Fi, Bluetooth, or physical umbilical
+cables.</p>
+<p>If an EFB is compromised via an untrusted ground network or malicious
+application, it could become a staging ground. Because the AID sits
+between the pilot's device and the avionics buses, an attacker would
+need an exploit payload capable of escaping the EFB operating system and
+compromising the AID’s firmware. A successful exploit could potentially
+allow the transmission of malformed packets onto read/write channels of
+underlying buses.</p>
+<h3
+id="wireless-maintenance-gateways-and-ground-support-systems">Wireless
+Maintenance Gateways and Ground Support Systems</h3>
+<p>Aircraft routinely exchange telemetry, engine diagnostics, and
+navigation databases when parked at airport gates. These updates occur
+over cellular networks, airport Wi-Fi (Gatelink), or direct wireless
+data loaders.</p>
+<ul>
+<li><strong>Software Data Loaders:</strong> Technicians use software
+loaders to flash Line Replaceable Units (LRUs). A compromised loader or
+a corrupted, digitally unsigned Field Loadable Software (FLS) package
+could introduce unauthorized logic directly into core avionic
+processors.</li>
+<li><strong>Ground Support Equipment (GSE):</strong> Maintenance laptops
+connecting directly to maintenance access ports bypass cabin-level
+security. A malicious insider or an infected maintenance computer
+represents a high-probability vector for direct injection into ARINC 429
+or CAN bus architectures.</li>
+<li><strong>Terminal Wireless Connections:</strong> Vulnerabilities in
+the wireless transceivers that process post-flight operational data
+could allow an attacker within physical proximity of the aircraft on the
+ramp to interact with internal staging partitions.</li>
+</ul>
+<h3 id="rf-and-wireless-communications-ads-b-acars-and-satcom">RF and
+Wireless Communications (ADS-B, ACARS, and SATCOM)</h3>
+<p>Aircraft continuously receive radio frequency (RF) broadcasts from
+ground stations, satellites, and other aircraft.</p>
+<ul>
+<li><strong>ACARS and VDL Mode 2:</strong> The Aircraft Communications
+Addressing and Reporting System (ACARS) transmits operational and air
+traffic control messages over VHF or satellite links. Historical
+implementations often lack message authentication or encryption. While
+ACARS messages generally feed printer systems or the Flight Management
+System (FMS) text prompts, a buffer overflow vulnerability in the FMS
+communication parser could theoretically execute unauthorized code at
+the control layer.</li>
+<li><strong>ADS-B and Navigational Signals:</strong> Automatic Dependent
+Surveillance-Broadcast (ADS-B) and GPS signals are unencrypted by
+design. While an attacker can spoof these RF signals to feed false
+situational data to the cockpit display or the Traffic Collision
+Avoidance System (TCAS), this constitutes data spoofing rather than code
+execution or direct bus compromise.</li>
+<li><strong>Satellite Communications (SATCOM):</strong> SATCOM
+transceivers often serve both passenger internet and operational data
+streams. Vulnerabilities in the satellite data unit's firmware could
+provide a lateral pivot point between the passenger communication path
+and the cockpit communication path if isolation is poorly
+implemented.</li>
+</ul>
+<h3 id="direct-physical-access-to-avionics-bays">Direct Physical Access
+to Avionics Bays</h3>
+<p>The most direct attack vector requires physical proximity to the
+aircraft's internal wiring or electronic equipment (E/E) bays. These
+compartments house the LRUs and the foundational serial data buses, such
+as ARINC 429, MIL-STD-1553, or ARINC 664 Part 7 (AFDX).</p>
+<p>These buses operate with minimal internal cryptography, relying
+instead on physical isolation and perimeter security. An actor with
+physical access to the E/E bay—such as maintenance personnel, baggage
+handlers, or an individual accessing access panels from the cabin
+floor—could connect hardware tapping tools directly to the wiring. By
+injecting raw frames into these deterministic buses, an attacker could
+directly instruct control surfaces, override flight instrumentation, or
+disrupt inter-system synchronization without needing to bypass software
+gateways.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

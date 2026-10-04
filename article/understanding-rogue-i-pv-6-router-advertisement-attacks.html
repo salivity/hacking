@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Rogue IPv6 Router Advertisement Attacks - hacking</title>
+    <meta name="description" content="Rogue IPv6 Router Advertisement (RA) attacks allow an attacker to intercept network traffic on predominantly IPv4 networks by exploiting default operating system configurations that prioritize IPv6 connectivity. Even when an organization has not intentio">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-rogue-i-pv-6-router-advertisement-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding Rogue IPv6 Router Advertisement Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-rogue-i-pv-6-router-advertisement-attacks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Rogue IPv6 Router Advertisement (RA) attacks allow an attacker to intercept network traffic on predominantly IPv4 networks by exploiting default operating system configurations that prioritize IPv6 connectivity. Even when an organization has not intentio" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="understanding-rogue-ipv6-router-advertisement-attacks">Understanding
+Rogue IPv6 Router Advertisement Attacks</h1>
+<p>Rogue IPv6 Router Advertisement (RA) attacks allow an attacker to
+intercept network traffic on predominantly IPv4 networks by exploiting
+default operating system configurations that prioritize IPv6
+connectivity. Even when an organization has not intentionally deployed
+IPv6, modern endpoints typically have dual-stack networking enabled by
+default. By broadcasting spoofed Router Advertisements, an attacker can
+designate their machine as a default gateway and DNS server, enabling
+traffic redirection and interception without altering the existing IPv4
+configuration.</p>
+<h2 id="the-dual-stack-vulnerability-mechanism">The Dual-Stack
+Vulnerability Mechanism</h2>
+<p>Most modern operating systems (including Windows, macOS, and Linux)
+ship with dual-stack networking enabled out of the box. According to
+standard address selection algorithms (such as RFC 6724), operating
+systems generally prefer IPv6 connectivity over IPv4 when both are
+available.</p>
+<p>In a standard IPv4 network, IPv6 routing may be left unmanaged.
+Endpoints continuously listen for IPv6 control messages, specifically
+Stateless Address Autoconfiguration (SLAAC) messages defined in the
+Neighbor Discovery Protocol (NDP). Under SLAAC, routers periodically
+send multicast Router Advertisements to announce prefixes, default
+gateways, and configuration parameters to local nodes.</p>
+<h2 id="how-interception-occurs">How Interception Occurs</h2>
+<ol type="1">
+<li><p><strong>Broadcasting Rogue Router Advertisements</strong><br />
+An attacker situated on the local network segment transmits unsolicited
+IPv6 Router Advertisement packets (ICMPv6 Type 134) to the all-nodes
+multicast address (<code>ff02::1</code>). These advertisements declare
+the attacker's system as an authoritative local router offering a valid
+global or unique-local IPv6 prefix.</p></li>
+<li><p><strong>Endpoint Address Configuration</strong><br />
+Target endpoints receive the rogue RA and automatically generate IPv6
+addresses corresponding to the advertised prefix. Because the RA
+designates the attacker’s link-local address as the default router, the
+victims update their internal routing tables to route all outbound IPv6
+traffic through the attacker.</p></li>
+<li><p><strong>DNS Redirection via RDNSS or DHCPv6</strong><br />
+Rogue RAs can include Recursive DNS Server (RDNSS) options (RFC 8106),
+or they can set the "Managed" (M) flag, instructing clients to obtain
+configuration details via DHCPv6. In either case, the attacker
+advertises their own machine as the primary DNS server. Because clients
+prefer IPv6 DNS servers over configured IPv4 DNS servers, subsequent DNS
+queries are sent directly to the attacker.</p></li>
+<li><p><strong>Traffic Interception and Relaying</strong><br />
+When a user attempts to access a network resource (such as an internal
+domain or external website), the client issues a DNS request to the
+rogue IPv6 DNS server. The attacker can respond with custom IPv6
+addresses under their control or proxy the connection to the legitimate
+destination while capturing sensitive traffic, authentication requests,
+or session data.</p></li>
+</ol>
+<h2 id="mitigation-strategies">Mitigation Strategies</h2>
+<p>Securing networks against rogue Router Advertisements requires
+implementing defensive controls at both the switch and host levels:</p>
+<ul>
+<li><strong>IPv6 RA Guard:</strong> Enable RA Guard (RFC 6105) on
+network switches. This feature inspects ICMPv6 traffic and drops
+unauthorized Router Advertisement packets arriving on access ports where
+only hosts—not legitimate routers—reside.</li>
+<li><strong>DHCPv6 Snooping:</strong> Implement switch-level DHCPv6
+snooping to ensure that only authorized DHCPv6 servers can allocate IP
+parameters to clients.</li>
+<li><strong>Host-Level Configuration:</strong> If IPv6 is not actively
+supported or needed within an enterprise environment, disable IPv6
+bindings on network interfaces across endpoints via group policy or
+endpoint configuration management.</li>
+<li><strong>Network Segmentation and Monitoring:</strong> Segment local
+broadcast domains to restrict the reach of multicast packets and deploy
+intrusion detection signatures capable of identifying anomalous ICMPv6
+traffic patterns.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

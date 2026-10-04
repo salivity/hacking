@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Bleichenbacher Forged RSA Signatures - hacking</title>
+    <meta name="description" content="In 2006, cryptographer Daniel Bleichenbacher exposed a severe implementation flaw in RSA PKCS#1 v1.5 signature verification that allowed attackers to forge valid signatures without knowing the signer's private key. This attack targets systems utilizing s">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-bleichenbacher-forged-rsa-signatures">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Bleichenbacher Forged RSA Signatures - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-bleichenbacher-forged-rsa-signatures" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="In 2006, cryptographer Daniel Bleichenbacher exposed a severe implementation flaw in RSA PKCS#1 v1.5 signature verification that allowed attackers to forge valid signatures without knowing the signer's private key. This attack targets systems utilizing s" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-bleichenbacher-forged-rsa-signatures">How Bleichenbacher
+Forged RSA Signatures</h1>
+<p>In 2006, cryptographer Daniel Bleichenbacher exposed a severe
+implementation flaw in RSA PKCS#1 v1.5 signature verification that
+allowed attackers to forge valid signatures without knowing the signer's
+private key. This attack targets systems utilizing small public
+exponents—most notably <span class="math inline">\(e =
+3\)</span>—combined with flawed, permissive signature-verification
+logic. By exploiting verifiers that fail to properly validate the full
+structure of the padded data, an attacker can mathematically craft a
+signature that the verifier accepts as legitimate using simple integer
+cube roots.</p>
+<h3 id="the-structure-of-pkcs1-v15-signatures">The Structure of PKCS#1
+v1.5 Signatures</h3>
+<p>Under the PKCS#1 v1.5 standard, a message hash is not signed
+directly. Instead, it is formatted into a padded structure before
+exponentiation. A valid padded block consists of:</p>
+<p><code>0x00 || 0x01 || PS || 0x00 || T</code></p>
+<ul>
+<li><code>0x00 || 0x01</code>: Header bytes defining the block
+type.</li>
+<li><code>PS</code>: Padding string consisting of continuous
+<code>0xFF</code> bytes, designed to extend the data to match the length
+of the RSA key modulus <span class="math inline">\(N\)</span>.</li>
+<li><code>0x00</code>: A separator byte indicating the end of the
+padding.</li>
+<li><code>T</code>: The payload containing an ASN.1 encoded structure
+specifying the hash algorithm and the hash value itself.</li>
+</ul>
+<p>To verify a signature <span class="math inline">\(S\)</span>, the
+verifier calculates <span class="math inline">\(S^e \pmod N\)</span> and
+confirms that the resulting byte sequence matches this exact format.</p>
+<h3 id="the-flawed-verification-logic">The Flawed Verification
+Logic</h3>
+<p>The vulnerability does not lie in the RSA mathematical algorithm
+itself, but rather in "loose" verifier implementations. A strict
+implementation ensures that the <code>0xFF</code> padding fills the
+entire space between the prefix and the hash payload, meaning <span
+class="math inline">\(T\)</span> aligns precisely at the end of the
+block.</p>
+<p>However, Bleichenbacher observed that many widely deployed
+cryptographic libraries parsed the decrypted block from left to right.
+These implementations verified the initial <code>0x00 0x01</code>,
+scanned past arbitrary lengths of <code>0xFF</code>, found the
+<code>0x00</code> separator, parsed the ASN.1 hash <span
+class="math inline">\(T\)</span>, and then stopped checking. They
+completely ignored any remaining bytes between the end of <span
+class="math inline">\(T\)</span> and the end of the modulus.</p>
+<h3 id="the-attack-technique">The Attack Technique</h3>
+<p>When a system uses a public exponent of <span class="math inline">\(e
+= 3\)</span>, an attacker can bypass the modular reduction step ($ \pmod
+N $) entirely.</p>
+<ol type="1">
+<li><p><strong>Constructing the Target Block:</strong> Because the
+verifier ignores trailing bytes, the attacker needs to construct a
+target value <span class="math inline">\(D\)</span> that starts with the
+required prefix and hash, followed by arbitrary "garbage" data:</p>
+<p><span class="math inline">\(D = \text{0x0001FF...00} \,||\, T \,||\,
+\text{Garbage}\)</span></p>
+<p>Mathematically, this can be represented as:</p>
+<p><span class="math inline">\(D = 2^B - \text{PrefixBytes} \cdot 2^{k}
++ \text{Garbage}\)</span></p>
+<p>where <span class="math inline">\(B\)</span> is the bit-length of the
+RSA modulus <span class="math inline">\(N\)</span>, and the garbage
+fills the lowest-order bits.</p></li>
+<li><p><strong>Computing the Cube Root:</strong> Normally, finding a
+signature <span class="math inline">\(S\)</span> such that <span
+class="math inline">\(S^3 \equiv D \pmod N\)</span> requires the private
+key (solving the discrete logarithm problem / RSA problem). However, if
+the attacker ensures that <span class="math inline">\(D &lt; N\)</span>,
+the modular reduction never wraps around. The equation simplifies from
+modular arithmetic to standard arithmetic over real numbers:</p>
+<p><span class="math inline">\(S^3 = D\)</span></p>
+<p>The attacker calculates the integer cube root of <span
+class="math inline">\(D\)</span>:</p>
+<p><span class="math inline">\(S = \lceil \sqrt[3]{D}
+\rceil\)</span></p></li>
+<li><p><strong>Absorbing the Error into the Garbage:</strong> Cubing
+<span class="math inline">\(S\)</span> produces a number close to <span
+class="math inline">\(D\)</span>:</p>
+<p><span class="math inline">\(S^3 \approx D\)</span></p>
+<p>Because the cube root is rounded up, <span
+class="math inline">\(S^3\)</span> differs from <span
+class="math inline">\(D\)</span> by a small error value. As long as this
+error only alters the lowest-order bits—the unparsed "garbage"
+region—and leaves the high-order prefix, padding, and hash bytes intact,
+the verification will succeed.</p></li>
+</ol>
+<p>When the flawed verifier computes <span
+class="math inline">\(S^3\)</span>, it sees the valid prefix, the
+required hash, and ignores the lower-order corruption caused by the
+approximation. As a result, the forged signature is accepted as valid
+without the attacker ever calculating the private key.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

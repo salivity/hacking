@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Dependency Confusion Attacks - hacking</title>
+    <meta name="description" content="Dependency confusion is a software supply chain vulnerability where build environments mistakenly pull malicious public packages instead of intended internal, proprietary dependencies. This article explains how attackers discover internal package names,">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/understanding-dependency-confusion-attacks">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Understanding Dependency Confusion Attacks - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/understanding-dependency-confusion-attacks" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Dependency confusion is a software supply chain vulnerability where build environments mistakenly pull malicious public packages instead of intended internal, proprietary dependencies. This article explains how attackers discover internal package names," />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="understanding-dependency-confusion-attacks">Understanding
+Dependency Confusion Attacks</h1>
+<p>Dependency confusion is a software supply chain vulnerability where
+build environments mistakenly pull malicious public packages instead of
+intended internal, proprietary dependencies. This article explains how
+attackers discover internal package names, leverage flawed
+package-manager resolution algorithms, and trigger arbitrary code
+execution during automated build and deployment processes.</p>
+<h3 id="the-mechanics-of-hybrid-package-resolution">The Mechanics of
+Hybrid Package Resolution</h3>
+<p>Modern enterprise software relies heavily on package managers such as
+npm (Node.js), pip (Python), and NuGet (.NET). Organizations typically
+host proprietary components—such as internal authentication libraries,
+utility functions, or common UI elements—on private package repositories
+(e.g., Artifactory, Nexus, or GitHub Packages). Simultaneously, these
+applications depend on thousands of open-source packages hosted on
+public registries like npmjs.com or PyPI.</p>
+<p>To simplify dependency management, developers often configure their
+package management tools to query both private and public registries
+simultaneously, or route requests through a single proxy. A dependency
+confusion vulnerability arises when the package manager's resolution
+logic does not prioritize the private registry over the public one, or
+defaults to selecting the package with the highest semantic version
+number, regardless of its origin.</p>
+<h3 id="discovering-internal-package-names">Discovering Internal Package
+Names</h3>
+<p>Before launching an attack, an adversary must identify the names of
+an organization's internal packages. Because these libraries are not
+published publicly, attackers locate their identifiers through several
+reconnaissance avenues:</p>
+<ul>
+<li><strong>Public Source Code and Manifests:</strong> Developers
+frequently leak manifests like <code>package.json</code>,
+<code>requirements.txt</code>, or <code>Gemfile.lock</code> into public
+GitHub repositories, publicly accessible client-side JavaScript bundles,
+or Docker containers.</li>
+<li><strong>Exposed Configurations:</strong> Misconfigured CI/CD
+configurations, server logs, or build scripts occasionally expose
+internal dependency references.</li>
+<li><strong>Decompiled Applications:</strong> Mobile applications and
+client-side web applications often bundle package manifests or include
+references to internal namespaces within minified code.</li>
+</ul>
+<h3 id="exploiting-version-prioritization">Exploiting Version
+Prioritization</h3>
+<p>Once an attacker identifies a valid private package name (e.g.,
+<code>corp-auth-utils</code>), they register that exact name on the
+corresponding public registry (such as npm or PyPI).</p>
+<p>The attacker assigns this newly created public package an
+artificially high semantic version number, such as <code>99.9.0</code>,
+while the organization's legitimate internal package may be at version
+<code>1.4.2</code>.</p>
+<p>When a developer or an automated CI/CD pipeline runs a standard
+installation command (e.g., <code>npm install</code> or
+<code>pip install</code>), the package manager queries configured
+endpoints to resolve dependencies:</p>
+<ol type="1">
+<li>The client checks both the internal repository and the public
+registry.</li>
+<li>The package manager sees <code>corp-auth-utils</code> exists in both
+locations.</li>
+<li>Due to fallback behavior or default version-sorting algorithms, the
+client considers the higher version (<code>99.9.0</code> from the public
+registry) to be the most up-to-date and appropriate candidate.</li>
+<li>The client downloads and installs the attacker's public package
+instead of the legitimate internal library.</li>
+</ol>
+<h3 id="arbitrary-code-execution-via-install-scripts">Arbitrary Code
+Execution via Install Scripts</h3>
+<p>The critical risk of dependency confusion lies in the automated
+execution of installation hooks. Many package managers support
+pre-installation, installation, and post-installation scripts designed
+to compile native extensions or configure runtime environments:</p>
+<ul>
+<li>In the npm ecosystem, the <code>preinstall</code>,
+<code>install</code>, or <code>postinstall</code> directives in
+<code>package.json</code> execute shell commands automatically upon
+download.</li>
+<li>In the Python ecosystem, code located in <code>setup.py</code> runs
+automatically when pip builds or installs a source distribution
+package.</li>
+</ul>
+<p>When the build server or developer workstation downloads the
+attacker's package, these scripts trigger immediately without requiring
+any application code to explicitly import or invoke the library. The
+malicious script runs with the full permissions of the current user or
+CI/CD worker, allowing attackers to exfiltrate environment variables,
+harvest API tokens, steal source code, or establish persistent reverse
+shells into corporate networks.</p>
+<h3 id="prevention-and-mitigation">Prevention and Mitigation</h3>
+<p>Mitigating dependency confusion requires strict registry routing and
+deterministic dependency resolution:</p>
+<ul>
+<li><strong>Scoped Packages and Namespaces:</strong> Organizations
+should use reserved organization prefixes (such as
+<code>@company/package-name</code> on npm) and register those namespaces
+on both public and private registries to prevent unauthorized
+registration.</li>
+<li><strong>Private-Only Verification:</strong> Configure internal
+package proxies to reject public upstream queries for packages
+designated as internal.</li>
+<li><strong>Hash Pinning and Strict Versioning:</strong> Use lockfiles
+with cryptographic hash verification (<code>package-lock.json</code>,
+<code>poetry.lock</code>) to ensure packages match expected checksums
+rather than dynamically resolving to higher versions.</li>
+<li><strong>Public Squatting:</strong> Proactively claim the names of
+internal packages on public repositories as empty, inactive placeholders
+to block external registration.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

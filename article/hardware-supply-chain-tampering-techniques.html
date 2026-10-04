@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardware Supply Chain Tampering Techniques - hacking</title>
+    <meta name="description" content="Physical supply chain tampering involves intercepting electronic hardware during manufacturing, transit, or staging to covertly install malicious hardware implants. This article explores the precise engineering and micro-soldering methods utilized during">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/hardware-supply-chain-tampering-techniques">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Hardware Supply Chain Tampering Techniques - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/hardware-supply-chain-tampering-techniques" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Physical supply chain tampering involves intercepting electronic hardware during manufacturing, transit, or staging to covertly install malicious hardware implants. This article explores the precise engineering and micro-soldering methods utilized during" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="hardware-supply-chain-tampering-techniques">Hardware Supply
+Chain Tampering Techniques</h1>
+<p>Physical supply chain tampering involves intercepting electronic
+hardware during manufacturing, transit, or staging to covertly install
+malicious hardware implants. This article explores the precise
+engineering and micro-soldering methods utilized during hardware
+interdiction, including bus hijacking, interposer board placement,
+weaponized passive components, and advanced surface-mount rework. By
+altering printed circuit boards (PCBs) before they reach the consumer or
+data center, threat actors establish persistent, low-level access that
+circumvents conventional operating system and firmware security
+controls.</p>
+<h3 id="interdiction-and-physical-access">Interdiction and Physical
+Access</h3>
+<p>To solder an implant onto a device, an adversary must establish
+unauthorized physical access during the supply chain lifecycle. This
+typically occurs during transit interdiction (diverting shipments
+between the factory, distributor, or end customer) or insider
+manipulation within contract manufacturing facilities. Once intercepted,
+devices are transferred to a specialized laboratory environment equipped
+with factory-grade rework tools, optical microscopes, and custom
+automated testing rigs designed to rapidly open, modify, and repackage
+hardware without leaving visible evidence of entry.</p>
+<h3 id="surface-mount-technology-smt-rework">Surface-Mount Technology
+(SMT) Rework</h3>
+<p>Covert implants are rarely added using standard handheld soldering
+irons; instead, adversaries use precision Surface-Mount Technology (SMT)
+rework equipment.</p>
+<ul>
+<li><strong>Hot-Air and Infrared (IR) Reflow:</strong> Technicians use
+localized hot-air pencils or IR heating to desolder target integrated
+circuits (ICs) without scorching adjacent components or the PCB
+substrate.</li>
+<li><strong>Micro-Soldering:</strong> Using micro-soldering stations
+under high-magnification stereomicroscopes, attackers can manipulate
+components as small as the 0201 or 01005 imperial package sizes
+(fractions of a millimeter across).</li>
+<li><strong>Solder Paste and Stencils:</strong> When reattaching
+modified chips or miniature implants, miniature solder paste stencils
+and low-temperature bismuth- or lead-based alloys are often used to
+reduce thermal stress on the board while achieving factory-like solder
+joint geometry.</li>
+</ul>
+<h3 id="signal-hijacking-via-trace-severing-and-jumpers">Signal
+Hijacking via Trace Severing and Jumpers</h3>
+<p>Many implants operate as active "man-in-the-middle" (MitM) devices
+that intercept communication between critical components, such as
+between the baseboard management controller (BMC), the CPU, and Serial
+Peripheral Interface (SPI) flash memory.</p>
+<ul>
+<li><strong>Trace Severing:</strong> Technicians use precision
+micro-scalpels, milling tools, or focused laser cutters to sever
+microscopic copper traces running along the outer layers of the PCB.
+This breaks the direct communication path between legitimate
+components.</li>
+<li><strong>Micro-Jumper Wiring:</strong> Insulated micro-wire (often
+enameled copper magnet wire as thin as 40 AWG / 0.08 mm) is soldered
+directly onto the severed trace vias, IC pins, or test points. These
+jumpers redirect bus traffic (such as SPI, I2C, UART, or PCIe) into the
+implant, allowing it to modify data streams—such as injecting code into
+the BIOS/UEFI during boot—before passing the data along to its
+destination.</li>
+</ul>
+<h3 id="interposer-boards-and-bga-sandwiches">Interposer Boards and BGA
+Sandwiches</h3>
+<p>Modern enterprise boards rely heavily on Ball Grid Array (BGA)
+packages, which lack exposed pins and sit flat against the circuit board
+via tiny balls of solder hidden beneath the chip. Modifying these
+components requires specialized interposer techniques:</p>
+<ul>
+<li><strong>PCB Interposers:</strong> An interposer is a wafer-thin,
+multi-layer circuit board manufactured to sit directly between the
+target BGA component and the host motherboard.</li>
+<li><strong>Reballing and Stacking:</strong> The original BGA chip (such
+as an Ethernet controller, BMC, or flash memory) is desoldered. The
+interposer, which houses a microscopic microcontroller or FPGA inside
+its internal layers or alongside passive pins, is soldered to the
+motherboard. The original BGA chip is re-balled (fresh solder spheres
+applied) and soldered directly on top of the interposer.</li>
+<li>This sandwich architecture leaves nearly zero horizontal footprint,
+effectively concealing the implant underneath the original component
+while allowing full access to the BGA pinout.</li>
+</ul>
+<h3 id="weaponized-counterfeit-components">Weaponized Counterfeit
+Components</h3>
+<p>Rather than adding visibly foreign chips to the board, advanced
+tampering often substitutes existing passive or discrete components with
+functionally weaponized equivalents:</p>
+<ul>
+<li><strong>Parasitic Capacitors and Filters:</strong> Attackers can
+replace standard decoupling capacitors or power-filtering components
+with custom silicon molded inside identical SMD capacitor or resistor
+packages.</li>
+<li><strong>Dual-Function Discrete Devices:</strong> These tiny packages
+draw parasitically from the host board's power rail and contain tiny
+silicon dies that monitor bus lines connected to adjacent traces.
+Because they closely resemble standard components listed in the original
+bill of materials (BOM), optical automated inspections often fail to
+detect them.</li>
+</ul>
+<h3 id="concealment-and-re-finishing-techniques">Concealment and
+Re-Finishing Techniques</h3>
+<p>The final stage of physical tampering involves hiding the mechanical
+alterations to defeat manual and automated optical inspection:</p>
+<ul>
+<li><strong>Solder Mask Color-Matching:</strong> Reworked solder mask is
+stripped and re-applied using UV-curable polymer resins mixed to
+precisely match the color, finish, and opacity of the original PCB.</li>
+<li><strong>Conformal Coating and Flux Removal:</strong> Ultrasonic
+cleaning baths eliminate all trace residues of flux and solder spatter.
+If the original board had an acrylic, silicone, or polyurethane
+conformal coating, an identical layer is reapplied across the entire
+board under UV light.</li>
+<li><strong>Packaging and Seal Restoration:</strong> Tamper-evident
+stickers, factory holograms, anti-static bags, and custom tape are
+reproduced or restored using specialized heat guns and adhesives,
+ensuring the hardware appears factory-sealed upon arrival at its target
+destination.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

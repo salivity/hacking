@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How DNS Rebinding Bypasses SOP to Attack Local IoT - hacking</title>
+    <meta name="description" content="DNS rebinding is a technique that turns a victim's web browser into a proxy to attack devices on a private local network. By manipulating the Domain Name System (DNS) to alternate between an external IP address and an internal private IP, an attacker tri">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-dns-rebinding-bypasses-sop-to-attack-local-io-t">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How DNS Rebinding Bypasses SOP to Attack Local IoT - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-dns-rebinding-bypasses-sop-to-attack-local-io-t" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="DNS rebinding is a technique that turns a victim's web browser into a proxy to attack devices on a private local network. By manipulating the Domain Name System (DNS) to alternate between an external IP address and an internal private IP, an attacker tri" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-dns-rebinding-bypasses-sop-to-attack-local-iot">How DNS
+Rebinding Bypasses SOP to Attack Local IoT</h1>
+<p>DNS rebinding is a technique that turns a victim's web browser into a
+proxy to attack devices on a private local network. By manipulating the
+Domain Name System (DNS) to alternate between an external IP address and
+an internal private IP, an attacker tricks the browser into believing
+that malicious code running in a tab originates from the same source as
+a target device on the local network. This bypasses the browser's
+Same-Origin Policy (SOP), enabling unauthorized access to vulnerable
+Internet of Things (IoT) devices, routers, and internal services that
+rely entirely on network perimeter security.</p>
+<h3 id="the-role-of-the-same-origin-policy">The Role of the Same-Origin
+Policy</h3>
+<p>The Same-Origin Policy is a fundamental security model in modern web
+browsers. It restricts scripts running on one origin (defined by the
+combination of protocol, domain name, and port) from interacting with or
+reading sensitive data from another origin. Under normal circumstances,
+a malicious script loaded from <code>attacker.com</code> cannot issue
+HTTP requests to read data from <code>192.168.1.100</code> (a local
+smart thermostat, camera, or router) because the origins do not
+match.</p>
+<h3 id="the-dns-rebinding-mechanism">The DNS Rebinding Mechanism</h3>
+<p>DNS rebinding circumvents the Same-Origin Policy by dynamically
+altering the IP address associated with a single domain name. The attack
+unfolds in several distinct steps:</p>
+<ol type="1">
+<li><strong>Initial Visit:</strong> A user on a local network visits an
+attacker-controlled website (e.g., <code>attacker.com</code>).</li>
+<li><strong>Initial Resolution:</strong> The user's browser performs a
+DNS query for <code>attacker.com</code>. The attacker's custom
+authoritative DNS server responds with the attacker’s public IP address
+and sets a very low Time-to-Live (TTL) value, typically 0 or 1 second,
+preventing the local operating system or browser from caching the
+record.</li>
+<li><strong>Payload Execution:</strong> The browser downloads the
+webpage containing malicious JavaScript.</li>
+<li><strong>Cache Expiration and Re-Resolution:</strong> Once the short
+TTL expires, the JavaScript executes an asynchronous HTTP request (such
+as a <code>fetch</code> or <code>XMLHttpRequest</code>) back to
+<code>attacker.com</code>. Because the DNS record is no longer cached,
+the browser must query the attacker's DNS server a second time.</li>
+<li><strong>Rebinding to the Local Target:</strong> On this second
+query, the attacker's DNS server responds with a private IP address
+located within the victim's local subnet (e.g., <code>192.168.1.1</code>
+or <code>127.0.0.1</code>).</li>
+<li><strong>The SOP Bypass:</strong> Because the domain name
+(<code>attacker.com</code>), port, and protocol remain unchanged, the
+browser treats the second request as having the exact same origin as the
+loaded script. The browser sends the HTTP request directly to the local
+private IP address.</li>
+</ol>
+<p>Because the request originates from within the browser and matches
+the origin rules, the browser allows the attacker's script to read the
+HTTP responses returned by the local device—something ordinarily blocked
+across different origins.</p>
+<h3 id="exploiting-vulnerable-iot-devices">Exploiting Vulnerable IoT
+Devices</h3>
+<p>Most consumer IoT devices—such as smart plugs, IP cameras,
+network-attached storage (NAS), and wireless routers—are designed under
+the assumption that any device within the local area network is trusted.
+As a result, they frequently feature:</p>
+<ul>
+<li><strong>Unauthenticated REST APIs:</strong> Many devices expose
+configuration panels, status endpoints, or control APIs that require no
+credentials as long as the request comes from the local network.</li>
+<li><strong>Weak or Default Credentials:</strong> Endpoints with
+authentication often rely on standard factory defaults that an automated
+script can guess easily.</li>
+<li><strong>Command Injection and Remote Code Execution:</strong>
+Vulnerabilities that are typically low risk when isolated from the
+public internet become critical when exposed via an internal browser
+proxy.</li>
+</ul>
+<p>Through DNS rebinding, an attacker's script can issue commands
+directly to these interfaces. The attacker can extract Wi-Fi passwords,
+alter DNS settings on the home router, disable security systems, pivot
+deeper into the enterprise or home network, or upload malicious firmware
+to turn local devices into botnet nodes.</p>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Preventing DNS rebinding requires defensive controls at both the
+network and application levels:</p>
+<ul>
+<li><strong>DNS Filtering (DNS Wall):</strong> Routers and local DNS
+resolvers (such as <code>dnsmasq</code>, pfSense, or enterprise
+recursive resolvers) should implement DNS rebinding protection. This
+feature automatically discards external DNS responses that resolve to
+private RFC 1918 IP addresses (<code>10.0.0.0/8</code>,
+<code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>, or
+<code>127.0.0.0/8</code>).</li>
+<li><strong>Host Header Validation:</strong> IoT device manufacturers
+must configure internal HTTP servers to strictly validate the incoming
+<code>Host</code> header. If the header contains an unfamiliar external
+domain (e.g., <code>attacker.com</code>) rather than the device's local
+IP address or designated hostname, the server must reject the
+request.</li>
+<li><strong>Mandatory Authentication and CSRF Tokens:</strong> Internal
+devices should never assume traffic on a local subnet is trustworthy.
+Enforcing strong authentication, anti-CSRF tokens, and secure session
+management for every request mitigates the risk posed by unauthorized
+cross-origin scripts.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

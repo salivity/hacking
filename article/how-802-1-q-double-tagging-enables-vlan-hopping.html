@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How 802.1Q Double Tagging Enables VLAN Hopping - hacking</title>
+    <meta name="description" content="VLAN hopping via 802.1Q double tagging is a Layer 2 network attack that enables an unauthorized device to bypass network segmentation and inject packets into an isolated Virtual Local Area Network (VLAN). By taking advantage of the way network switches p">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/how-802-1-q-double-tagging-enables-vlan-hopping">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How 802.1Q Double Tagging Enables VLAN Hopping - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/how-802-1-q-double-tagging-enables-vlan-hopping" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="VLAN hopping via 802.1Q double tagging is a Layer 2 network attack that enables an unauthorized device to bypass network segmentation and inject packets into an isolated Virtual Local Area Network (VLAN). By taking advantage of the way network switches p" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-8021q-double-tagging-enables-vlan-hopping">How 802.1Q Double
+Tagging Enables VLAN Hopping</h1>
+<p>VLAN hopping via 802.1Q double tagging is a Layer 2 network attack
+that enables an unauthorized device to bypass network segmentation and
+inject packets into an isolated Virtual Local Area Network (VLAN). By
+taking advantage of the way network switches process the native VLAN on
+trunk ports, an attacker can craft a maliciously structured frame that
+sheds its outer identification layer mid-transit, tricking downstream
+switches into delivering the payload to a restricted target network
+without routing authorization.</p>
+<h3 id="prerequisites-of-the-attack">Prerequisites of the Attack</h3>
+<p>For a double-tagging attack to succeed, specific network conditions
+must be met:</p>
+<ol type="1">
+<li><strong>Native VLAN Alignment:</strong> The attacker must reside on
+an access port that belongs to the same VLAN assigned as the "native
+VLAN" on an adjacent 802.1Q trunk link (commonly the default VLAN
+1).</li>
+<li><strong>Trunk Port Architecture:</strong> The attack requires a
+switch-to-switch trunk link that processes frames using IEEE 802.1Q
+encapsulation.</li>
+<li><strong>Untagged Native VLAN Configuration:</strong> The trunk link
+must be configured to transmit native VLAN traffic untagged, which is
+standard default behavior for many enterprise switches.</li>
+</ol>
+<h3 id="how-double-tagging-works">How Double Tagging Works</h3>
+<p>The exploitation process relies on encapsulating the payload with two
+distinct 802.1Q headers (tags) and depends on switches parsing headers
+sequentially:</p>
+<ol type="1">
+<li><p><strong>Frame Crafting:</strong> The attacker constructs an
+Ethernet frame containing two 802.1Q tags:</p>
+<ul>
+<li><strong>Outer Tag:</strong> Set to the native VLAN ID of the switch
+trunk (e.g., VLAN 1).</li>
+<li><strong>Inner Tag:</strong> Set to the unauthorized target VLAN ID
+that the attacker wants to compromise (e.g., VLAN 20).</li>
+</ul></li>
+<li><p><strong>First Switch Processing:</strong> The frame enters the
+first switch through the attacker's port. Because the switch is
+configured to treat the native VLAN as untagged over the 802.1Q trunk,
+it assumes the outer tag is redundant before transmitting the frame
+across the trunk link. The switch strips away the outer VLAN tag and
+leaves the rest of the frame intact.</p></li>
+<li><p><strong>Traversing the Trunk:</strong> The frame travels across
+the trunk to the second switch. Crucially, the inner VLAN tag (VLAN 20)
+is now exposed at the front of the frame as if it were the original
+tag.</p></li>
+<li><p><strong>Second Switch Processing:</strong> The receiving switch
+inspects the incoming frame. Seeing the exposed inner tag (VLAN 20), it
+treats the frame as legitimate native traffic for VLAN 20. The switch
+strips the remaining tag and broadcasts or forwards the packet directly
+to the destination device's access port.</p></li>
+</ol>
+<h3 id="limitations-of-the-attack">Limitations of the Attack</h3>
+<p>Double tagging is strictly unidirectional. Because the returning
+traffic from the victim device is generated inside the target VLAN, the
+network switches will route responses legitimately according to Layer 3
+boundaries or drop them. The attacker cannot receive return packets over
+Layer 2. However, this one-way communication is sufficient to execute
+denial-of-service attacks, poison caches, exploit unauthenticated
+services, or trigger remote code execution payloads using connectionless
+protocols like UDP.</p>
+<h3 id="prevention-and-mitigation">Prevention and Mitigation</h3>
+<p>Securing networks against double-tagging VLAN hopping requires
+removing the structural conditions the exploit relies on:</p>
+<ul>
+<li><strong>Tag the Native VLAN:</strong> Enable explicit native VLAN
+tagging globally on all switches (e.g.,
+<code>vlan dot1q tag native</code>), forcing the switch to retain the
+outer tag rather than stripping it.</li>
+<li><strong>Assign an Unused Native VLAN:</strong> Change the native
+VLAN on all trunk ports to an isolated, dedicated VLAN ID that contains
+no access ports or user devices.</li>
+<li><strong>Disable Unused Ports and Auto-Trunking:</strong> Explicitly
+define access ports using non-trunking modes and disable Dynamic
+Trunking Protocol (DTP) to prevent rogue devices from negotiating trunk
+links.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

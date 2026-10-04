@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Parameter Pollution: Bypassing Security Controls - hacking</title>
+    <meta name="description" content="HTTP Parameter Pollution (HPP) is an evasion and manipulation technique where an attacker supplies multiple HTTP parameters with the identical name in a single request. This article examines how discrepancies in parameter parsing between different networ">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/http-parameter-pollution-bypassing-security-controls">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="HTTP Parameter Pollution: Bypassing Security Controls - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/http-parameter-pollution-bypassing-security-controls" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="HTTP Parameter Pollution (HPP) is an evasion and manipulation technique where an attacker supplies multiple HTTP parameters with the identical name in a single request. This article examines how discrepancies in parameter parsing between different networ" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="http-parameter-pollution-bypassing-security-controls">HTTP
+Parameter Pollution: Bypassing Security Controls</h1>
+<p>HTTP Parameter Pollution (HPP) is an evasion and manipulation
+technique where an attacker supplies multiple HTTP parameters with the
+identical name in a single request. This article examines how
+discrepancies in parameter parsing between different network layers—such
+as Web Application Firewalls (WAFs), reverse proxies, and back-end
+application servers—allow attackers to disguise malicious payloads,
+bypass authentication or authorization checks, and manipulate internal
+routing logic.</p>
+<h3 id="the-root-cause-disparate-parameter-parsing">The Root Cause:
+Disparate Parameter Parsing</h3>
+<p>The HTTP standard (RFC 3986 and RFC 7230) does not define how a
+server should handle multiple query parameters sharing the same key. As
+a result, different web technologies and server runtimes interpret
+duplicate parameters in completely different ways when presented with a
+query string like <code>?user=admin&amp;user=guest</code>:</p>
+<ul>
+<li><strong>ASP.NET / IIS:</strong> Concatenates values with a comma
+(<code>user=admin,guest</code>).</li>
+<li><strong>PHP / Apache:</strong> Uses the last supplied value
+(<code>user=guest</code>).</li>
+<li><strong>Python / Flask / Werkzeug:</strong> Typically takes the
+first supplied value (<code>user=admin</code>).</li>
+<li><strong>Node.js / Express:</strong> Interprets the parameters as an
+array (<code>user=['admin', 'guest']</code>).</li>
+</ul>
+<h3 id="tricking-routing-logic-and-bypassing-wafs">Tricking Routing
+Logic and Bypassing WAFs</h3>
+<p>Modern web architectures rarely consist of a single application
+server. Typically, a request flows through an edge device, such as a
+reverse proxy, API gateway, or WAF, before hitting an internal
+microservice or monolithic back-end. HPP exploits the gap when the
+security device and the destination server process query strings
+differently.</p>
+<p>Consider an architecture where a WAF protects a PHP back-end:</p>
+<ol type="1">
+<li>An attacker submits a request containing:
+<code>GET /transfer?recipient=attacker&amp;recipient=charity</code>.</li>
+<li>The WAF analyzes the request by reading only the first occurrence of
+the parameter (<code>recipient=attacker</code> or a sanitized benign
+value). If the malicious logic or blocked entity is in the second
+parameter, the WAF lets the request pass because it perceives no
+threat.</li>
+<li>The PHP back-end parses the parameters and accepts the <em>last</em>
+instance, executing the transaction intended for the payload the WAF
+ignored.</li>
+</ol>
+<p>The reverse scenario is equally dangerous: if a reverse proxy routes
+traffic based on the first parameter, but the application server acts on
+the second, an attacker can trick the routing gateway into sending the
+request to an unauthenticated internal endpoint while the application
+executes a privileged command.</p>
+<h3 id="split-payload-evasion">Split-Payload Evasion</h3>
+<p>Beyond simple parameter overrides, attackers leverage concatenation
+behaviors to split malicious payloads across multiple instances of a
+parameter.</p>
+<p>For instance, in environments running ASP.NET, an injection payload
+can be broken apart:</p>
+<p><code>?search=SELECT+1+FROM+users/*&amp;search=*/WHERE+id=1</code></p>
+<p>A signature-based security filter inspecting each <code>search</code>
+parameter individually sees fragmented, non-executable SQL fragments and
+approves the request. However, when ASP.NET processes the request, it
+merges the parameters into a single string separated by a comma:</p>
+<p><code>SELECT 1 FROM users/*,*/WHERE id=1</code></p>
+<p>Because the inline comments wrap the comma, the database executes the
+unified SQL query, completely circumventing input validation
+controls.</p>
+<h3 id="altering-internal-api-and-microservice-calls">Altering Internal
+API and Microservice Calls</h3>
+<p>Server-side HPP occurs when an application takes user input and uses
+it to construct a new back-end HTTP request to an internal API or
+authentication service without sanitizing delimiters.</p>
+<p>If an application generates a query like:
+<code>http://internal.service/api?client_id=</code> +
+<code>USER_INPUT</code> + <code>&amp;role=user</code></p>
+<p>An attacker can provide an input containing an unencoded ampersand:
+<code>123&amp;role=admin</code></p>
+<p>The resulting internal request becomes:
+<code>http://internal.service/api?client_id=123&amp;role=admin&amp;role=user</code></p>
+<p>Depending on the technology running the internal service, the
+injected <code>role=admin</code> can override the hardcoded
+<code>role=user</code> parameter, granting the attacker elevated
+privileges within the protected internal network.</p>
+<h3 id="mitigation-strategies">Mitigation Strategies</h3>
+<p>Defending against HTTP Parameter Pollution requires consistency
+across the entire application stack:</p>
+<ul>
+<li><strong>Enforce Strict Input Schemas:</strong> Use strict validation
+layers that automatically reject requests containing duplicate parameter
+keys unless explicitly expected.</li>
+<li><strong>Normalize Parsing Rules:</strong> Ensure that intermediate
+proxies, API gateways, and back-end application frameworks handle
+duplicate parameters identically.</li>
+<li><strong>Avoid String Concatenation for Outbound Calls:</strong> When
+constructing internal HTTP requests, use URL-encoding libraries and
+parameter maps rather than raw string concatenation to ensure user input
+cannot inject delimiters like <code>&amp;</code> or <code>=</code>.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

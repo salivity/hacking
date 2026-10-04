@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dual_EC_DRBG Cryptographic Backdoor - hacking</title>
+    <meta name="description" content="Dual Elliptic Curve Deterministic Random Bit Generator (DualECDRBG) was a cryptographic standard adopted by NIST in 2006 that contained an intentional, mathematically subtle backdoor engineered by the National Security Agency (NSA). This article explains">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/the-dual-ec-drbg-cryptographic-backdoor">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="The Dual_EC_DRBG Cryptographic Backdoor - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/the-dual-ec-drbg-cryptographic-backdoor" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Dual Elliptic Curve Deterministic Random Bit Generator (DualECDRBG) was a cryptographic standard adopted by NIST in 2006 that contained an intentional, mathematically subtle backdoor engineered by the National Security Agency (NSA). This article explains" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="the-dual_ec_drbg-cryptographic-backdoor">The Dual_EC_DRBG
+Cryptographic Backdoor</h1>
+<p>Dual Elliptic Curve Deterministic Random Bit Generator (Dual_EC_DRBG)
+was a cryptographic standard adopted by NIST in 2006 that contained an
+intentional, mathematically subtle backdoor engineered by the National
+Security Agency (NSA). This article explains the underlying mathematical
+structure of the backdoor, how the relationship between its elliptic
+curve points allowed state recovery, and the mechanism through which
+intelligence agencies could passively decrypt encrypted
+communications.</p>
+<h3 id="the-mathematical-trapdoor-points-p-and-q">The Mathematical
+Trapdoor: Points P and Q</h3>
+<p>At the center of Dual_EC_DRBG are two points, <span
+class="math inline">\(P\)</span> and <span
+class="math inline">\(Q\)</span>, situated on an elliptic curve over a
+prime field. In standard elliptic curve cryptography, calculating the
+scalar multiple <span class="math inline">\(d\)</span> such that <span
+class="math inline">\(Q = d \cdot P\)</span> is known as the Elliptic
+Curve Discrete Logarithm Problem (ECDLP)—a calculation computationally
+infeasible for classical computers when using sufficiently large
+parameters.</p>
+<p>The flaw in Dual_EC_DRBG was not that ECDLP was broken, but that the
+standard provided fixed, hardcoded coordinates for points <span
+class="math inline">\(P\)</span> and <span
+class="math inline">\(Q\)</span> without explaining how they were
+derived. If the entity that generated the points chose <span
+class="math inline">\(P\)</span> first, selected a secret scalar <span
+class="math inline">\(e\)</span>, and computed <span
+class="math inline">\(Q = e \cdot P\)</span>, that entity possessed a
+private trapdoor key (<span class="math inline">\(e\)</span>). Anyone
+knowing <span class="math inline">\(e\)</span> could invert the
+relationship using the secret scalar:</p>
+<p><span class="math display">\[P = e^{-1} \cdot Q\]</span></p>
+<p>While the rest of the world saw two seemingly random points, the
+creator retained the algebraic link between them.</p>
+<h3 id="the-internal-state-and-output-generation">The Internal State and
+Output Generation</h3>
+<p>During operation, the generator maintains an internal state <span
+class="math inline">\(s_i\)</span>. It produces outputs through two
+elliptic curve multiplications per cycle:</p>
+<ol type="1">
+<li><p><strong>State Update:</strong> A new internal state is generated
+by calculating an intermediate point using point <span
+class="math inline">\(P\)</span>: <span class="math display">\[r_i =
+x\text{-coordinate}(s_i \cdot P)\]</span> The next state becomes <span
+class="math inline">\(s_{i+1} = r_i\)</span>.</p></li>
+<li><p><strong>Output Generation:</strong> The pseudo-random output is
+derived by projecting the state onto point <span
+class="math inline">\(Q\)</span>: <span class="math display">\[t_i =
+x\text{-coordinate}(s_i \cdot Q)\]</span></p></li>
+</ol>
+<p>Before emitting <span class="math inline">\(t_i\)</span> as output,
+the algorithm discards only the most significant 16 bits of the
+coordinate, publishing the remaining 240 or 256 bits (depending on the
+curve size) as random bytes.</p>
+<h3 id="the-state-recovery-attack">The State Recovery Attack</h3>
+<p>Because only 16 bits of the <span
+class="math inline">\(x\)</span>-coordinate were truncated, the output
+<span class="math inline">\(t_i\)</span> almost fully reveals the point
+<span class="math inline">\(s_i \cdot Q\)</span>. An eavesdropper
+monitoring encrypted network traffic needs to execute only a minimal
+brute-force search over the <span class="math inline">\(2^{16}\)</span>
+(65,536) missing bits to find a valid point <span
+class="math inline">\(A\)</span> on the elliptic curve where <span
+class="math inline">\(A = s_i \cdot Q\)</span>.</p>
+<p>Once the correct curve point <span class="math inline">\(A\)</span>
+is identified, the attacker applies their secret scalar <span
+class="math inline">\(e\)</span>:</p>
+<p><span class="math display">\[e \cdot A = e \cdot (s_i \cdot Q) = e
+\cdot (s_i \cdot (e^{-1} \cdot P)) = s_i \cdot P\]</span></p>
+<p>The <span class="math inline">\(x\)</span>-coordinate of <span
+class="math inline">\(s_i \cdot P\)</span> is precisely <span
+class="math inline">\(r_i\)</span>—the next internal state (<span
+class="math inline">\(s_{i+1}\)</span>) of the generator.</p>
+<p>With this single computation, the adversary recovers the internal
+state. From that moment forward, the attacker can predict every
+subsequent bit of pseudo-random output the generator produces.</p>
+<h3 id="intelligence-interception-in-practice">Intelligence Interception
+in Practice</h3>
+<p>Cryptographic protocols like TLS/SSL rely on random number generators
+to produce ephemeral keys and nonces during connection handshakes. In
+implementations where Dual_EC_DRBG was set as the default random number
+generator (such as RSA Security's BSAFE library), the handshake nonces
+transmitted in plaintext over the network exposed enough raw output from
+Dual_EC_DRBG to execute the recovery attack.</p>
+<p>By passively listening to network traffic, an intelligence agency
+possessing the secret scalar <span class="math inline">\(e\)</span>
+could deduce the client’s or server’s internal PRNG state, compute the
+ephemeral private keys used for session encryption, and decrypt secure
+traffic in real time without actively intercepting, modifying, or
+breaking the underlying ciphers.</p>
+<p>The vulnerability was initially identified by cryptographers Dan
+Shumow and Niels Ferguson in 2007. In 2013, documents leaked by Edward
+Snowden confirmed that the NSA had inserted the design into NIST Special
+Publication 800-90A as part of a deliberate program to undermine
+commercial encryption, leading NIST to officially withdraw the standard
+in 2014.</p></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

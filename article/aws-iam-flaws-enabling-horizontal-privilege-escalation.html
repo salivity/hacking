@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS IAM Flaws Enabling Horizontal Privilege Escalation - hacking</title>
+    <meta name="description" content="Horizontal privilege escalation in AWS Identity and Access Management (IAM) occurs when a compromised user or role gains unauthorized access to resources, data, or identities belonging to another entity at a comparable privilege level. Unlike vertical es">
+    <link rel="canonical" href="https://salivity.github.io/hacking/article/aws-iam-flaws-enabling-horizontal-privilege-escalation">
+    <link rel="search" type="application/opensearchdescription+xml" title="hacking" href="/hacking/opensearch.xml">
+    <link rel="icon" href="/hacking/favicon.ico">
+    <link rel="stylesheet" href="/hacking/css/style.css">
+    <link media="print" rel="stylesheet" href="/hacking/css/print.css">
+    <script src="/hacking/js/fuse.min.js"></script>
+    <script src="/hacking/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AWS IAM Flaws Enabling Horizontal Privilege Escalation - hacking" />
+    <meta property="og:url" content="https://salivity.github.io/hacking/article/aws-iam-flaws-enabling-horizontal-privilege-escalation" />
+    <meta property="og:image" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/hacking/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Horizontal privilege escalation in AWS Identity and Access Management (IAM) occurs when a compromised user or role gains unauthorized access to resources, data, or identities belonging to another entity at a comparable privilege level. Unlike vertical es" />
+    <link rel="manifest" href="/hacking/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/hacking/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>hacking</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/hacking/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="aws-iam-flaws-enabling-horizontal-privilege-escalation">AWS IAM
+Flaws Enabling Horizontal Privilege Escalation</h1>
+<p>Horizontal privilege escalation in AWS Identity and Access Management
+(IAM) occurs when a compromised user or role gains unauthorized access
+to resources, data, or identities belonging to another entity at a
+comparable privilege level. Unlike vertical escalation, where an
+attacker seeks administrative or root control, horizontal escalation
+focuses on lateral movement across an organization's cloud footprint.
+This article examines the primary IAM policy configuration flaws that
+enable horizontal privilege escalation, the mechanisms attackers
+exploit, and the architectural defenses required to mitigate lateral
+risk.</p>
+<h3 id="overly-permissive-stsassumerole-configurations">Overly
+Permissive <code>sts:AssumeRole</code> Configurations</h3>
+<p>The <code>sts:AssumeRole</code> action is the most common vector for
+lateral movement. The vulnerability arises when an identity's
+identity-based policy allows role assumption with a wildcard
+(<code>*</code>) resource:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="st">&quot;sts:AssumeRole&quot;</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>If matching trust policies on peer roles fail to enforce strict
+principal validation, any identity possessing this policy can assume
+roles designated for entirely different functional units (e.g., a
+marketing service account assuming a billing analyst role).</p>
+<h3 id="missing-context-keys-in-self-service-policies">Missing Context
+Keys in Self-Service Policies</h3>
+<p>Organizations often permit users to manage their own access keys or
+passwords. A common configuration mistake is omitting the
+<code>${aws:username}</code> policy variable in the
+<code>Resource</code> block:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;iam:CreateAccessKey&quot;</span><span class="ot">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;iam:UpdateLoginProfile&quot;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:iam::123456789012:user/*&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Because the <code>Resource</code> specifies a wildcard for all users
+rather than restricting the action to
+<code>arn:aws:iam::123456789012:user/${aws:username}</code>, any
+standard user can generate access keys or reset login passwords for
+other non-administrative users, immediately hijacking their identities
+horizontally.</p>
+<h3 id="broad-access-to-credential-stores">Broad Access to Credential
+Stores</h3>
+<p>Lateral movement frequently bypasses direct IAM role assumption by
+targeting credential repositories. Overly broad permissions on AWS
+Secrets Manager (<code>secretsmanager:GetSecretValue</code>) or AWS
+Systems Manager Parameter Store (<code>ssm:GetParameter</code> /
+<code>ssm:GetParametersByPath</code>) allow users to extract:</p>
+<ul>
+<li>Third-party API keys belonging to other applications.</li>
+<li>Database credentials of isolated environments.</li>
+<li>Long-lived static credentials for alternative IAM accounts.</li>
+</ul>
+<p>When policies fail to partition secrets using naming conventions and
+explicit resource paths (e.g.,
+<code>arn:aws:ssm:region:account:parameter/app/team-a/*</code>), an
+identity in Team A can read credentials provisioned exclusively for Team
+B.</p>
+<h3 id="unscoped-iampassrole-permissions">Unscoped
+<code>iam:PassRole</code> Permissions</h3>
+<p>The <code>iam:PassRole</code> permission allows a principal to assign
+an IAM role to an AWS compute resource, such as an EC2 instance, Lambda
+function, or ECS task. If this permission is granted with
+<code>Resource: "*"</code> along with launch permissions (such as
+<code>ec2:RunInstances</code> or <code>lambda:CreateFunction</code>), a
+user can deploy a resource and assign it a peer role that possesses
+access to a different data set or application. Once the compute resource
+starts, the user can query the metadata service or execution environment
+to retrieve temporary security tokens for that peer role.</p>
+<h3
+id="flawed-attribute-based-access-control-abac-trust-relationships">Flawed
+Attribute-Based Access Control (ABAC) Trust Relationships</h3>
+<p>Attribute-Based Access Control relies on tags applied to both IAM
+principals and targets. Horizontal escalation occurs when:</p>
+<ol type="1">
+<li><strong>Tag-editing rights are unconstrained:</strong> An identity
+has permissions like <code>iam:TagUser</code> or
+<code>iam:TagRole</code> without condition keys, allowing the attacker
+to change their own role's department tag to match another
+department.</li>
+<li><strong>Missing <code>StringEquals</code> enforcement:</strong>
+Trust policies using loose string matching or lacking strict tag
+comparisons allow identities to satisfy cross-team assumption
+requirements unintentionally.</li>
+</ol>
+<h3 id="overly-permissive-shared-storage-policies">Overly Permissive
+Shared Storage Policies</h3>
+<p>In environments where Amazon S3 buckets or EFS file systems are
+shared across multiple internal services, permissive read policies allow
+lateral data exposure. If identity policies use broad actions like
+<code>s3:GetObject</code> against
+<code>arn:aws:s3:::corporate-shared-bucket/*</code>, a compromised
+workload can inspect internal configuration files, environment
+variables, or private backups belonging to unrelated teams.</p>
+<h3 id="remediation-strategies">Remediation Strategies</h3>
+<p>To eliminate horizontal privilege escalation vectors, implement the
+following guardrails:</p>
+<ul>
+<li><strong>Enforce Policy Variables for Self-Management:</strong>
+Always restrict self-service actions using <code>${aws:username}</code>
+in the resource ARN.</li>
+<li><strong>Scope <code>Resource</code> Fields Explicitly:</strong>
+Avoid <code>Resource: "*"</code> on <code>sts:AssumeRole</code>,
+<code>iam:PassRole</code>, and credential-access APIs. Explicitly
+declare target ARNs.</li>
+<li><strong>Protect Tag Integrity:</strong> Deny
+<code>iam:TagUser</code>, <code>iam:TagRole</code>, and
+<code>iam:Untag*</code> permissions to standard identities to prevent
+tampering with ABAC controls.</li>
+<li><strong>Implement Path-Based Separation:</strong> Organize secrets,
+parameters, and storage paths using strict prefixes, granting access
+exclusively via granular path-based ARN definitions.</li>
+</ul></article>
+        <div id="comments-container"></div>
+        <script>
+            const utterancesScript = document.createElement('script');
+            utterancesScript.setAttribute('src', 'https://utteranc.es/client.js');
+            utterancesScript.setAttribute('repo', 'salivity/hacking'); 
+            utterancesScript.setAttribute('issue-term', 'pathname'); 
+            utterancesScript.setAttribute('theme', localStorage.getItem('theme') === 'dark' ? 'github-dark' : 'github-light'); 
+            utterancesScript.setAttribute('crossorigin', 'anonymous');
+            utterancesScript.async = true;
+            document.getElementById('comments-container').appendChild(utterancesScript);
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="/hacking/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/hacking/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>
